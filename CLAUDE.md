@@ -16,9 +16,9 @@ no image, no binaries; consumers fetch the tag.
 - An adoption step lands here first, then one commit per tool on the branch
   `adopt-go-deploy-utility`. Tools link to this checkout through an untracked
   `go.work` until a tag is pinned (docs/consuming.md).
-- The parity body is canonical here: `docs/handoff/parity-body.md` until the
-  `paritydoc` package lands. Both tools' `docs/parity.md` carry it unchanged
-  below their own notice.
+- The parity body is canonical here, in `paritydoc/body.md`. Both tools'
+  `docs/parity.md` carry it unchanged below their own notice, checked by
+  `paritydoc.Check`.
 - README.md and every `docs/*.md` carry the support notice directly under the
   H1. `docs/handoff/` is planning history: mark items superseded, never rewrite.
 - Lifted tests keep their names; docs/test.md lists every test and its source.

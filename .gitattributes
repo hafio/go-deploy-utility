@@ -1,0 +1,10 @@
+# Line endings: LF in the repository AND in every working tree, as in both tools.
+#
+# Without this, a clone on Windows (core.autocrlf=true, the Git for Windows
+# default, including on GitHub's windows runners) converts text to CRLF on
+# checkout. paritydoc/body.md is embedded with go:embed and compared byte for
+# byte, notice text is compared byte for byte, and gofmt -l reports CRLF .go
+# files as unformatted.
+#
+# text=auto still lets git detect binary content and leave it untouched.
+* text=auto eol=lf

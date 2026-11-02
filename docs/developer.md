@@ -30,7 +30,11 @@ time, both tools in the same step.
   and never execute. Only code that takes a `runner.Runner` executes.
 - Shared code has no globals, registers no flags and never calls `os.Exit`.
   Seams are function fields or parameters. A golden test's update switch is a
-  parameter, never a package flag.
+  parameter, never a package flag. The one exception is the parity body in
+  `paritydoc`: `go:embed` needs a package-level variable, which stays
+  unexported and is never assigned.
+- Every text file is LF in the repo and in every checkout (`.gitattributes`),
+  because embedded text and notices are compared byte for byte.
 - An error names what failed and the offending value, with secrets masked, and
   says what to do next. A wrapped cause uses `%w`.
 - A lifted test keeps its original name, and [test.md](test.md) records its source.
@@ -43,7 +47,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | --- | --- | --- |
 | B1 | `exitcode` | B `internal/cli/exit.go`; the cobra parts stay in B |
 | B1 | `notice`, `notice/noticetest` | A `cmd/solmq-conn-util/support.go` and `support_test.go`; B `internal/cli/commanddoc_test.go` |
-| B1 | `paritydoc` | `docs/handoff/parity-body.md`, embedded, with a check each tool runs on its own `docs/parity.md` |
+| B1 | `paritydoc` | `paritydoc/body.md` (moved from `docs/handoff/parity-body.md`), embedded, with a check each tool runs on its own `docs/parity.md` |
 | B1 | `abbrev` | B `internal/abbrev` |
 | B1 | `confirm` | A `promptLine` and `stdinIsTerminal`; B `internal/cli/confirm.go` |
 | B2 | `execguard`, `envref` | B `internal/config/execguard.go` and `secretref.go`; A `internal/validate` |
@@ -55,6 +59,21 @@ Packages are built in this order. Each step is planned and approved on its own.
 
 The `output` package waits until the output-model decision is made, because only
 B uses it until then. Each tool keeps its own version printing.
+
+Notes on the available packages:
+
+- `exitcode` never prints or exits. A tool marks usage errors with `Usagef` or
+  `AsUsage`, and its main calls `os.Exit(exitcode.Code(err))`.
+- `notice.New` takes the name, the kind word and the covers clause without its
+  final period. One greedy wrap at 80 columns reproduces every committed notice.
+- `noticetest` checks `README.md` plus `docs/*.md` by default. The glob does not
+  descend, so a doc in a subfolder of `docs/` is not checked unless listed in
+  `Options.Files`.
+- `paritydoc/body.md` is the only copy of the shared parity text that is edited.
+  A change there is tagged and then picked up by both tools in one step.
+- `confirm` holds one buffered reader per `Prompter`, so a tool keeps one
+  Prompter per run. B's redeploy consent prompt stays in B until the
+  redeploy-consent decision is made.
 
 ## Adoption order
 

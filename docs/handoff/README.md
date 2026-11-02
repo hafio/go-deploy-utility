@@ -12,7 +12,7 @@ code yet.
 |------|------------|
 | `HANDOFF.md` | Read first. Context, state of both repos at export, house rules, decisions already taken, what was scanned (with file and line anchors), the next stages, and the prompting policy for both the process and the product. |
 | `PLAN.md` | Verbatim copy of the approved plan file. Stage 0 (done) plus Appendix A (licensing and shared-module research), Appendix B (solace-util tests pinned to the on-disk compose file), Appendix C (deferred Stages 1 to 7 and open decisions). |
-| `parity-body.md` | Verbatim shared body of `docs/parity.md` as committed in both repos. The exact similarities (Contract, 14 rules), exact differences (Divergences, 14 rows), Decisions, Inherent differences and Runner seams. |
+| `parity-body.md` (moved to `paritydoc/body.md` on 2026-11-02) | Verbatim shared body of `docs/parity.md` as committed in both repos. The exact similarities (Contract, 14 rules), exact differences (Divergences, 14 rows), Decisions, Inherent differences and Runner seams. |
 
 Suggested opening line for the next session:
 

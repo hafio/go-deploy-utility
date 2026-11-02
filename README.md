@@ -18,19 +18,19 @@ Import path: `github.com/hafio/go-deploy-utility`.
 
 ## Status
 
-The module is at v0 and exports nothing yet. Packages land one at a time, in
-the order [docs/developer.md](docs/developer.md) lists. Any v0 release may
-change the API.
+The module is at v0. The first packages are available, and the rest land one at
+a time in the order [docs/developer.md](docs/developer.md) lists. Any v0 release
+may change the API.
 
 ## Packages
 
 | Package | Purpose | Status |
 | --- | --- | --- |
-| `exitcode` | Exit codes 0, 1 and 2, usage and child-exit markers | planned |
-| `notice`, `notice/noticetest` | Support notice text and the doc gate that checks it | planned |
-| `paritydoc` | Canonical `docs/parity.md` body and the check both tools run against it | planned |
-| `abbrev` | Short forms for commands, platforms and roles | planned |
-| `confirm` | Confirmation prompts for destructive commands | planned |
+| `exitcode` | Exit codes 0, 1 and 2, usage and child-exit markers | available |
+| `notice`, `notice/noticetest` | Support notice text and the doc gate that checks it | available |
+| `paritydoc` | Canonical `docs/parity.md` body and the check both tools run against it | available |
+| `abbrev` | Short forms for commands, platforms and roles | available |
+| `confirm` | Confirmation prompts for destructive commands | available |
 | `execguard`, `envref` | Command allowlist and token checks; environment-name references | planned |
 | `runner`, `runner/runnertest` | The command runner seam and its test fake | planned |
 | `containerart` and subpackages | Compose and quadlet escaping, hardening lines, artifact tests | planned |

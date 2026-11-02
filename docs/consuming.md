@@ -21,6 +21,10 @@ pick it up.
 The module's `go` line is `go 1.27` with no patch level, because it is a floor
 for every consumer. Its `toolchain` line applies to this repo only.
 
+Each tool's tests check its own `docs/parity.md` with `paritydoc.Check` against
+the body pinned with the module. A change to the shared parity text is made in
+`paritydoc/body.md`, tagged, and then picked up by both tools in the same step.
+
 ## Develop against a local checkout
 
 While a component is being adopted, a tool builds against the working copy of

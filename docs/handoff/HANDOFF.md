@@ -126,7 +126,7 @@ Verbatim user answers, so they are not re-litigated.
 
 ## 5. Exact similarities and differences
 
-`parity-body.md` is the authoritative text: 14 contract rules both tools follow today, 14
+`parity-body.md` (now `paritydoc/body.md`) is the authoritative text: 14 contract rules both tools follow today, 14
 divergence rows with status, four decisions, four inherent differences, eight runner-seam
 rows. The tables below are the same findings with the file and line anchors from the scan,
 for the next session's convenience. Line numbers are as of the HEADs in section 2.

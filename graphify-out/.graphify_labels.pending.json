@@ -4,11 +4,15 @@
   "2": "Handoff: aligning solmq-conn-util and solace-util on Docker, Podman and Kubernetes",
   "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
-  "5": "Appendix A: research notes (licensing and shared module)",
-  "6": "parity-body.md",
-  "7": "Tests",
-  "8": "go-deploy-utility",
+  "5": "noticetest_test.go",
+  "6": "testing.T",
+  "7": "abbrev_test.go",
+  "8": "paritydoc_test.go",
   "9": "handoff/README.md",
   "10": "doc.go",
-  "11": "github.com/hafio/go-deploy-utility"
+  "11": "github.com/hafio/go-deploy-utility",
+  "12": "exitcode_test.go",
+  "13": "Prompter",
+  "14": "Notice",
+  "15": "confirm/doc.go"
 }
