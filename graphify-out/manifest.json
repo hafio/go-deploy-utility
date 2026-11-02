@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793624473.8517458,
-    "seen": 1793628891.73197,
-    "ast_hash": "c06f120f2624396cb0b7f3c81e18565f",
+    "mtime": 1793630380.447907,
+    "seen": 1793631804.7683825,
+    "ast_hash": "e28d1853375f20308799eab9cd1929a1",
     "semantic_hash": ""
   },
   "docs/consuming.md": {
@@ -60,15 +60,15 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793624767.8580391,
-    "seen": 1793628891.731972,
-    "ast_hash": "cdf911966f3af1f547407f39315930c1",
+    "mtime": 1793630533.4144456,
+    "seen": 1793631804.7683852,
+    "ast_hash": "a07bf0a1d1ad4d281ddc00f264442634",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
-    "mtime": 1793624474.7657561,
-    "seen": 1793628891.7319734,
-    "ast_hash": "268f913fd9a25cebae12b98981fb132a",
+    "mtime": 1793630403.5101652,
+    "seen": 1793631804.7683866,
+    "ast_hash": "518c442dc6f16b24f0e350b0545ea88f",
     "semantic_hash": ""
   },
   "docs/handoff/PLAN.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793624513.2801876,
-    "seen": 1793628891.7319772,
-    "ast_hash": "4974c7b930cd5ac880f6c48f3b628ba7",
+    "mtime": 1793630566.2781584,
+    "seen": 1793631804.7683904,
+    "ast_hash": "1e8f22eb9277aacacce695618507bfa8",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -201,6 +201,30 @@
     "mtime": 1793616601.2355633,
     "seen": 1793628891.7319782,
     "ast_hash": "94f26d43b48fdbaa29ab16f911b51a3f",
+    "semantic_hash": ""
+  },
+  "envref/envref.go": {
+    "mtime": 1793630515.5934207,
+    "seen": 1793631804.768355,
+    "ast_hash": "ea995ab2d228c6a306b780bdd20d773f",
+    "semantic_hash": ""
+  },
+  "envref/envref_test.go": {
+    "mtime": 1793630526.127908,
+    "seen": 1793631804.7683573,
+    "ast_hash": "02cb661054a8e408b522aad3dac5a7e1",
+    "semantic_hash": ""
+  },
+  "execguard/execguard.go": {
+    "mtime": 1793630557.7472615,
+    "seen": 1793631804.7683587,
+    "ast_hash": "e7b5c40893304bc21e2e86ded10dfcb0",
+    "semantic_hash": ""
+  },
+  "execguard/execguard_test.go": {
+    "mtime": 1793630557.8898945,
+    "seen": 1793631804.7683597,
+    "ast_hash": "31001dea9c0fca3d88041bc4f66f22fd",
     "semantic_hash": ""
   }
 }

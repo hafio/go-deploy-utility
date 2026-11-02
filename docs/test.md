@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-9 test files, 77 test functions. One is not a test: `TestHelperExitProcess` in
+11 test files, 111 test functions. One is not a test: `TestHelperExitProcess` in
 `exitcode` is an os/exec helper-process shim, a no-op unless
 `GO_DEPLOY_UTILITY_TEST_CHILD_EXIT_CODE` is set. It exists because a real
 `*exec.ExitError` cannot be built by hand.
@@ -33,7 +33,9 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 | notice/noticetest | 1 | 14 |
 | paritydoc | 1 | 9 |
 | confirm | 3 | 20 |
-| **Total** | **9** | **77** |
+| execguard | 1 | 24 |
+| envref | 1 | 10 |
+| **Total** | **11** | **111** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -155,6 +157,59 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 | `TestNotTerminalErrorMessage` | The cause text tools embed | new |
 | `TestIsNotTerminalThroughWrapping` | The check sees through wrapping | new |
 | `TestUnansweredWrapsEOF` | The end-of-input error wraps `io.EOF` | new |
+
+### execguard, execguard_test.go
+
+B's tests drove `*Config` accessors; here they drive `Check` and `Approve` with
+rules fixtures that mirror B's four command fields. B's Config-bound guard tests
+(validator and executor agreement, compose derivation, tilde expansion, schema
+keys) stay in B.
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestCheckCommandAccepts` | Bare binaries, flag profiles, the compose subword, 8.3 names, `.exe`, approved chained runners | B `internal/config/execguard_test.go` |
+| `TestCheckCommandRejects` | About 70 rejects, each with its message; the escalator rows now say "never permitted" | B `internal/config/execguard_test.go` |
+| `TestEscalationFloorFoldsCaseBothWays` | The deny list folds case at both doors; the allowlist stays exact | B `internal/config/execguard_test.go` |
+| `TestFlagValuePositionIsNotGuaranteed` | The accepted flag-value limit, and the charset still applying there | B `internal/config/execguard_test.go` |
+| `TestCharsetAgreesAcrossBothYAMLForms` | The string form's split and the list form's refusal agree on Unicode spaces | B `internal/config/execguard_test.go`, without YAML |
+| `TestGuardErrorsAreActionable` | Every message is one line, names the field and a remedy | B `internal/config/execguard_test.go` |
+| `TestAllowCommandsAccepts` | Approvals record names with `.exe` folded | B `internal/config/execguard_test.go`, over `Approve` |
+| `TestAllowCommandsRejects` | Bad approval values are refused naming the flag | B `internal/config/execguard_test.go`, over `Approve` |
+| `TestAllowCommandsRejectsEscalation` | Escalators are never approved, and the message names `<escalator> <tool> ...` | B `internal/config/execguard_test.go`, over `Approve` |
+| `TestEscalationCannotBeAllowedByAnyRoute` | Forced approvals and `Rules.Allowed` cannot carry an escalator | B `internal/config/execguard_test.go` |
+| `TestAllowedBinaryIsNotGloballyAllowed` | An approval belongs to its own Approvals value | B `internal/config/execguard_test.go` |
+| `TestCheckDeployCommandAcceptReject` | A's matrix over `strings.Fields`; `sudo podman` with approval is now refused | A `internal/validate/validate_deploycommand_test.go` |
+| `TestCheckDeployCommandEndOfFlagsMarkerMidCommand` | `--` after an allowed binary is refused | A `internal/validate/validate_deploycommand_test.go` |
+| `TestTokenCharsetRows` | A's safe-token rows in a flag-value position; `a~b` now passes | new, rows from A `TestSafeToken` |
+| `TestCheckRejectsC1Controls` | C1 controls are refused with the code point; NEL stays whitespace | new |
+| `TestCheckRejectsInvalidUTF8` | A bad byte is refused; a literal U+FFFD is not | new |
+| `TestEscalatorRefusedInEveryBarePosition` | argv[0] and subcommand position say "never permitted"; a flag value named sudo passes | new |
+| `TestEscalatorListCoversTheCategory` | All 22 names, upper case and `.exe`, through both doors | new |
+| `TestExeSuffixFoldsAnyCase` | `.exe` folds in any case; the name does not | new |
+| `TestSubwordOnlyLast` | The subword passes only in last place | new |
+| `TestRulesWiringErrors` | An empty `Field` or `Allowed`, or a `Subword` that names an escalator or is not a plain word, is a wiring error | new |
+| `TestApproveWiring` | Empty tool, no values, partial failure, repeats | new |
+| `TestScopeOmitted` | The allowlist message with and without a scope | new |
+| `TestExportedCharset` | `UnsafeChars`, `PathSeparators`, `IsControl`, `IsInvisible`, `ApproveFlag` | new |
+
+### envref, envref_test.go
+
+Neither tool tests its resolver on its own: B through `Load`, A through
+`checkCred` callbacks. These tests are new, with rows from A `TestCheckCredRules`
+and B `TestLoadSecretRefErrors`.
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestValidName` | The portable name shape | new |
+| `TestCheckBothSet` | Both keys set is an error naming both | new |
+| `TestCheckReferenceForm` | `${FOO}`, `$FOO` and an embedded reference get the bare-name message | new |
+| `TestCheckInvalidName` | A bad name names which key takes the name and which the value | new |
+| `TestRefWiringErrors` | A Ref without its key names is a wiring error | new |
+| `TestResolveLiteralSkipsLookup` | A literal never consults the environment | new |
+| `TestResolveFromEnv` | A set variable resolves; a literal `${X}` stays verbatim | new |
+| `TestResolveUnsetAndEmpty` | Both are an `*UnsetError`, told apart | new |
+| `TestResolveNoEnvironmentAccess` | A nil lookup is its own error, not an unset variable | new |
+| `TestMessagesNeverCarryTheValue` | No error path prints the literal, a resolved value, or a name that fails the name rules | new |
 
 ## Coverage
 

@@ -31,7 +31,7 @@ may change the API.
 | `paritydoc` | Canonical `docs/parity.md` body and the check both tools run against it | available |
 | `abbrev` | Short forms for commands, platforms and roles | available |
 | `confirm` | Confirmation prompts for destructive commands | available |
-| `execguard`, `envref` | Command allowlist and token checks; environment-name references | planned |
+| `execguard`, `envref` | Command allowlist and token checks; environment-name references | available |
 | `runner`, `runner/runnertest` | The command runner seam and its test fake | planned |
 | `containerart` and subpackages | Compose and quadlet escaping, hardening lines, artifact tests | planned |
 | `podman`, `systemd`, `rootless` | Podman and systemd commands, rootless rules, host checks | planned |

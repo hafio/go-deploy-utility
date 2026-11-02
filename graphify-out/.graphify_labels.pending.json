@@ -14,5 +14,7 @@
   "12": "exitcode_test.go",
   "13": "Prompter",
   "14": "Notice",
-  "15": "confirm/doc.go"
+  "15": "confirm/doc.go",
+  "16": "execguard_test.go",
+  "17": "envref_test.go"
 }

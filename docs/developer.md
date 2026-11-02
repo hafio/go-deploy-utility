@@ -50,7 +50,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B1 | `paritydoc` | `paritydoc/body.md` (moved from `docs/handoff/parity-body.md`), embedded, with a check each tool runs on its own `docs/parity.md` |
 | B1 | `abbrev` | B `internal/abbrev` |
 | B1 | `confirm` | A `promptLine` and `stdinIsTerminal`; B `internal/cli/confirm.go` |
-| B2 | `execguard`, `envref` | B `internal/config/execguard.go` and `secretref.go`; A `internal/validate` |
+| B2 | `execguard`, `envref` | B `internal/config/execguard.go` and `secretref.go`; A `internal/validate` and `internal/gen` `ResolveCredentials` |
 | B3 | `runner`, `runner/runnertest` | A `internal/runner` seam; B `internal/engine` |
 | B4 | `containerart`, `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen`, `internal/podmangen`, `internal/yamlwriter`; B `internal/render` |
 | B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman and systemd parts, `runas.go`; B `internal/container` rootless, limits and euid code |
@@ -74,6 +74,23 @@ Notes on the available packages:
 - `confirm` holds one buffered reader per `Prompter`, so a tool keeps one
   Prompter per run. B's redeploy consent prompt stays in B until the
   redeploy-consent decision is made.
+- `execguard.Check` is the one command guard. A tool calls it from its
+  validator and again in every executor right before argv is built, with one
+  `Rules` value per command field. `Approve` turns `--allow-command` values into
+  `Approvals`, and is the only way to widen an allowlist. A privilege-escalation
+  wrapper (22 names, case-folded, `.exe` stripped) is never permitted, by either
+  route. Leading-`~` expansion stays in each tool; the guard refuses a leading
+  `~` it is handed.
+- `execguard.UnsafeChars`, `PathSeparators`, `IsControl` and `IsInvisible` are
+  the one charset definition. A host-path gate derives its own set from them
+  rather than copying it.
+- `envref.Ref` pairs a secret field with its reference key. `Check` needs no
+  environment; `Resolve` takes the lookup seam (`os.LookupEnv`, or nil for a
+  command with no environment access). An unset or empty variable is an
+  `*UnsetError`, which a validator may downgrade to a warning. No message
+  prints a value, or a name that fails the name rules, since that is most
+  likely the secret pasted into the wrong key. Reserved-name rules, such as A's
+  `_GEN_` prefix, stay in the tool.
 
 ## Adoption order
 
@@ -86,7 +103,7 @@ states the old and new totals and why.
 | --- | --- | --- | --- |
 | S1 | exitcode, notice, paritydoc, abbrev; both tools re-copy `tag.yml` and add `go.work` to `.gitignore` | none when the notice goldens match | env-file exit code, A 1 vs B 2 |
 | S2 | confirm | B fails a non-TTY destructive prompt without `--no-prompt` with exit 1 and names the flag; B's downgrade prompt gains `--no-prompt` | none, already decided |
-| S3 | execguard, envref | A rejects invisible characters and accepts embedded `~` and `.Exe` | escalator ban for A |
+| S3 | execguard, envref | A refuses invisible and C1 characters, invalid UTF-8, any escalator in a command (`sudo podman` goes; run `sudo solmq-conn-util` instead) and a set-but-empty `-env` variable at deploy, accepts embedded `~` and `.Exe`, and takes B's guard messages; B refuses C1 characters, invalid UTF-8 and 8 more escalators, its escalator messages change, and an invalid `*Env` name is no longer echoed back | none, already decided (ban in both, 2026-11-02) |
 | S4 | runner | B cancels with interrupt, then kill, and can pass stdin and env together; A's ErrDot message names the fix | none |
 | S5 | containerart | B's output bytes stay identical; A's change only if A adopts B's quoting | A adopts B's always-quote policy |
 | S6 | podman, systemd, rootless | the decided rootless rule; A gains the XDG quadlet dir, session repair, linger and core-limit checks, and uses the effective uid; B uses `secret create --replace` | subuid warn vs refuse |

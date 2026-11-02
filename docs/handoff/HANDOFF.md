@@ -123,6 +123,7 @@ Verbatim user answers, so they are not re-litigated.
 | Rootless podman | "declared can only work if run by root and let users deploy as declared non root user. non root only allows derived, error on uid mismatch" | non-root: rootless derived from uid, a contradicting declared value is an error; root: declared value decides, and declared rootless as root means deploying for that user (new feature, Stage 7 spike; until then both tools refuse with one message) |
 | Scope of the first change | "do capture first only" | Stage 0 only; every code stage needs its own approval |
 | Compose file | the user's own example: "docker compose on stdin instead of file" | B moves to stdin like A |
+| Escalator ban for A (added 2026-11-02, B2 planning) | "Ban in both (Recommended)" | no switch in `execguard`; at S3 A drops `sudo podman` with `--allow-command sudo`, and `sudo solmq-conn-util` is the supported form |
 
 ## 5. Exact similarities and differences
 
