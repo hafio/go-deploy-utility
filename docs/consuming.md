@@ -1,0 +1,58 @@
+# Consuming go-deploy-utility
+
+> [!WARNING]
+> **Not a supported Solace product.** `go-deploy-utility` was created by Solace
+> Professional Services and is supported only by Solace Professional Services --
+> not by Solace Support. For help with this module, contact your Solace
+> Professional Services representative rather than opening a Solace Support
+> case. This notice covers this module only, not the Solace products that the
+> tools built on it deploy.
+
+This page covers how `solmq-conn-util` and `solace-util` depend on this module.
+
+## Pin an exact version
+
+Each tool requires one exact tag in its `go.mod`, such as
+`require github.com/hafio/go-deploy-utility v0.1.0`. Dependabot manages GitHub
+Actions only, so a module bump is always a deliberate commit with gates re-run.
+A tool built against a new module version must be rebuilt and redeployed to
+pick it up.
+
+The module's `go` line is `go 1.27` with no patch level, because it is a floor
+for every consumer. Its `toolchain` line applies to this repo only.
+
+## Develop against a local checkout
+
+While a component is being adopted, a tool builds against the working copy of
+this module through an untracked `go.work` at the tool's repo root:
+
+```
+go 1.27
+
+use (
+	.
+	../go-deploy-utility
+)
+```
+
+Both `go.work` and `go.work.sum` are gitignored in every repo. Keep the file in
+the tool's root, never in a shared parent directory, because Go applies the
+nearest `go.work` above the current directory to every module below it.
+
+The workspace hides a wrong `require` line, since the local checkout satisfies
+every import. `go mod tidy` ignores the workspace and resolves through the
+module proxy, so it fails until the required tag exists.
+
+## Release and merge order
+
+1. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout.
+2. Tag this repo `v0.x.y` and push the tag. The tag pipeline runs the gates and
+   publishes a notes-only release.
+3. In each tool, set the exact `require` to the new tag.
+4. In each tool, run `GOWORK=off ./scripts/dev.sh all scan`.
+5. Merge each tool's `adopt-go-deploy-utility` branch to `main`, then tag the
+   tool as usual.
+
+A pushed tag is public at once, and the Go module proxy keeps it permanently.
+Never move or reuse a tag. A bad release is fixed by a new patch tag, and a
+`retract` line in this module's `go.mod` marks the bad one.

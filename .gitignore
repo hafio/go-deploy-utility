@@ -1,0 +1,18 @@
+# Coverage artifacts (produced by scripts/dev.* cov)
+/coverage.out
+/coverage.html
+
+# Dev-script logs
+/scripts/logs/
+
+# Build outputs: a library writes none, ignored in case a tool is added later
+/dist/
+
+# Local workspace files: never committed, here or in the consuming tools
+go.work
+go.work.sum
+
+# graphify dated snapshots and per-machine state (the live graph stays tracked)
+/graphify-out/20*/
+graphify-out/cache
+graphify-out/.graphify_python

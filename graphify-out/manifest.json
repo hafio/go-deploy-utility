@@ -1,0 +1,98 @@
+{
+  "doc.go": {
+    "mtime": 1793618912.756455,
+    "seen": 1793619510.154568,
+    "ast_hash": "12eef1bbde6ce71ba87abfefcf28a095",
+    "semantic_hash": ""
+  },
+  "go.mod": {
+    "mtime": 1793619483.6948502,
+    "seen": 1793619510.1545725,
+    "ast_hash": "aff8a5aebc7df8fa1e64cb6d0dba2282",
+    "semantic_hash": ""
+  },
+  "scripts/dev.ps1": {
+    "mtime": 1793619160.3042278,
+    "seen": 1793619510.1545749,
+    "ast_hash": "8723df38665c14678f0d0ef0ab29cc5d",
+    "semantic_hash": ""
+  },
+  "scripts/dev.sh": {
+    "mtime": 1793619160.138226,
+    "seen": 1793619510.154576,
+    "ast_hash": "fb7834600e6a10d41b7ff9094fb86829",
+    "semantic_hash": ""
+  },
+  ".github/dependabot.yml": {
+    "mtime": 1793618877.3330584,
+    "seen": 1793619510.1545773,
+    "ast_hash": "9d5faae161766b55a2b2a8859aaf4f7f",
+    "semantic_hash": ""
+  },
+  ".github/workflows/ci.yml": {
+    "mtime": 1793618877.3310583,
+    "seen": 1793619510.1545782,
+    "ast_hash": "284837febbe4456c27bd6391ddd37b12",
+    "semantic_hash": ""
+  },
+  ".github/workflows/tag.yml": {
+    "mtime": 1793618877.3320582,
+    "seen": 1793619510.1545792,
+    "ast_hash": "407144c4eda57a8f411fe0c991f380e9",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1793619160.756233,
+    "seen": 1793619510.1545799,
+    "ast_hash": "2bb07ead4cf01fadaf9cd344d0f135a5",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1793618987.0842876,
+    "seen": 1793619510.154581,
+    "ast_hash": "a18cd19315883d50ff4dff5a76b3400e",
+    "semantic_hash": ""
+  },
+  "docs/consuming.md": {
+    "mtime": 1793618987.2392893,
+    "seen": 1793619510.154582,
+    "ast_hash": "162a7538b3502001f778e01d57f21b95",
+    "semantic_hash": ""
+  },
+  "docs/developer.md": {
+    "mtime": 1793619160.4522295,
+    "seen": 1793619510.1545827,
+    "ast_hash": "c4a617a91adebd29988417f2d4f87780",
+    "semantic_hash": ""
+  },
+  "docs/handoff/HANDOFF.md": {
+    "mtime": 1793619032.1967928,
+    "seen": 1793619510.1545842,
+    "ast_hash": "e6a6a6d80b9dbe2de7b6c9c00c700453",
+    "semantic_hash": ""
+  },
+  "docs/handoff/PLAN.md": {
+    "mtime": 1793619032.0467913,
+    "seen": 1793619510.154585,
+    "ast_hash": "9510e0f3253896a276f73deec72ef205",
+    "semantic_hash": ""
+  },
+  "docs/handoff/README.md": {
+    "mtime": 1793619031.8827894,
+    "seen": 1793619510.1545856,
+    "ast_hash": "444ba829f364f58f51b2e1f8815ab855",
+    "semantic_hash": ""
+  },
+  "docs/handoff/parity-body.md": {
+    "mtime": 1793616601.2355633,
+    "seen": 1793619510.1545863,
+    "ast_hash": "94f26d43b48fdbaa29ab16f911b51a3f",
+    "semantic_hash": ""
+  },
+  "docs/test.md": {
+    "mtime": 1793618987.378291,
+    "seen": 1793619510.1545875,
+    "ast_hash": "4e9206b2985a6e503211ce9fe506e0a4",
+    "semantic_hash": ""
+  }
+}
