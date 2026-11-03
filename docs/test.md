@@ -19,10 +19,15 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-11 test files, 111 test functions. One is not a test: `TestHelperExitProcess` in
-`exitcode` is an os/exec helper-process shim, a no-op unless
-`GO_DEPLOY_UTILITY_TEST_CHILD_EXIT_CODE` is set. It exists because a real
-`*exec.ExitError` cannot be built by hand.
+14 test files, 184 test functions. Two are not tests, and both are os/exec
+helper-process shims that the tests re-execute as a child:
+
+- `TestHelperExitProcess` in `exitcode` is a no-op unless
+  `GO_DEPLOY_UTILITY_TEST_CHILD_EXIT_CODE` is set. It exists because a real
+  `*exec.ExitError` cannot be built by hand.
+- `TestHelperProcess` in `runner` is a no-op unless
+  `GO_DEPLOY_UTILITY_TEST_RUNNER_HELPER=1` is set. Its modes stand in for
+  external commands.
 
 | Package | Files | Tests |
 | --- | --- | --- |
@@ -35,7 +40,9 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 | confirm | 3 | 20 |
 | execguard | 1 | 24 |
 | envref | 1 | 10 |
-| **Total** | **11** | **111** |
+| runner | 2 | 62 |
+| runner/runnertest | 1 | 11 |
+| **Total** | **14** | **184** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -211,8 +218,97 @@ and B `TestLoadSecretRefErrors`.
 | `TestResolveNoEnvironmentAccess` | A nil lookup is its own error, not an unset variable | new |
 | `TestMessagesNeverCarryTheValue` | No error path prints the literal, a resolved value, or a name that fails the name rules | new |
 
+### runner, runner_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestHelperProcess` | Not a test: the child process, in modes `echo`, `stdin`/`cat`, `both`, `fail`, `drip`, `env`, `stdiokind`, `trapint`, `ignoreint`, `orphan`, `sleep` and `killself` | A and B, merged; five modes new |
+| `TestOSRunWiresStdinToChild` | Stdin bytes, including NUL, CR and invalid UTF-8, reach the child unchanged | A `internal/runner/runner_test.go` |
+| `TestOSRunCombinesStdoutAndStderr` | `Combined` carries both streams | A `internal/runner/runner_test.go` |
+| `TestOSRunNonZeroExitReturnsErrorWithOutput` | A non-zero exit is an error wrapping `*exec.ExitError`, and the output before it is kept | A `internal/runner/runner_test.go` |
+| `TestOSRunEnvReachesChildAndAmbientInherited` | Env reaches the child, the ambient environment is inherited, and a supplied entry wins | A `internal/runner/runner_test.go` |
+| `TestOSRunAcceptsAbsolutePathArgv0` | An absolute argv[0] resolves and runs | A `internal/runner/runner_test.go` |
+| `TestOSRunWritesNothingToStderr` | A run prints nothing of its own | A `internal/runner/runner_test.go` |
+| `TestOSRunRejectsUnresolvableArgv0` | A binary not on PATH is an error | A `internal/runner/runner_test.go` |
+| `TestOSStreamDeliversOutputBeforeExitAndCancelIsReported` | Output arrives while the child runs; a cancel is an error wrapping `context.Canceled` | A `internal/runner/runner_test.go`, renamed from `...AndCancelIsCleanEnd`: a cancel is no longer swallowed |
+| `TestOSStreamKeepsStdoutAndStderrApart` | Two writers each get only their own stream | A `internal/runner/runner_test.go` |
+| `TestOSStreamReportsAFailureThatWasNotCancelled` | An uncancelled failure is an error, not a cancellation, and its output still arrives | A `internal/runner/runner_test.go` |
+| `TestOSStreamRejectsEmptyAndUnresolvableArgv` | An empty argv and a missing binary are refused, the latter as "not found on PATH" | A `internal/runner/runner_test.go` |
+| `TestOSAttachHandsTheChildTheCallersFilesNotPipes` | Attach hands over the files themselves, never pipes | A `internal/runner/runner_test.go` |
+| `TestOSAttachStdinIsTheHandedFile` | The child reads the handed stdin file | A `internal/runner/runner_test.go` |
+| `TestOSAttachReportsTheChildExitStatus` | A non-zero session is its status with a nil error | A `internal/runner/runner_test.go` |
+| `TestOSAttachEnvReachesChild` | Env behaves as under Run | A `internal/runner/runner_test.go` |
+| `TestOSAttachRefusesACmdCarryingStdinText` | Stdin bytes with Attach are refused, naming `Cmd.Stdin` | A `internal/runner/runner_test.go` |
+| `TestOSAttachRefusesANilFile` | Each nil file is refused | A `internal/runner/runner_test.go` |
+| `TestOSAttachRejectsEmptyAndUnresolvableArgv` | An empty argv and a missing binary are refused | A `internal/runner/runner_test.go` |
+| `TestOSRunSplitKeepsTheStreamsApart` | `Split` keeps a stderr warning out of stdout | A `internal/runner/runner_test.go` |
+| `TestOSRunSplitWiresStdinAndEnv` | `Split` feeds stdin and env like any run | A `internal/runner/runner_test.go` |
+| `TestOSRunSplitRejectsEmptyAndUnresolvableArgv` | `Split` refuses what Run refuses | A `internal/runner/runner_test.go` |
+| `TestExecOutput` | `Output` returns the captured stdout | B `internal/engine/runner_test.go` |
+| `TestExecOutputFail` | A failing `Output` names the program | B `internal/engine/runner_test.go` |
+| `TestExecRun` | A streamed run succeeds; a failing one names the program | B `internal/engine/runner_test.go` |
+| `TestExecRunInput` | Stdin reaches a streamed run; a failing one names the program | B `internal/engine/runner_test.go` |
+| `TestExecRunEnv` | Env reaches a streamed run and the environment is inherited; a failing one names the program | B `internal/engine/runner_test.go` |
+| `TestExecRunInteractive` | An attached session runs; a failing one reports status 3 with a nil error | B `internal/engine/runner_test.go`, `RunInteractive` now Attach |
+| `TestExecOutputInput` | `Output` with stdin returns the captured stdout | B `internal/engine/runner_test.go` |
+| `TestExecOutputInputFail` | A failing `Output` with stdin names the program | B `internal/engine/runner_test.go` |
+| `TestExecEchoesOnEveryMethod` | Announce gets the absolute path and the arguments on Run, Attach, `Combined`, `Split` and `Output` | B `internal/engine/resolve_test.go` |
+| `TestResolveMissingBinaryIsActionable` | A missing binary names itself and "not found on PATH", through `Resolve` and Run | B `internal/engine/resolve_test.go` |
+| `TestResolveRefusesCurrentDirectory` | A probe in the working directory never runs; where Go reports ErrDot the message says "current directory" | B `internal/engine/resolve_test.go` |
+| `TestCmdCheck` | An empty argv, an empty program and an Env entry without `KEY=` are refused; the entry is never printed | new |
+| `TestRunnerImplementations` | Exec and Echo satisfy `Runner`, pinned inside a test body | new |
+| `TestRunStdinAndEnvTogether` | One call feeds stdin and adds env | new |
+| `TestErrorsNeverCarryArgsStdinOrEnv` | No error carries an argument, the stdin bytes or an env value | new |
+| `TestTypedNilFileWriterIsRefused` | A typed-nil `*os.File` writer is refused by Exec and Echo, naming the stream | new |
+| `TestResolveRefusesARelativeResult` | An explicit `./name` and `.` on PATH are both refused | new |
+| `TestCancelInterruptsBeforeKill` | A cancel interrupts first and the child can stop cleanly; skipped on Windows | new |
+| `TestCancelKillsAfterGrace` | A child that ignores the interrupt is killed after the grace period | new |
+| `TestDeadlineIsReportedAsDeadline` | A deadline is reported as `context.DeadlineExceeded`, "stopped" | new |
+| `TestCancelledBeforeStartRunsAndAnnouncesNothing` | A done context starts nothing and announces nothing | new |
+| `TestSuccessfulExitWithAHeldPipeSucceeds` | Exit 0 with a grandchild holding the pipe succeeds after the grace period, not after the grandchild | new |
+| `TestSplitAndOutputKeepBytesOnFailure` | `Split` and `Output` return the output with the error | new |
+| `TestOutputStreamsStderrLive` | `Output` captures stdout and sends stderr to the given writer | new |
+| `TestOSAttachSignalledChildIsFailure` | A session killed by a signal reports `exitcode.Failure` | new |
+| `TestAttachStartFailureIsAnError` | A file that resolves but cannot start is an error, not a status | new |
+
+### runner, echo_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestQuoteTok` | Token quoting; rows added for backtick, `\`, `#`, `!`, `)`, a leading and an embedded `~`, and printable non-ASCII | B `internal/engine/runner_test.go`, rows added |
+| `TestQuote` | Whole command lines | B `internal/engine/runner_test.go` |
+| `TestEchoRun` | The plain echoed line | B `internal/engine/runner_test.go` |
+| `TestEchoRunInteractive` | Attach echoes the same line | B `internal/engine/runner_test.go`, `RunInteractive` now Attach |
+| `TestEchoRunInput` | Stdin shows as its byte count | B `internal/engine/runner_test.go` |
+| `TestEchoRunEnv` | Env keys show, every value masked | B `internal/engine/runner_test.go` |
+| `TestEchoRunEnvNoEnv` | No env, no annotation | B `internal/engine/runner_test.go` |
+| `TestMaskEnv` | Masking, including a malformed entry shown as the quoted key `'<malformed>'` | B `internal/engine/runner_test.go` |
+| `TestEchoOutput` | `Output` over Echo returns nil and echoes the line | B `internal/engine/runner_test.go` |
+| `TestEchoDefaultWriter` | A nil W writes to os.Stdout | B `internal/engine/runner_test.go` |
+| `TestEchoOutputInput` | The stdin body never reaches echoed output | B `internal/engine/runner_test.go` |
+| `TestEchoStdinAndEnvTogether` | Stdin and env annotate one line; an empty non-nil stdin shows 0 bytes | new |
+| `TestEchoRefusesWhatExecRefuses` | Echo refuses what Exec refuses, a done context included, and prints nothing | new |
+| `TestQuoteEscapesUnprintable` | CR, ESC, DEL, C1, NEL, U+2028, NBSP, zero-width and bidi runes and invalid UTF-8 are Go-escaped; tab stays quoted | new |
+
+### runner/runnertest, runnertest_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestFakeZeroValue` | A zero Fake answers with the zero Reply, records, and is a `runner.Runner` | new |
+| `TestFakeRecordsCallsInOrder` | Argv, stdin, env, the writers and the Attach flag are recorded in order | new |
+| `TestFakeCopiesItsInputs` | The record survives the caller reusing its slices and a test editing `Calls`; empty stdin stays non-nil | new |
+| `TestFakeWritesScriptedStreams` | Scripted output reaches `Combined`, `Split` and `Output`; nil writers discard | new |
+| `TestFakeSeq` | Replies by position, the zero Reply past the end, immune to later edits | new |
+| `TestFakeFailOn` | Fails a call by argv token, not by stdin | new |
+| `TestFakeAttach` | Attach returns the scripted code and error | new |
+| `TestFakeRefusesWhatExecRefuses` | Refused calls, including a done context, reach neither the record nor the Script | new |
+| `TestFakeScriptMayReadCalls` | A Script may call `Calls` without deadlock | new |
+| `TestFakeConcurrentUse` | Concurrent calls are each recorded once; meaningful under `DEV_RACE=1` | new |
+| `TestCallHasAndString` | `Has` matches inside tokens; `String` quotes as Echo does | new |
+
 ## Coverage
 
-The last recorded total is 99.1%, from B1 (2026-11-02; the scaffold was 0.0%). The
+The last recorded total is 99.5%, from B3 (2026-11-03; B2 was 99.3%, B1 99.1%,
+the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change.

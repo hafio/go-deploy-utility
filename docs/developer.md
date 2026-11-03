@@ -91,6 +91,35 @@ Notes on the available packages:
   prints a value, or a name that fails the name rules, since that is most
   likely the secret pasted into the wrong key. Reserved-name rules, such as A's
   `_GEN_` prefix, stay in the tool.
+- `runner.Runner` has two methods, `Run` and `Attach`. Every capture mode is a
+  helper over `Run`: `Combined` (A's `Run`), `Split` (A's `RunSplit`) and
+  `Output` (B's `Output`). Each returns what was captured even when the run
+  fails. The package doc maps every old method of both tools.
+- `Exec` interrupts a cancelled command and kills it when `Grace` ends (2s by
+  default). A cancelled run is an error wrapping `ctx.Err()`, never success. A
+  command that exits 0 while a process it started holds its output open
+  succeeds when the grace period ends. `Attach` takes no context, and the runner
+  never interrupts or kills a session.
+- Errors read `argv0: cause` and never carry an argument, the stdin bytes or an
+  env value. `Resolve` refuses ErrDot and any other relative result.
+  `Cmd.Check`, `CheckRun` and `CheckAttach` are the shared preconditions, and
+  `Exec`, `Echo` and the fake all apply them.
+- `Echo` is a value type, so a tool may type-assert against it. It prints
+  `+ argv`, with the stdin size and the env keys with masked values, and writes
+  nothing to the command's own streams. `Quote` is for display only. It
+  single-quotes a token with shell syntax from `execguard.UnsafeChars` or a
+  leading `~`, and Go-escapes a token with an unprintable rune.
+- `runnertest.Fake` records calls and answers each from its `Script`: `Seq`
+  matches by position, while `FailOn` or any other function matches by argv
+  content. It refuses what `Exec` refuses, and records nothing for a refused
+  call.
+- Some runner policy stays in the tools:
+  - A keeps its `report` ok/error line, and maps a cancelled `logs --follow` to
+    a clean end.
+  - B keeps its `NewExec` verbose announcer, which is built on B's `output`
+    package.
+  - B's `EnvRunner` narrowing becomes a B-side wrapper that refuses `Cmd.Env`
+    for every holder except compose.
 
 ## Adoption order
 
@@ -104,7 +133,7 @@ states the old and new totals and why.
 | S1 | exitcode, notice, paritydoc, abbrev; both tools re-copy `tag.yml` and add `go.work` to `.gitignore` | none when the notice goldens match | env-file exit code, A 1 vs B 2 |
 | S2 | confirm | B fails a non-TTY destructive prompt without `--no-prompt` with exit 1 and names the flag; B's downgrade prompt gains `--no-prompt` | none, already decided |
 | S3 | execguard, envref | A refuses invisible and C1 characters, invalid UTF-8, any escalator in a command (`sudo podman` goes; run `sudo solmq-conn-util` instead) and a set-but-empty `-env` variable at deploy, accepts embedded `~` and `.Exe`, and takes B's guard messages; B refuses C1 characters, invalid UTF-8 and 8 more escalators, its escalator messages change, and an invalid `*Env` name is no longer echoed back | none, already decided (ban in both, 2026-11-02) |
-| S4 | runner | B cancels with interrupt, then kill, and can pass stdin and env together; A's ErrDot message names the fix | none |
+| S4 | runner; the parity body's "Runner seams" section is rewritten in the same step | A: every call takes a context and is interrupted, then killed, on cancel (was `Stream` only); a cancel is an error, which `logs --follow` maps to its clean end; errors read `kubectl: exit status 1`; B's resolve messages, and a relative resolution is refused; the optional `Streamer`, `Splitter` and `Attacher` interfaces go; a pipe held open after exit 0 no longer hangs. B: a cancel interrupts, then kills, instead of killing; stdin and env pass together; `RunInteractive` becomes `Attach`, which returns the exit code and is never killed; Echo annotates stdin and env on one line; `Quote` quotes more shell syntax and escapes unprintable runes; a held pipe no longer hangs; `EnvRunner` becomes a B-side wrapper | none |
 | S5 | containerart | B's output bytes stay identical; A's change only if A adopts B's quoting | A adopts B's always-quote policy |
 | S6 | podman, systemd, rootless | the decided rootless rule; A gains the XDG quadlet dir, session repair, linger and core-limit checks, and uses the effective uid; B uses `secret create --replace` | subuid warn vs refuse |
 | S7 | containercli, inspect | B hands compose its file on stdin and writes no compose file; a digest label drives change detection; `docker.composeFile` is retired | redeploy consent prompt; docker lifecycle verbs |

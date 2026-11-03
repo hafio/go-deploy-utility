@@ -180,6 +180,10 @@ ulimits, shm and cpuset and checks host limits. Neither emits a read-only root f
 
 ### 5.3 Runner seams (why nothing is shared yet)
 
+> Superseded 2026-11-03: the shared seam is designed and built in M `runner` and
+> `runner/runnertest` (step B3). See docs/developer.md. The table below records
+> the tools as they were.
+
 | Capability | A `runner.Runner` | B `engine.Runner` |
 |------------|------|------|
 | combined stdout+stderr capture | `Run(Cmd) (string, error)` | none |

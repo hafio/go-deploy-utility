@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793630380.447907,
-    "seen": 1793631804.7683825,
-    "ast_hash": "e28d1853375f20308799eab9cd1929a1",
+    "mtime": 1793667954.3169582,
+    "seen": 1793681546.811338,
+    "ast_hash": "ceba04caef25204846b7499aed38b4ff",
     "semantic_hash": ""
   },
   "docs/consuming.md": {
@@ -60,15 +60,15 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793630533.4144456,
-    "seen": 1793631804.7683852,
-    "ast_hash": "a07bf0a1d1ad4d281ddc00f264442634",
+    "mtime": 1793667954.3172903,
+    "seen": 1793681546.8113406,
+    "ast_hash": "019c5a26f4d3d6e1c78071eedd79584c",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
-    "mtime": 1793630403.5101652,
-    "seen": 1793631804.7683866,
-    "ast_hash": "518c442dc6f16b24f0e350b0545ea88f",
+    "mtime": 1793667954.3176372,
+    "seen": 1793681546.8113413,
+    "ast_hash": "e185ab22e5c980843fe99b6d69c9d2bc",
     "semantic_hash": ""
   },
   "docs/handoff/PLAN.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793630566.2781584,
-    "seen": 1793631804.7683904,
-    "ast_hash": "1e8f22eb9277aacacce695618507bfa8",
+    "mtime": 1793668292.948613,
+    "seen": 1793681546.811345,
+    "ast_hash": "2b475ad877e535ebdaa31e4b7ac2caf1",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -225,6 +225,42 @@
     "mtime": 1793630557.8898945,
     "seen": 1793631804.7683597,
     "ast_hash": "31001dea9c0fca3d88041bc4f66f22fd",
+    "semantic_hash": ""
+  },
+  "runner/echo.go": {
+    "mtime": 1793677736.449351,
+    "seen": 1793681546.811321,
+    "ast_hash": "8fd9f6b4fbf678b5874e41d8074dc40c",
+    "semantic_hash": ""
+  },
+  "runner/echo_test.go": {
+    "mtime": 1793668292.947879,
+    "seen": 1793681546.8113232,
+    "ast_hash": "2c587fb0599a09be25ec1eddee7dc0ef",
+    "semantic_hash": ""
+  },
+  "runner/runner.go": {
+    "mtime": 1793667495.8326437,
+    "seen": 1793681546.8113248,
+    "ast_hash": "8006d50b9fd4d05d178dbee4841f3c66",
+    "semantic_hash": ""
+  },
+  "runner/runner_test.go": {
+    "mtime": 1793677736.271349,
+    "seen": 1793681546.811326,
+    "ast_hash": "1e6fa6e82f50b53282cd90622a0d06eb",
+    "semantic_hash": ""
+  },
+  "runner/runnertest/runnertest.go": {
+    "mtime": 1793667529.4620204,
+    "seen": 1793681546.811327,
+    "ast_hash": "ef415c990dd5ed666639585222369384",
+    "semantic_hash": ""
+  },
+  "runner/runnertest/runnertest_test.go": {
+    "mtime": 1793667865.1853175,
+    "seen": 1793681546.8113286,
+    "ast_hash": "814bce2e1aa53468d5eaac8ae5f19ca2",
     "semantic_hash": ""
   }
 }

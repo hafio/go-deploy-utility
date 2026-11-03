@@ -1,7 +1,7 @@
 {
   "0": "dev.sh",
   "1": "Developer guide",
-  "2": "Handoff: aligning solmq-conn-util and solace-util on Docker, Podman and Kubernetes",
+  "2": "testing.T",
   "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
   "5": "noticetest_test.go",
@@ -12,9 +12,10 @@
   "10": "doc.go",
   "11": "github.com/hafio/go-deploy-utility",
   "12": "exitcode_test.go",
-  "13": "Prompter",
-  "14": "Notice",
+  "13": "Runner",
+  "14": "runnertest_test.go",
   "15": "confirm/doc.go",
   "16": "execguard_test.go",
-  "17": "envref_test.go"
+  "17": "envref_test.go",
+  "18": "echo_test.go"
 }
