@@ -426,6 +426,11 @@ as `license`.
 | 7 | Quadlet directory and XDG resolution | `runner.go:756-794`, hardcodes `$HOME/.config` | `load.go:379-388`, honours `XDG_CONFIG_HOME` | ~20 lines; sharing B's fixes A's missing XDG support (Stage 4) |
 | 8 | Env-name secret reference check (`*Env` sibling keys) | `pass-env`/`user-env` in `internal/spec` | `secretref.go` (name regex, both-set, unset vs empty) | Small helper, no config type needed |
 
+> Superseded 2026-11-04: rank 6 is built in M `containerart/compose`,
+> `containerart/quadlet` and `containerart/artifacttest` (step B4), with A
+> adopting B's always-quote policy. See docs/developer.md. The table above
+> records the tools as they were.
+
 Not worth sharing as Go: shell completion (hand-written scripts vs cobra generators), the
 commands.md and abbreviation.md renderers (model-driven vs cobra-tree walk), and certificates
 (B has no x509 code at all). The CI workflows differ by 2 to 10 lines and could be one reusable

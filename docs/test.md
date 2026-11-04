@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-14 test files, 184 test functions. Two are not tests, and both are os/exec
+17 test files, 210 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -42,7 +42,10 @@ helper-process shims that the tests re-execute as a child:
 | envref | 1 | 10 |
 | runner | 2 | 62 |
 | runner/runnertest | 1 | 11 |
-| **Total** | **14** | **184** |
+| containerart/compose | 1 | 8 |
+| containerart/quadlet | 1 | 7 |
+| containerart/artifacttest | 1 | 11 |
+| **Total** | **17** | **210** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -306,9 +309,50 @@ and B `TestLoadSecretRefErrors`.
 | `TestFakeConcurrentUse` | Concurrent calls are each recorded once; meaningful under `DEV_RACE=1` | new |
 | `TestCallHasAndString` | `Has` matches inside tokens; `String` quotes as Echo does | new |
 
+### containerart/compose, compose_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestComposeQuoteEscapes` | `$` doubled, quotes and backslashes escaped | A `internal/dockergen/dockergen_test.go`, re-targeted from `composeQuote` to `Quote` |
+| `TestEscape` | Every `$` doubled, `$$` included; text with no `$` unchanged | new |
+| `TestQuoteMatchesBothTools` | Byte-identical to both tools' old forms, kept as inline copies (B's `%q` of `composeEscape`, A's `composeQuote`); YAML 1.1 names such as `yes` and `0123` come out quoted | new |
+| `TestQuoteEscapesUnprintable` | Newline, tab, ESC, U+2028 and U+FEFF are written as YAML escapes; printable non-ASCII stays as it is | new |
+| `TestFlowList` | Empty, a healthcheck probe, and a `$` and quotes escaped | new |
+| `TestPostureBytes` | The posture block is the five lines both tools write today | new |
+| `TestServiceSecrets` | B's golden long-syntax lines; nothing for no secrets | new |
+| `TestTopSecrets` | B's golden environment-provider lines; nothing for no secrets | new |
+
+### containerart/quadlet, quadlet_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestSystemdEnvEscapes` | `%` doubled, the whole assignment quoted, quotes and backslashes escaped; the plain `-Xmx1g` row now expects the quoted form, since A adopts B's always-quote policy | A `internal/podmangen/podmangen_test.go`, re-targeted from `systemdEnv` to `Environment` |
+| `TestQuadletEscape` | Backslash, quote and percent escaping | B `internal/render/render_test.go`, re-targeted from `quadletEscape` to `Escape` |
+| `TestEscapePercent` | Only `%` is doubled | new |
+| `TestEscapeWritesControlsAsCEscapes` | Newline, CR, NUL, ESC and DEL become C escapes; tab and UTF-8 pass through; a newline cannot add keys to the unit | new |
+| `TestEnvironmentIsAlwaysQuoted` | B's golden lines; an empty value stays an assignment | new |
+| `TestSecretLine` | The mount line, with `%` doubled in the name and the target | new |
+| `TestPostureBytes` | The two lines both tools write today | new |
+
+### containerart/artifacttest, artifacttest_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestWideningIsTheUnionOfBothTools` | Every token either tool forbade (inline copies of both lists) is still caught; host networking is not; each call returns a new slice | new |
+| `TestHostNetwork` | Both spellings are caught; the clean shapes carry no widening or host-network token | new |
+| `TestCheckAbsent` | Spacing and quoting variants are caught, every token found is named, and an empty token is refused | new |
+| `TestCheckComposePosture` | Missing, doubled (counted by the first line, so adjacent copies are caught), deeper-indented, incomplete and the deprecated `:` spelling fail; the whole block must appear exactly once, which is stricter than B's `Contains` check on `security_opt` | new |
+| `TestCheckQuadletPosture` | A line in `[Service]`, after `[Install]` when there is no `[Service]`, doubled or missing fails | new |
+| `TestCheckQuadletKeys` | Each tool's shape passes at its own floor; a newer key, an unknown key and a line with no `=` fail; comments, blank lines and other sections are not read | new; the release table is B's `quadletKeysByRelease` (`internal/render/render_test.go`) plus `Label` |
+| `TestCheckQuadletKeysBadFloor` | A floor that is not MAJOR.MINOR is an error | new |
+| `TestCheckSecretTargetsCompose` | Relative, missing and short-syntax targets fail; a quoted absolute target passes; a content block is not read | new |
+| `TestCheckSecretTargetsQuadlet` | No `target=`, a bare name and a relative target fail | new |
+| `TestAssertReportsWithTheName` | Each Assert fails once, naming and showing the artifact | new |
+| `TestAssertPassesQuietly` | The clean shapes report nothing | new |
+
 ## Coverage
 
-The last recorded total is 99.5%, from B3 (2026-11-03; B2 was 99.3%, B1 99.1%,
-the scaffold 0.0%). The
+The last recorded total is 99.5%, from B4 (2026-11-04; B3 was also 99.5%, B2
+99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change.

@@ -33,7 +33,7 @@ may change the API.
 | `confirm` | Confirmation prompts for destructive commands | available |
 | `execguard`, `envref` | Command allowlist and token checks; environment-name references | available |
 | `runner`, `runner/runnertest` | The command runner seam and its test fake | available |
-| `containerart` and subpackages | Compose and quadlet escaping, hardening lines, artifact tests | planned |
+| `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | Compose and quadlet escaping and quoting, hardening lines, secret wiring, posture checks | available |
 | `podman`, `systemd`, `rootless` | Podman and systemd commands, rootless rules, host checks | planned |
 | `containercli`, `containercli/inspect`, `watch` | Docker and compose commands, inspect decoding, the watch loop | planned |
 | `kube`, `kube/rbac`, `kube/nsgate` | kubectl commands, permission probes, the namespace gate | planned |

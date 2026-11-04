@@ -52,7 +52,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B1 | `confirm` | A `promptLine` and `stdinIsTerminal`; B `internal/cli/confirm.go` |
 | B2 | `execguard`, `envref` | B `internal/config/execguard.go` and `secretref.go`; A `internal/validate` and `internal/gen` `ResolveCredentials` |
 | B3 | `runner`, `runner/runnertest` | A `internal/runner` seam; B `internal/engine` |
-| B4 | `containerart`, `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen`, `internal/podmangen`, `internal/yamlwriter`; B `internal/render` |
+| B4 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen` and `internal/podmangen` escaping, hardening and secret lines; B `internal/render` `Compose` and `Quadlet` and their posture tests. A's `internal/yamlwriter` stays in A, its only user |
 | B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman and systemd parts, `runas.go`; B `internal/container` rootless, limits and euid code |
 | B6 | `containercli`, `containercli/inspect`, `watch` | A compose, ps and info code, `internal/statusreport`; B `internal/container` docker paths, `inspect.go`, `internal/cli/watch.go` |
 | B7 | `kube`, `kube/rbac`, `kube/nsgate` | A kubectl code and `namespace.go`; B `internal/k8s` |
@@ -120,6 +120,39 @@ Notes on the available packages:
     package.
   - B's `EnvRunner` narrowing becomes a B-side wrapper that refuses `Cmd.Env`
     for every holder except compose.
+- `containerart/compose` and `containerart/quadlet` hold pieces, not
+  renderers. Each tool keeps its own renderer, field order and product
+  settings. A block ends in a newline and is written as it is; a line or scalar
+  has none. Both tools put the service at indent 4.
+- One quoting policy, solace-util's, decided 2026-11-04: a compose scalar
+  derived from operator input or from a name goes through `compose.Quote`
+  (`strconv.Quote` after `Escape` doubles every `$`); the image, numbers and
+  tool constants stay bare; every quadlet assignment is `quadlet.Environment`,
+  quoted whole. A value meant for interpolation, such as a digest label
+  `"${VAR}"`, is written by the tool and never escaped.
+- `compose.Quote` cannot carry invalid UTF-8, since YAML has no escape for a raw
+  byte. `quadlet.Escape` writes a control character as a C escape that podman
+  decodes, so a newline cannot add keys to a unit. Each tool still checks every
+  value it routes to either against execguard's charset at load.
+- `compose.Posture` and `quadlet.Posture` are the privilege lines. The user line
+  stays with the tool, which may keep the image's own user.
+  `compose.ServiceSecrets`, `compose.TopSecrets` and `quadlet.Secret` are the
+  secret wiring: values come from the environment compose runs with or from
+  podman's secret store, never from the file, and targets are absolute.
+- `artifacttest` checks rendered artifacts, and a tool passes every shape it
+  renders. It covers:
+  - the widening spellings of both tools (`Widening()`);
+  - host networking (`HostNetwork()`), kept separate because solace-util
+    writes it when asked;
+  - the posture blocks;
+  - quadlet `[Container]` keys against the tool's own podman floor
+    (`CheckQuadletKeys(unit, "4.7")`);
+  - absolute secret targets.
+
+  A new quadlet key goes into the release table in `quadletKeySince`, with the
+  podman release that introduced it. The Kubernetes spellings
+  (`allowPrivilegeEscalation: true`, `hostNetwork`, `hostPID`, `hostIPC`) stay
+  in solmq-conn-util until B7.
 
 ## Adoption order
 
@@ -134,7 +167,7 @@ states the old and new totals and why.
 | S2 | confirm | B fails a non-TTY destructive prompt without `--no-prompt` with exit 1 and names the flag; B's downgrade prompt gains `--no-prompt` | none, already decided |
 | S3 | execguard, envref | A refuses invisible and C1 characters, invalid UTF-8, any escalator in a command (`sudo podman` goes; run `sudo solmq-conn-util` instead) and a set-but-empty `-env` variable at deploy, accepts embedded `~` and `.Exe`, and takes B's guard messages; B refuses C1 characters, invalid UTF-8 and 8 more escalators, its escalator messages change, and an invalid `*Env` name is no longer echoed back | none, already decided (ban in both, 2026-11-02) |
 | S4 | runner; the parity body's "Runner seams" section is rewritten in the same step | A: every call takes a context and is interrupted, then killed, on cancel (was `Stream` only); a cancel is an error, which `logs --follow` maps to its clean end; errors read `kubectl: exit status 1`; B's resolve messages, and a relative resolution is refused; the optional `Streamer`, `Splitter` and `Attacher` interfaces go; a pipe held open after exit 0 no longer hangs. B: a cancel interrupts, then kills, instead of killing; stdin and env pass together; `RunInteractive` becomes `Attach`, which returns the exit code and is never killed; Echo annotates stdin and env on one line; `Quote` quotes more shell syntax and escapes unprintable runes; a held pipe no longer hangs; `EnvRunner` becomes a B-side wrapper | none |
-| S5 | containerart | B's output bytes stay identical; A's change only if A adopts B's quoting | A adopts B's always-quote policy |
+| S5 | containerart: compose, quadlet, artifacttest | B: its artifact bytes stay identical. Timezone and health-probe tokens are checked against execguard's charset at load. Its widening test gains A's spellings (`Privileged=true`, `no-new-privileges=false`, `NoNewPrivileges=false`, `SYS_ADMIN`, `label=disable`, `label:disable`, `Unconfined`), and the audit greps in `docs/container-security.md` follow. A: compose quotes the project `name:`, the service key, `container_name`, the `TZ` and `LOGGING_SYSLOG_*` values, volume entries, and secret and config `source:` names and their top-level keys. Every quadlet `Environment=` is quoted whole. The image, numbers and tool constants stay bare. Values routed to `Quote` or `Environment` are checked against execguard's charset. The posture tests use `artifacttest`, keeping A's Kubernetes extras | none: A adopts B's always-quote policy (decided 2026-11-04) |
 | S6 | podman, systemd, rootless | the decided rootless rule; A gains the XDG quadlet dir, session repair, linger and core-limit checks, and uses the effective uid; B uses `secret create --replace` | subuid warn vs refuse |
 | S7 | containercli, inspect | B hands compose its file on stdin and writes no compose file; a digest label drives change detection; `docker.composeFile` is retired | redeploy consent prompt; docker lifecycle verbs |
 | S8 | watch | A stops sending screen clears into a pipe | none |

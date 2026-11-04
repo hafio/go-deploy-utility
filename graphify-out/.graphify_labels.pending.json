@@ -12,10 +12,11 @@
   "10": "doc.go",
   "11": "github.com/hafio/go-deploy-utility",
   "12": "exitcode_test.go",
-  "13": "Runner",
-  "14": "runnertest_test.go",
+  "13": "Handoff: aligning solmq-conn-util and solace-util on Docker, Podman and Kubernetes",
+  "14": "Runner",
   "15": "confirm/doc.go",
   "16": "execguard_test.go",
   "17": "envref_test.go",
-  "18": "echo_test.go"
+  "18": "artifacttest.go",
+  "19": "compose_test.go"
 }
