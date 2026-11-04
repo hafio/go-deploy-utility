@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-17 test files, 210 test functions. Two are not tests, and both are os/exec
+20 test files, 243 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -45,7 +45,10 @@ helper-process shims that the tests re-execute as a child:
 | containerart/compose | 1 | 8 |
 | containerart/quadlet | 1 | 7 |
 | containerart/artifacttest | 1 | 11 |
-| **Total** | **17** | **210** |
+| podman | 1 | 12 |
+| systemd | 1 | 6 |
+| rootless | 1 | 15 |
+| **Total** | **20** | **243** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -350,9 +353,57 @@ and B `TestLoadSecretRefErrors`.
 | `TestAssertReportsWithTheName` | Each Assert fails once, naming and showing the artifact | new |
 | `TestAssertPassesQuietly` | The clean shapes report nothing | new |
 
+### podman, podman_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestSupportsReplace` | 4.7 and later, with a `v`, a distribution suffix or a newline; older, short and unparsable versions are not | new; cases from A `internal/runner/runner_test.go` `TestPodmanVersion` |
+| `TestVersionArgv` | `version --format {{.Client.Version}}`, no stdin or env | new; argv from A `TestPodmanVersion` |
+| `TestCreateSecretValueOnlyOnStdin` | Below 4.7: `secret rm --ignore`, then `secret create <name> -` with the value on stdin only and never on argv | new; cases from A `TestPodmanSecretCreateRemovesThenCreatesValueOnStdin` |
+| `TestCreateSecretReplaceIsOneCall` | 4.7 and later: one `secret create --replace` with the value on stdin | new; cases from A `TestPodmanSecretCreateReplacesInOneCall` |
+| `TestCreateSecretLabelOrder` | `--replace` leads, then the labels in the order given (B's digest label) | new |
+| `TestCreateSecretEmptyValueIsNonNil` | An empty or nil value is an empty non-nil stdin, and the stdin is a copy | new |
+| `TestRemoveSecrets` | All names in one `secret rm --ignore`; no names is nothing to run | new; cases from A `TestPodmanSecretRemoveBatchesNames` and `TestPodmanSecretRemoveNoNamesIsNoop` |
+| `TestBuildersCopyBase` | A base with spare capacity is never written through; a multi-token base leads the argv | new |
+| `TestIDMapArgv` | B's `podman info` IDMappings template, for the uid and the gid map | new; template from B `internal/container/rootless.go` |
+| `TestQuadletDir` | Rootful is fixed; rootless follows an absolute `XDG_CONFIG_HOME` or falls back to `<home>/.config` | new; cases from A `TestResolveQuadletScope` and B `internal/config/config_test.go` `TestApplyDefaultsPodmanRootlessXDG` and `TestApplyDefaultsPodmanRootlessHomeDir` |
+| `TestQuadletDirRefusesRelativeXDG` | A relative `XDG_CONFIG_HOME` is refused, naming it and the fix | new |
+| `TestQuadletDirHomeErrors` | A home lookup error is wrapped and an empty home refused; with XDG set the home is never asked for | new |
+
+### systemd, systemd_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestUserFlagOnEveryBuilder` | `--user` follows `systemctl` on every builder, and the system manager gets none | new |
+| `TestStateWords` | `State` trims and marks no answer; `Active` is active or reloading; `Stopped` is inactive, failed or unknown; no answer is neither | new; the stopped words are B's `stoppedStates` (`internal/container/manager.go`) |
+| `TestNRestarts` | `show <unit> -p NRestarts --value` for each manager; counts parse | new; cases from A `internal/runner/runner_test.go` `TestSystemctlNRestarts` |
+| `TestParseNRestartsRefuses` | Empty, negative and non-numeric answers fail and say what to check | new |
+| `TestLingerArgv` | `loginctl show-user <uid> --property=Linger`; `loginctl enable-linger` names no user | new; argv from B `internal/container/rootless.go` |
+| `TestParseLinger` | `Linger=yes`, `no`, empty and other answers | new |
+
+### rootless, rootless_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestDecide` | Unset derives from the euid; a contradicted declaration fails; with no euid the declaration stands | new; the rule rows from B `internal/container/manager_test.go` `TestGuardPodmanEUID` |
+| `TestDecideMessagesNameTheKeyAndTheFix` | Each refusal names the key, the account and both ways out | new; substrings from B `TestGuardPodmanEUIDMessagesNameTheKeyAndTheFix` |
+| `TestUserSession` | Both values derived when unset, inherited ones kept, each half independent, and only the runtime dir probed | new; cases from B `internal/container/rootless_test.go` `TestEnsureUserSessionDerivesBothWhenUnset`, `...NeverOverwritesInherited` and `...DerivesEachHalfIndependently` |
+| `TestUserSessionMissingDir` | A missing runtime dir exports nothing and names sudo and linger | new; from B `TestEnsureUserSessionExportsNothingWhenTheDirIsMissing` |
+| `TestUserSessionProbeError` | A probe that could not run is wrapped, not reported as a missing dir | new |
+| `TestUserSessionWithoutAnEUID` | No POSIX euid: nothing probed, an empty Session | new |
+| `TestSessionEnvAndString` | `Env` holds only derived entries; `String` names each origin | new |
+| `TestCheckLinger` | Anything but `yes` fails, naming the uid, the state, logout and `loginctl enable-linger` | new; substrings from B `TestCheckLingerRefusesWhenDisabled` |
+| `TestParseLimit` | Decimals, `infinity` and `unlimited`; empty and junk fail | B `internal/container/limits_test.go`, re-targeted from `parseLimit` to `ParseLimit` |
+| `TestLimitText` | Unbounded is written as `infinity` | new |
+| `TestHardLimit` | The hard column of `/proc/self/limits`, including a line with no units; a partial name, an empty answer, a short line and an unparsable value fail | new |
+| `TestCheckCore` | A hard limit below the need fails, naming both, the crun error and the fix | new |
+| `TestCheckIDMap` | Inside, at the edge and past the range; no allocation; id 0; malformed pairs skipped; a second range | new; diagnoses from B `internal/container/rootless.go` `checkIDMapping` |
+| `TestNextFreeRange` | Past every allocation in any order, junk skipped, widened for a large need | new; cases from B `TestSuggestSubIDRangeAvoidsExistingAllocations` |
+| `TestSubIDFix` | The usermod line for the next free block, named literally, and the caveat only when not computed | new; from B `TestIDMappingErrProposesTheNextFreeBlock` and `TestSuggestSubIDRangeSaysWhenItIsGuessing` |
+
 ## Coverage
 
-The last recorded total is 99.5%, from B4 (2026-11-04; B3 was also 99.5%, B2
-99.3%, B1 99.1%, the scaffold 0.0%). The
+The last recorded total is 99.6%, from B5 (2026-11-04; B4 and B3 were 99.5%,
+B2 99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change.

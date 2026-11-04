@@ -53,7 +53,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B2 | `execguard`, `envref` | B `internal/config/execguard.go` and `secretref.go`; A `internal/validate` and `internal/gen` `ResolveCredentials` |
 | B3 | `runner`, `runner/runnertest` | A `internal/runner` seam; B `internal/engine` |
 | B4 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen` and `internal/podmangen` escaping, hardening and secret lines; B `internal/render` `Compose` and `Quadlet` and their posture tests. A's `internal/yamlwriter` stays in A, its only user |
-| B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman and systemd parts, `runas.go`; B `internal/container` rootless, limits and euid code |
+| B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman version, secret and systemctl functions, `ResolveQuadletScope`, and the subid check in `cmd/solmq-conn-util/runas.go`; B `internal/container` `euid.go`, the session, linger and id-mapping code in `rootless.go`, the core-limit and limit parsing in `limits.go`, and the secret and systemctl calls in `manager.go` and `inspect.go`, plus `xdgConfigHome` in `internal/config/load.go`. A's mount-readability checks and B's nr_open, nofile, user-manager and data-dir checks stay in the tools |
 | B6 | `containercli`, `containercli/inspect`, `watch` | A compose, ps and info code, `internal/statusreport`; B `internal/container` docker paths, `inspect.go`, `internal/cli/watch.go` |
 | B7 | `kube`, `kube/rbac`, `kube/nsgate` | A kubectl code and `namespace.go`; B `internal/k8s` |
 
@@ -153,6 +153,39 @@ Notes on the available packages:
   podman release that introduced it. The Kubernetes spellings
   (`allowPrivilegeEscalation: true`, `hostNetwork`, `hostPID`, `hostIPC`) stay
   in solmq-conn-util until B7.
+- `podman`, `systemd` and `rootless` build commands, read answers and check
+  facts; they never execute, read a file or read the environment. Every host
+  probe is a `runner.Cmd` or a seam parameter (`getenv`, `home`, `isDir`), so a
+  tool runs it through its own runner, a fake sees it and a preview skips it.
+  Each tool keeps its own reads (the subid files, the account name), its
+  memoising and its reports.
+- A podman builder takes `base`, the engine argv the tool built and checked with
+  execguard, and copies it.
+- Secrets: `CreateSecret` writes
+  `secret create [--replace] [--label l]... <name> -` with the value on stdin
+  only, as a non-nil copy. When `SupportsReplace` holds for `Version`'s answer,
+  one create with replace set does it; otherwise `RemoveSecrets` for the name
+  runs first. Each step's error is the tool's to word.
+- `systemd.IsActive` exits non-zero for every state but an active one, so a tool
+  reads its stdout alone (`runner.Output` or `runner.Split`), ignores the exit
+  error and passes it to `State`. `Active` (active or reloading) picks restart
+  over start on deploy; `Stopped` (inactive, failed, unknown) is what a teardown
+  needs before it may assume the unit is down, and no answer is neither.
+- `podman.QuadletDir` is the directory a unit is written to, resolved the way
+  `os.UserConfigDir`, and so podman's generator, resolves it. The generator reads
+  the user manager's environment, so an `XDG_CONFIG_HOME` set only in a shell
+  profile is not seen there; a relative one is refused.
+- `rootless.Decide` is the rootless rule. A tool passes nil for an unset
+  `podman.rootless`, and the mode is then derived from the effective uid.
+- `rootless.UserSession` derives `XDG_RUNTIME_DIR` and the D-Bus address only
+  when unset, after the runtime directory is proven to exist; `Env` is the
+  derived entries alone, for `os.Setenv` or `Cmd.Env`.
+- Subordinate ids are checked against podman's own mapping (`podman.IDMap`,
+  `rootless.CheckIDMap`), for rootless deploys only, and a run-as id outside it
+  is refused (decided 2026-11-04). The refusal reads: the diagnosis, a period, a
+  newline, `rootless.SubIDFix` with a block from `NextFreeRange`, then the
+  tool's own alternatives. `CheckCore` and `CheckLinger` are generic too; a tool
+  appends its drop-in file or config key to the error.
 
 ## Adoption order
 
@@ -168,7 +201,7 @@ states the old and new totals and why.
 | S3 | execguard, envref | A refuses invisible and C1 characters, invalid UTF-8, any escalator in a command (`sudo podman` goes; run `sudo solmq-conn-util` instead) and a set-but-empty `-env` variable at deploy, accepts embedded `~` and `.Exe`, and takes B's guard messages; B refuses C1 characters, invalid UTF-8 and 8 more escalators, its escalator messages change, and an invalid `*Env` name is no longer echoed back | none, already decided (ban in both, 2026-11-02) |
 | S4 | runner; the parity body's "Runner seams" section is rewritten in the same step | A: every call takes a context and is interrupted, then killed, on cancel (was `Stream` only); a cancel is an error, which `logs --follow` maps to its clean end; errors read `kubectl: exit status 1`; B's resolve messages, and a relative resolution is refused; the optional `Streamer`, `Splitter` and `Attacher` interfaces go; a pipe held open after exit 0 no longer hangs. B: a cancel interrupts, then kills, instead of killing; stdin and env pass together; `RunInteractive` becomes `Attach`, which returns the exit code and is never killed; Echo annotates stdin and env on one line; `Quote` quotes more shell syntax and escapes unprintable runes; a held pipe no longer hangs; `EnvRunner` becomes a B-side wrapper | none |
 | S5 | containerart: compose, quadlet, artifacttest | B: its artifact bytes stay identical. Timezone and health-probe tokens are checked against execguard's charset at load. Its widening test gains A's spellings (`Privileged=true`, `no-new-privileges=false`, `NoNewPrivileges=false`, `SYS_ADMIN`, `label=disable`, `label:disable`, `Unconfined`), and the audit greps in `docs/container-security.md` follow. A: compose quotes the project `name:`, the service key, `container_name`, the `TZ` and `LOGGING_SYSLOG_*` values, volume entries, and secret and config `source:` names and their top-level keys. Every quadlet `Environment=` is quoted whole. The image, numbers and tool constants stay bare. Values routed to `Quote` or `Environment` are checked against execguard's charset. The posture tests use `artifacttest`, keeping A's Kubernetes extras | none: A adopts B's always-quote policy (decided 2026-11-04) |
-| S6 | podman, systemd, rootless | the decided rootless rule; A gains the XDG quadlet dir, session repair, linger and core-limit checks, and uses the effective uid; B uses `secret create --replace` | subuid warn vs refuse |
+| S6 | podman, systemd, rootless; the parity body's rootless, quadlet directory, host check, secret replace and subuid rows are updated in the same step | A: an optional `podman.rootless` decided by `rootless.Decide`; the effective uid everywhere; the quadlet directory honours `XDG_CONFIG_HOME` and refuses a relative one; session repair before `systemctl --user`; linger and session core checks; the subid check asks `podman info` and refuses, in deploy and in validate, replacing the /etc/subuid warning, and its fix names both ranges; `is-active` is read as text from stdout; a version with surrounding space still parses; a negative `NRestarts` is refused. B: `secret create --replace` on podman 4.7 and later, with a `podman version` call before the first secret; the `NRestarts` argv becomes `show <unit> -p NRestarts --value`; the core probe becomes `cat /proc/self/limits`, parsed in Go; the linger and core messages no longer name the broker; a reloading unit is restarted; id 0 passes the subid check; `ApplyDefaults` gains an error path (or defers to `expandHomePaths`) for a relative `XDG_CONFIG_HOME` or an unresolvable home, retiring the `~` fallback | none: subid ranges are checked through `podman info` and a miss is refused, saying what to correct and how (decided 2026-11-04) |
 | S7 | containercli, inspect | B hands compose its file on stdin and writes no compose file; a digest label drives change detection; `docker.composeFile` is retired | redeploy consent prompt; docker lifecycle verbs |
 | S8 | watch | A stops sending screen clears into a pipe | none |
 | S9 | kube, rbac, nsgate | A creates the namespace only when absent, waits for rollout, probes every written kind and uses B's can-i parser | namespace gate policy; read probes in B |

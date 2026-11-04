@@ -212,6 +212,11 @@ In `internal/runner/runner.go` and `cmd/solmq-conn-util/runas.go`, adopting B's 
 Docs: docs/configuration.md podman section (L867-934), docs/operations.md, docs/troubleshooting.md
 L116-118, docs/DESIGN.md section 6; docs/test.md rows and snapshot line.
 
+> Superseded 2026-11-04: the session repair, linger, core limit, quadlet directory and rootless
+> rule are built in M `podman`, `systemd` and `rootless` (step B5) and adopted at S6. A drops its
+> /etc/subuid count for `podman info` and refuses a miss, and a relative `XDG_CONFIG_HOME` is
+> refused. See docs/developer.md. The stage above records the plan as it was.
+
 ## Stage 5: A kubernetes parity
 
 - Namespace create-if-absent (B: `internal/k8s/prep.go:31-119`): `get namespace <ns> -o name
@@ -244,6 +249,9 @@ gains nothing here; its always-recreate is correct, the digest skip is an optimi
 Tests: B mirrors `TestPodmanSecretCreateReplacesInOneCall` (A runner_test.go:571) and
 `TestPodmanVersion` (587). Docs: B docs/operations.md podman section; docs/parity.md row.
 
+> Superseded 2026-11-04: the version check and the secret builders are built in M `podman` (step
+> B5), with their cases in M's tests, and B adopts `--replace` at S6. See docs/developer.md.
+
 ## Stage 7: design spike, root deploys for a declared rootless user (both)
 
 Not code. A short design in A's docs/DESIGN.md and B's docs/developer.md answering: schema
@@ -259,6 +267,10 @@ with tool-originated use. Output is a decision, then a stage per tool.
 - Redeploy over a running service: keep B's consent prompt and add it to A, or let the platform
   recreate silently in both.
 - subuid coverage: A warns, B refuses. Validate-is-golden argues for an error in both.
+
+> Superseded 2026-11-04: decided. Both tools check the run-as ids against `podman info`'s own
+> mapping and refuse a miss, saying what to correct and how (M `rootless`, step B5; applied at S6).
+
 - Namespace gate: A discounts owned objects, B probes delete permission. Union or pick one.
 - Logs/exec/status probes in B.
 - Output model: A buffers and prints `ok:`/`error:` at the end, B streams. Tied to the runner

@@ -48,9 +48,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793767800.3676417,
-    "seen": 1793768756.9143972,
-    "ast_hash": "57d7d10cc8bf6d44c18e8fcea1248102",
+    "mtime": 1793803579.217941,
+    "seen": 1793804613.7823255,
+    "ast_hash": "5da36502c4970e890b098e2fd79602ab",
     "semantic_hash": ""
   },
   "docs/consuming.md": {
@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793767800.3696694,
-    "seen": 1793768756.9143999,
-    "ast_hash": "f5db220c0932c90295779fd0b0b20d50",
+    "mtime": 1793803586.1180184,
+    "seen": 1793804613.7823286,
+    "ast_hash": "e45e4029eb0d1403c0e6eb6af89bf8a8",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/PLAN.md": {
-    "mtime": 1793767800.3699958,
-    "seen": 1793768756.914402,
-    "ast_hash": "14515a0d09252abcb41ac636c66ae26e",
+    "mtime": 1793803624.3695676,
+    "seen": 1793804613.7823312,
+    "ast_hash": "2eeb8b0b30035cf83a8cc1cec1bfdb30",
     "semantic_hash": ""
   },
   "docs/handoff/README.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793768057.7934084,
-    "seen": 1793768756.9144049,
-    "ast_hash": "37157d033d5cac6029d73243ff62c86c",
+    "mtime": 1793803624.3692513,
+    "seen": 1793804613.7823336,
+    "ast_hash": "499952b13e755e4cd19c1069fedfabb2",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -297,6 +297,42 @@
     "mtime": 1793767615.1921008,
     "seen": 1793768756.9143584,
     "ast_hash": "a014144159730c4228e17991e0c6d3e2",
+    "semantic_hash": ""
+  },
+  "podman/podman.go": {
+    "mtime": 1793803327.4901214,
+    "seen": 1793804613.7823005,
+    "ast_hash": "00bb8af59fa0862fabf379cea3bc860c",
+    "semantic_hash": ""
+  },
+  "podman/podman_test.go": {
+    "mtime": 1793803431.4892864,
+    "seen": 1793804613.7823021,
+    "ast_hash": "4ebcb3aa73960c86d1779eab66a8c66a",
+    "semantic_hash": ""
+  },
+  "rootless/rootless.go": {
+    "mtime": 1793803542.1405258,
+    "seen": 1793804613.7823036,
+    "ast_hash": "3bb630616d94d14e14a9318763a0904d",
+    "semantic_hash": ""
+  },
+  "rootless/rootless_test.go": {
+    "mtime": 1793803542.3463373,
+    "seen": 1793804613.7823045,
+    "ast_hash": "521758aacd04200934958a52055ce7dd",
+    "semantic_hash": ""
+  },
+  "systemd/systemd.go": {
+    "mtime": 1793803327.6761236,
+    "seen": 1793804613.7823174,
+    "ast_hash": "b610bc8e1ce53d35718fe857a5e7b6c3",
+    "semantic_hash": ""
+  },
+  "systemd/systemd_test.go": {
+    "mtime": 1793803463.9216497,
+    "seen": 1793804613.7823184,
+    "ast_hash": "40844b14dffa85be7ab26cfa8c2e991f",
     "semantic_hash": ""
   }
 }
