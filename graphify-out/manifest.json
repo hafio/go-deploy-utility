@@ -42,15 +42,15 @@
     "semantic_hash": ""
   },
   "CLAUDE.md": {
-    "mtime": 1793624474.4607527,
-    "seen": 1793628891.7319689,
-    "ast_hash": "feadb2e39cee3a6e7c089a8d7842f6ec",
+    "mtime": 1793809412.9863563,
+    "seen": 1793810234.6663048,
+    "ast_hash": "562fc4789ff9feef07c318c3436271ab",
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1793806340.5346968,
-    "seen": 1793807246.6907163,
-    "ast_hash": "4683eabe94d237c9841eae3495a923f4",
+    "mtime": 1793809412.9860198,
+    "seen": 1793810234.666306,
+    "ast_hash": "fe30613c11c11028422c0ad57402372b",
     "semantic_hash": ""
   },
   "docs/consuming.md": {
@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793806347.3004827,
-    "seen": 1793807246.6907191,
-    "ast_hash": "1bbb06c964d5eb4d559fb57418f10f95",
+    "mtime": 1793809412.9886527,
+    "seen": 1793810234.6663084,
+    "ast_hash": "deaa5c4d553a5dd76cf932dd9cdca330",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "docs/handoff/PLAN.md": {
-    "mtime": 1793806371.8379805,
-    "seen": 1793807246.6907218,
-    "ast_hash": "86126eec92f4c7120d379454ea867390",
+    "mtime": 1793809437.8847327,
+    "seen": 1793810234.6663103,
+    "ast_hash": "7cd46256079f3e05041def356c722afd",
     "semantic_hash": ""
   },
   "docs/handoff/README.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793806371.836695,
-    "seen": 1793807246.690724,
-    "ast_hash": "6ec36da1275a7c797b71f7945509ef9b",
+    "mtime": 1793809443.6402843,
+    "seen": 1793810234.6663125,
+    "ast_hash": "79e25f8921253625f7177855f1d8a9b3",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -381,6 +381,42 @@
     "mtime": 1793806314.1135752,
     "seen": 1793807246.6907074,
     "ast_hash": "b36ddd5789c6aefdcdbe248ce045f198",
+    "semantic_hash": ""
+  },
+  "kube/kube.go": {
+    "mtime": 1793809151.4563568,
+    "seen": 1793810234.6662655,
+    "ast_hash": "30fbe930e780e79a84b40afd148c4998",
+    "semantic_hash": ""
+  },
+  "kube/kube_test.go": {
+    "mtime": 1793809334.1536312,
+    "seen": 1793810234.6662674,
+    "ast_hash": "f5556cc6c289def663824e844d2c5cd9",
+    "semantic_hash": ""
+  },
+  "kube/nsgate/nsgate.go": {
+    "mtime": 1793809384.5019672,
+    "seen": 1793810234.6662686,
+    "ast_hash": "1322289d8b2b0f4f585d608a087cb5c2",
+    "semantic_hash": ""
+  },
+  "kube/nsgate/nsgate_test.go": {
+    "mtime": 1793809377.5608854,
+    "seen": 1793810234.6662698,
+    "ast_hash": "3016ed9b33f5493c546d530403909f21",
+    "semantic_hash": ""
+  },
+  "kube/rbac/rbac.go": {
+    "mtime": 1793809151.651359,
+    "seen": 1793810234.6662707,
+    "ast_hash": "fe609f9ff38bbdf16373c664684988bd",
+    "semantic_hash": ""
+  },
+  "kube/rbac/rbac_test.go": {
+    "mtime": 1793809334.1538415,
+    "seen": 1793810234.6662717,
+    "ast_hash": "0517d424eee7fcc609435d72caf92a98",
     "semantic_hash": ""
   }
 }

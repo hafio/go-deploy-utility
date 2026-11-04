@@ -37,6 +37,13 @@ time, both tools in the same step.
   because embedded text and notices are compared byte for byte.
 - An error names what failed and the offending value, with secrets masked, and
   says what to do next. A wrapped cause uses `%w`.
+- Least privilege. A command runs with the lowest permission that does the job:
+  no escalation, rootless where it can be, and a permission probe only for what
+  an operation is about to write. A step that needs more permission only for
+  convenience (waiting for a rollout, offering an emptied namespace for deletion,
+  reading state for a better message) degrades to a warning when it is refused
+  and never blocks the operation; the operation's own result decides the exit
+  code.
 - A lifted test keeps its original name, and [test.md](test.md) records its source.
 
 ## Package layout and build order
@@ -55,7 +62,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B4 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen` and `internal/podmangen` escaping, hardening and secret lines; B `internal/render` `Compose` and `Quadlet` and their posture tests. A's `internal/yamlwriter` stays in A, its only user |
 | B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman version, secret and systemctl functions, `ResolveQuadletScope`, and the subid check in `cmd/solmq-conn-util/runas.go`; B `internal/container` `euid.go`, the session, linger and id-mapping code in `rootless.go`, the core-limit and limit parsing in `limits.go`, and the secret and systemctl calls in `manager.go` and `inspect.go`, plus `xdgConfigHome` in `internal/config/load.go`. A's mount-readability checks and B's nr_open, nofile, user-manager and data-dir checks stay in the tools |
 | B6 | `containercli`, `containercli/inspect`, `watch` | A `internal/runner` `Docker`, `DockerLifecycle`, `Preflight`'s engine branch, `EngineList`, `EngineInspectJSON`, `ExecArgv`, `InstallScript` and `LogsArgv`, the decoding and name filter in `internal/statusreport/parse.go`, and the watch loop in `cmd/solmq-conn-util/status.go`; B `internal/container` `preflight.go`, the docker deploy, delete, listing, lifecycle and logs paths in `manager.go`, `transport.go`'s exec and upload, `inspect.go`, and `internal/cli/watch.go`. A's status model, image, stats and status-script code and B's `cp` transport, registry login and cert-digest comparison stay in the tools |
-| B7 | `kube`, `kube/rbac`, `kube/nsgate` | A kubectl code and `namespace.go`; B `internal/k8s` |
+| B7 | `kube`, `kube/rbac`, `kube/nsgate` | A `internal/runner/runner.go` `Kubernetes`, `KubernetesLifecycle`, `Preflight`'s can-i branch and `canIDenied`, the get and list builders and the kubernetes branches of `ExecArgv` and `LogsArgv`, plus `cmd/solmq-conn-util/namespace.go` and `NamespaceManifest`; B `internal/k8s` `cluster.go` apply and delete, `prep.go` namespace read, create and delete, `ops.go` scale, rollout and logs, `transport.go` exec and upload, `preflight.go` and `namespace.go`. A's status parsers, `top` and secret probes and B's operator, CR, `cp` and delete-pod restart code stay in the tools |
 
 The `output` package waits until the output-model decision is made, because only
 B uses it until then. Each tool keeps its own version printing.
@@ -212,6 +219,32 @@ Notes on the available packages:
   refresh error goes to the tool's `Warn` and the loop carries on; a refresh that
   reports its own failure returns nil. The loop ends with nil when its context
   does, so Ctrl-C exits 0.
+- `kube` builders take `base`, the guarded kubectl argv with any `--context` or
+  `--kubeconfig`, and put a namespace after the subcommand's own arguments as
+  `-n <ns>`. They trust their names: a tool checks every namespace and object
+  name with `kube.ValidLabel` at load, since a name starting with `-` would be
+  read as a flag. Manifests travel on stdin (`Apply`, `Delete`).
+- Namespace create-if-absent, in each tool: `GetNamespace` and `ParseNamespace`;
+  an existing namespace needs nothing more and no cluster permission. Absent:
+  probe `create namespaces`, then `Apply` the `NamespaceManifest` on its own; a
+  refusal is `MissingNamespace`, a real failure. Unknown (the read was refused):
+  probe `create namespaces`; allowed, apply it; refused, warn and carry on, since
+  the next write's own probe stops a deploy into a missing namespace.
+- After deploy, start and restart a tool waits with `RolloutStatus` (300s). The
+  wait is a convenience: when `Forbidden` says it was refused, the tool warns
+  and succeeds. A rollout that times out or fails is an error.
+- `rbac.CanI` asks cluster-wide (`--all-namespaces`) for a cluster-scoped
+  resource or an `AllNamespaces` probe, otherwise in its namespace, or in the
+  context's namespace when none is given. A tool reads the probe's stdout alone
+  and passes it to `rbac.Check`, whose refusal is a `*rbac.RefusedError` (find
+  it with `errors.As`). Tools probe only what they are about to write.
+- The namespace gate (`kube/nsgate`) runs after a successful remove and never
+  fails it: protected, then `List` and `Occupants`, then `rbac.Check` of
+  `DeleteProbe`, then the prompt, then `kube.DeleteNamespace`. Any refusal,
+  error, occupant, decline, or missing terminal without `--no-prompt` keeps the
+  namespace with a warning. `Occupants` takes the tool's own objects by kind and
+  name, follows ownerReferences from them, and leaves out terminating objects and
+  what Kubernetes puts in every namespace.
 
 ## Adoption order
 
@@ -230,7 +263,7 @@ states the old and new totals and why.
 | S6 | podman, systemd, rootless; the parity body's rootless, quadlet directory, host check, secret replace and subuid rows are updated in the same step | A: an optional `podman.rootless` decided by `rootless.Decide`; the effective uid everywhere; the quadlet directory honours `XDG_CONFIG_HOME` and refuses a relative one; session repair before `systemctl --user`; linger and session core checks; the subid check asks `podman info` and refuses, in deploy and in validate, replacing the /etc/subuid warning, and its fix names both ranges; `is-active` is read as text from stdout; a version with surrounding space still parses; a negative `NRestarts` is refused. B: `secret create --replace` on podman 4.7 and later, with a `podman version` call before the first secret; the `NRestarts` argv becomes `show <unit> -p NRestarts --value`; the core probe becomes `cat /proc/self/limits`, parsed in Go; the linger and core messages no longer name the broker; a reloading unit is restarted; id 0 passes the subid check; `ApplyDefaults` gains an error path (or defers to `expandHomePaths`) for a relative `XDG_CONFIG_HOME` or an unresolvable home, retiring the `~` fallback | none: subid ranges are checked through `podman info` and a miss is refused, saying what to correct and how (decided 2026-11-04) |
 | S7 | containercli, inspect; the parity body's compose file and redeploy rows are updated in the same step | Both: a deploy that would restart or recreate a running service whose artifact or secrets changed asks first; `--no-prompt` skips the prompt and approves; without a terminal and without `--no-prompt` it fails with exit 1 naming the flag; lifecycle verbs are `<engine> start <name>`, `stop` and `restart`; inspect is `container inspect`; one preflight message with merged hints. A: gains the redeploy prompt, so a CI deploy that changes a running service passes `--no-prompt`; the listing gains a status column and `ValidName` replaces the `SafeToken` re-check of listed names; upload paths are quoted; engine text is printed through `Printable`. B: compose gets its file on stdin with `--project-directory` set to the env file's directory, and no compose file is written; a digest label replaces the on-disk diff; `docker.composeFile` is retired; `compose -f <file> start`, `stop` and `restart` give way to engine verbs; `--restart` keeps meaning "recreate even when unchanged"; `exec -it` becomes `-i -t`; the logs flags take A's order; the listing adds `--no-trunc` | none: engine lifecycle verbs, and the redeploy prompt in both with `--no-prompt` (decided 2026-11-04) |
 | S8 | watch | A: no screen clears into a pipe (section lines instead); a refresh reports its own error and returns nil; a fixed pause after each refresh rather than a fixed rate; the header reads `Every <d>: <title>   <time>   Ctrl-C to stop`. B: the same header text, and `--interval` gains a 1h ceiling | none |
-| S9 | kube, rbac, nsgate | A creates the namespace only when absent, waits for rollout, probes every written kind and uses B's can-i parser | namespace gate policy; read probes in B |
+| S9 | kube, rbac, nsgate; the parity body's namespace, waiting, permission-probe, can-i and namespace-gate rows are updated in the same step | Both: the namespace gate is the union of both tools and never fails a remove; a rollout wait refused with Forbidden is a warning; a refused namespace read plus a refused create warns and carries on; permission probes cover writes only. A: creates the namespace only when absent (read, probe, then the Namespace document applied alone); waits with `rollout status --timeout=300s` after deploy, start and restart; probes every kind it writes and drops its status, logs and cli probes; reads can-i by its last line, takes `no (...)` as a refusal and uses the shared messages; `-n` replaces `--namespace`; supplies its owned objects with their kinds (`CreatedNames` gains kinds); the gate probes `delete namespaces` and deletes the namespace by name; only the default service account's token Secret is discounted; a `{}` listing keeps the namespace; logs `--tail` is passed as a string. B: the gate lists JSON without `--ignore-not-found` and discounts its own objects (the custom resource as the root), terminating objects and the default token Secret; it probes before the prompt; without a terminal the namespace prompt keeps the namespace instead of failing; a refused rollout wait no longer fails a start or restart; `exec -it -n ns pod --` becomes `exec -i -t pod -n ns --`; `scale statefulset <n>` becomes `scale statefulset/<n>`; `errNotAllowed` becomes `*rbac.RefusedError`; can-i messages name no command, and an empty-namespace refusal says the current namespace; the matechannel exec uses `kube.Exec` | none: the union gate and write-only probes (decided 2026-11-04); least privilege (decided 2026-11-05) |
 
 S7 needs `docker-compose` v1 and `nerdctl compose` checked for `-f -` first;
 the aim is no interim files on the host, so a compose that refuses stdin is a

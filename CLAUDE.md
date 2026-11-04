@@ -11,6 +11,9 @@ no image, no binaries; consumers fetch the tag.
   data and never execute. Full rules: docs/developer.md "Rules for shared code".
 - A package needs two consumers. Standard library first; any dependency is
   pinned exactly with its reason in the change.
+- Least privilege: every command runs with the lowest permission that does the
+  job, and a step that needs more only for convenience warns when refused and
+  never blocks the operation (docs/developer.md "Rules for shared code").
 - Every build and adoption step is planned and approved on its own
   (docs/developer.md).
 - An adoption step lands here first, then one commit per tool on the branch

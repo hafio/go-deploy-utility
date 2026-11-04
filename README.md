@@ -36,7 +36,7 @@ may change the API.
 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | Compose and quadlet escaping and quoting, hardening lines, secret wiring, posture checks | available |
 | `podman`, `systemd`, `rootless` | Podman and systemd commands, rootless rules, host checks | available |
 | `containercli`, `containercli/inspect`, `watch` | Docker and compose commands, inspect decoding, the watch loop | available |
-| `kube`, `kube/rbac`, `kube/nsgate` | kubectl commands, permission probes, the namespace gate | planned |
+| `kube`, `kube/rbac`, `kube/nsgate` | kubectl commands, permission probes, the namespace gate | available |
 
 ## Using it
 

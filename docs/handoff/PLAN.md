@@ -245,6 +245,11 @@ L116-118, docs/DESIGN.md section 6; docs/test.md rows and snapshot line.
   kinds and `delete namespaces` before the namespace gate offers deletion (today never probed,
   namespace.go). Keep A's logs/exec/status probes; B adding them is an open item.
 
+> Superseded 2026-11-05: built in M `kube`, `kube/rbac` and `kube/nsgate` (step B7). Probes cover
+> writes only in both tools, so A drops its logs, exec and status probes (decided 2026-11-04). Under
+> the least-privilege rule (2026-11-05) a refused rollout wait is a warning and the namespace gate
+> never fails a remove. See docs/developer.md.
+
 ## Stage 6: podman secrets, both
 
 B `createPodmanSecrets` (manager.go:585-613) adopts A's `secret create --replace <n> -` when
@@ -281,7 +286,13 @@ with tool-originated use. Output is a decision, then a stage per tool.
 > mapping and refuse a miss, saying what to correct and how (M `rootless`, step B5; applied at S6).
 
 - Namespace gate: A discounts owned objects, B probes delete permission. Union or pick one.
+
+> Superseded 2026-11-04: decided, the union (M `kube/nsgate`, step B7; applied at S9).
+
 - Logs/exec/status probes in B.
+
+> Superseded 2026-11-04: decided, writes only in both tools; A drops these probes at S9.
+
 - Output model: A buffers and prints `ok:`/`error:` at the end, B streams. Tied to the runner
   seam; decide before any shared runtime package.
 - Shared runtime package (argv builders and parsers from 7.1) after stages 1-6 converge; needs

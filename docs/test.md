@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-23 test files, 276 test functions. Two are not tests, and both are os/exec
+26 test files, 307 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -51,7 +51,10 @@ helper-process shims that the tests re-execute as a child:
 | containercli | 1 | 17 |
 | containercli/inspect | 1 | 8 |
 | watch | 1 | 8 |
-| **Total** | **23** | **276** |
+| kube | 1 | 14 |
+| kube/rbac | 1 | 7 |
+| kube/nsgate | 1 | 10 |
+| **Total** | **26** | **307** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -455,9 +458,55 @@ and B `TestLoadSecretRefErrors`.
 `vt_windows.go` is built only on Windows, so its lines are outside the recorded
 total; `GOOS=windows go vet ./watch/` checks that it compiles.
 
+### kube, kube_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestApplyAndDelete` | `apply -f -` and `delete -f - --ignore-not-found` after the base, the manifest on stdin as a copy, never nil | new; cases from A `internal/runner/runner_test.go` `TestKubernetesDeployApplyOnStdin` and `TestKubernetesRemoveUsesDeleteVerb`, B `internal/k8s/cluster_test.go` `TestApplyOnStdin` and `TestDeleteStdin` |
+| `TestNamespaceManifest` | The four lines both tools write; a name that is not a DNS-1123 label is refused | new |
+| `TestParseNamespace` | `get namespace <ns> --ignore-not-found -o name`; exists, absent, unknown; the zero value is unknown | new; cases from B `internal/k8s/prep_test.go` `TestCreateNamespaceSkipsANamespaceThatExists`, `TestCreateNamespaceCreatesAnAbsentNamespace` and `TestCreateNamespaceDecidesByTheProbeWhenTheReadFails` |
+| `TestMissingNamespace` | The refusal wrapped, what is missing, and the create command with the configured base | new; wording from B `TestCreateNamespaceStopsOnPreflightFailure` |
+| `TestDeleteNamespace` | `delete namespace <ns> --ignore-not-found` | new; from B `TestDeleteNamespace` |
+| `TestScaleAndRollout` | `scale`, `rollout restart` and `rollout status` with the namespace after the target; the 300s default | new; cases from A `TestLifecycleArgv`, B `internal/k8s/ops_test.go` `TestRestartPod` and `TestReplicasStart` |
+| `TestForbidden` | Both kubectl refusal spellings are refusals; NotFound, a timeout and a refused connection are not | new |
+| `TestGet` | Pods by selector, by name across all namespaces, one object, a name read with `--ignore-not-found`, jsonpath, nothing extra | new; cases from A `TestKubernetesPodsJSONArgv` and `TestKubernetesGetJSONArgv` |
+| `TestExec` | `exec [-i] [-t] <pod> [-n ns] [-c container] -- <argv>`, no stdin set | new; cases from A `TestExecArgvPerPlatform` and B `internal/k8s/transport_test.go` `TestTransportExecArgs` |
+| `TestExecRefuses` | An empty pod, an empty command and a terminal without stdin | new; from A `TestExecArgvRefusesATTYWithoutStdin` |
+| `TestUpload` | The body on stdin only, the destination one quoted word, `mkdir -p` of its directory, an empty pod or destination refused | new; cases from B `TestTransportUpload` and `TestTransportUploadQuotesDest` |
+| `TestLogs` | The target, namespace and container, then `-p`, `-f`, `--timestamps`, `--tail`, `--since`; `--tail 0` survives | new; cases from A `TestLogsArgvPerPlatform` and B `TestLogsPassthrough` |
+| `TestValidLabel` | The DNS-1123 label rule, 63 characters at most | new; the rule is A's `lifecycleNameRE` (`cmd/solmq-conn-util/lifecycle.go`) |
+| `TestBuildersCopyInputs` | No builder writes through the base | new |
+
+### kube/rbac, rbac_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestCanIArgv` | Cluster-scoped and all-namespaces questions asked cluster-wide, namespaced ones in their namespace, a named probe, a subresource flag, the context's namespace when none is given, any case | new; cases from B `internal/k8s/preflight_test.go` `TestCanIArgsScopesByResourceKind` and A `TestPreflightReadVerbsAskOnlyWhatTheyUse` |
+| `TestClusterScoped` | The cluster-scoped resources, in any case | new; the table is B's `clusterScoped` |
+| `TestAnswer` | The last non-empty line, past warnings, blank lines and CRLF | new; cases from B `TestCanIAnswerReadsTheLastLine` |
+| `TestRefused` | `no`, `no - ...` and `no (...)`; `nope`, `no such host`, empty and `yes` are not | new; cases from B `TestCanIRefusedReadsEveryRefusalSpelling` |
+| `TestVerdict` | A refusal under exit 1 is answered; a yes with an error is not trusted | new; cases from B `TestCanIAnswersWithoutFailing` |
+| `TestCheck` | A warned yes passes; refusals name the permission, the place (a namespace, the current namespace, the cluster) and the binding to ask for; no verdict wraps the cause with kubectl's words and the login hint; an unreadable answer is refused | new; cases from B `TestPreflightRefusalIsNotAllowed`, `TestPreflightAcceptsAWarnedYes` and `TestPreflightRefusesAnUnreadableAnswer`, A `TestPreflightRefusalNamesThePermission` |
+| `TestProbeString` | `get pods/log`, `bind clusterroles/<name>` | new |
+
+### kube/nsgate, nsgate_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestProtected` | The cluster's own namespaces and an empty name | new; the list is both tools' |
+| `TestListArgv` | One JSON query and no `--ignore-not-found`; the base is copied | new; from A `TestRemoveNamespaceProbeArgvIsOneQuery` and B `internal/k8s/namespace_test.go` `TestNamespaceContentsAsksOneQuestion` |
+| `TestDeleteProbe` | `delete namespaces`, cluster-wide | new |
+| `TestOccupantsCountsForeignObjects` | Foreign objects count, sorted, lower-case kinds; an empty list has none | new; cases from A `cmd/solmq-conn-util/main_test.go` `TestNamespaceOccupantsRules` and `TestNamespaceOccupantsAreSortedAndLabelled`, B `TestNamespaceContentsReportsRealOccupants` |
+| `TestOccupantsDiscountsClusterDefaults` | Both tools' defaults are left out; another service account's token and a look-alike name count | new; cases from A `TestNamespaceOccupantsRules`, B `TestNamespaceContentsDiscountsWhatKubernetesPutsThere` and `TestNamespaceContentsIgnoresClusterPolicyObjects` |
+| `TestOccupantsDiscountsOwnedAndTerminating` | Owned objects by kind and name; a uid chain; a custom resource root that is not listed; a terminating owner and its child; a uid that does not match keeps counting | new |
+| `TestOccupantsNameCollisionAcrossKinds` | Owning a Deployment says nothing about a claim of the same name or what it owns | new |
+| `TestOccupantsStatefulSetPVCsCount` | A StatefulSet's claims keep the namespace | new; from B `TestRetainedPVCsKeepTheNamespace` |
+| `TestOccupantsOwnershipBlind` | With no owned objects, a deployment's own leftovers count | new |
+| `TestOccupantsRefusesUnreadable` | Empty, blank, not JSON, no items, null items, a single object, an item with no kind or name: each keeps the namespace | new; cases from A `TestNamespaceOccupantsRejectsUnreadableOutput` and B `TestNamespaceContentsErrorMeansOccupied` |
+
 ## Coverage
 
-The last recorded total is 99.6%, from B6 (2026-11-04; B5 was also 99.6%, B4
-and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
+The last recorded total is 99.7%, from B7 (2026-11-05; B6 and B5 were 99.6%,
+B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change.
