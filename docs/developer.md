@@ -54,7 +54,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B3 | `runner`, `runner/runnertest` | A `internal/runner` seam; B `internal/engine` |
 | B4 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | A `internal/dockergen` and `internal/podmangen` escaping, hardening and secret lines; B `internal/render` `Compose` and `Quadlet` and their posture tests. A's `internal/yamlwriter` stays in A, its only user |
 | B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman version, secret and systemctl functions, `ResolveQuadletScope`, and the subid check in `cmd/solmq-conn-util/runas.go`; B `internal/container` `euid.go`, the session, linger and id-mapping code in `rootless.go`, the core-limit and limit parsing in `limits.go`, and the secret and systemctl calls in `manager.go` and `inspect.go`, plus `xdgConfigHome` in `internal/config/load.go`. A's mount-readability checks and B's nr_open, nofile, user-manager and data-dir checks stay in the tools |
-| B6 | `containercli`, `containercli/inspect`, `watch` | A compose, ps and info code, `internal/statusreport`; B `internal/container` docker paths, `inspect.go`, `internal/cli/watch.go` |
+| B6 | `containercli`, `containercli/inspect`, `watch` | A `internal/runner` `Docker`, `DockerLifecycle`, `Preflight`'s engine branch, `EngineList`, `EngineInspectJSON`, `ExecArgv`, `InstallScript` and `LogsArgv`, the decoding and name filter in `internal/statusreport/parse.go`, and the watch loop in `cmd/solmq-conn-util/status.go`; B `internal/container` `preflight.go`, the docker deploy, delete, listing, lifecycle and logs paths in `manager.go`, `transport.go`'s exec and upload, `inspect.go`, and `internal/cli/watch.go`. A's status model, image, stats and status-script code and B's `cp` transport, registry login and cert-digest comparison stay in the tools |
 | B7 | `kube`, `kube/rbac`, `kube/nsgate` | A kubectl code and `namespace.go`; B `internal/k8s` |
 
 The `output` package waits until the output-model decision is made, because only
@@ -186,6 +186,32 @@ Notes on the available packages:
   newline, `rootless.SubIDFix` with a block from `NextFreeRange`, then the
   tool's own alternatives. `CheckCore` and `CheckLinger` are generic too; a tool
   appends its drop-in file or config key to the error.
+- `containercli` builds engine commands from `base`, the guarded engine argv,
+  and compose commands from `compose`, the guarded compose argv; how a tool
+  derives either stays tool config. Compose takes its file on stdin only
+  (`-f - --project-directory <dir>`) with secrets in `Cmd.Env`, so nothing is
+  written to disk; both tools' files declare `name:`, so `<dir>` only anchors
+  relative paths. Lifecycle is plain engine verbs on the container (decided
+  2026-11-04).
+- `containercli.InfoError` is the one preflight message: engine, command,
+  wrapped cause, the engine's own output when the tool captured it, then
+  `EngineHint`.
+- `containercli.List` lists with real tab separators and `ParseList` reads it;
+  matching is done in Go (`HasName` exact, `ByImage` substring), never with
+  `--filter name=`, which is an unanchored regex. A listed name that fails
+  `ValidName` is reported, not passed back to the engine.
+- `Exec` and `Upload` return an error for an empty name, command or
+  destination, and `Exec` for a terminal without stdin. `Upload` single-quotes
+  the destination, a POSIX path inside the container.
+- `inspect.Containers` asks `container inspect`, which only containers answer.
+  `inspect.Decode` strips docker's leading slash, takes health from the first of
+  `State.Health` and `State.Healthcheck` with a status, and never decodes the
+  environment. A tool prints engine text through `inspect.Printable`.
+- `watch.Loop` redraws only when `watch.CanRedraw` says the output is a terminal
+  that takes escape sequences, and appends 60-column section lines otherwise. A
+  refresh error goes to the tool's `Warn` and the loop carries on; a refresh that
+  reports its own failure returns nil. The loop ends with nil when its context
+  does, so Ctrl-C exits 0.
 
 ## Adoption order
 
@@ -202,11 +228,13 @@ states the old and new totals and why.
 | S4 | runner; the parity body's "Runner seams" section is rewritten in the same step | A: every call takes a context and is interrupted, then killed, on cancel (was `Stream` only); a cancel is an error, which `logs --follow` maps to its clean end; errors read `kubectl: exit status 1`; B's resolve messages, and a relative resolution is refused; the optional `Streamer`, `Splitter` and `Attacher` interfaces go; a pipe held open after exit 0 no longer hangs. B: a cancel interrupts, then kills, instead of killing; stdin and env pass together; `RunInteractive` becomes `Attach`, which returns the exit code and is never killed; Echo annotates stdin and env on one line; `Quote` quotes more shell syntax and escapes unprintable runes; a held pipe no longer hangs; `EnvRunner` becomes a B-side wrapper | none |
 | S5 | containerart: compose, quadlet, artifacttest | B: its artifact bytes stay identical. Timezone and health-probe tokens are checked against execguard's charset at load. Its widening test gains A's spellings (`Privileged=true`, `no-new-privileges=false`, `NoNewPrivileges=false`, `SYS_ADMIN`, `label=disable`, `label:disable`, `Unconfined`), and the audit greps in `docs/container-security.md` follow. A: compose quotes the project `name:`, the service key, `container_name`, the `TZ` and `LOGGING_SYSLOG_*` values, volume entries, and secret and config `source:` names and their top-level keys. Every quadlet `Environment=` is quoted whole. The image, numbers and tool constants stay bare. Values routed to `Quote` or `Environment` are checked against execguard's charset. The posture tests use `artifacttest`, keeping A's Kubernetes extras | none: A adopts B's always-quote policy (decided 2026-11-04) |
 | S6 | podman, systemd, rootless; the parity body's rootless, quadlet directory, host check, secret replace and subuid rows are updated in the same step | A: an optional `podman.rootless` decided by `rootless.Decide`; the effective uid everywhere; the quadlet directory honours `XDG_CONFIG_HOME` and refuses a relative one; session repair before `systemctl --user`; linger and session core checks; the subid check asks `podman info` and refuses, in deploy and in validate, replacing the /etc/subuid warning, and its fix names both ranges; `is-active` is read as text from stdout; a version with surrounding space still parses; a negative `NRestarts` is refused. B: `secret create --replace` on podman 4.7 and later, with a `podman version` call before the first secret; the `NRestarts` argv becomes `show <unit> -p NRestarts --value`; the core probe becomes `cat /proc/self/limits`, parsed in Go; the linger and core messages no longer name the broker; a reloading unit is restarted; id 0 passes the subid check; `ApplyDefaults` gains an error path (or defers to `expandHomePaths`) for a relative `XDG_CONFIG_HOME` or an unresolvable home, retiring the `~` fallback | none: subid ranges are checked through `podman info` and a miss is refused, saying what to correct and how (decided 2026-11-04) |
-| S7 | containercli, inspect | B hands compose its file on stdin and writes no compose file; a digest label drives change detection; `docker.composeFile` is retired | redeploy consent prompt; docker lifecycle verbs |
-| S8 | watch | A stops sending screen clears into a pipe | none |
+| S7 | containercli, inspect; the parity body's compose file and redeploy rows are updated in the same step | Both: a deploy that would restart or recreate a running service whose artifact or secrets changed asks first; `--no-prompt` skips the prompt and approves; without a terminal and without `--no-prompt` it fails with exit 1 naming the flag; lifecycle verbs are `<engine> start <name>`, `stop` and `restart`; inspect is `container inspect`; one preflight message with merged hints. A: gains the redeploy prompt, so a CI deploy that changes a running service passes `--no-prompt`; the listing gains a status column and `ValidName` replaces the `SafeToken` re-check of listed names; upload paths are quoted; engine text is printed through `Printable`. B: compose gets its file on stdin with `--project-directory` set to the env file's directory, and no compose file is written; a digest label replaces the on-disk diff; `docker.composeFile` is retired; `compose -f <file> start`, `stop` and `restart` give way to engine verbs; `--restart` keeps meaning "recreate even when unchanged"; `exec -it` becomes `-i -t`; the logs flags take A's order; the listing adds `--no-trunc` | none: engine lifecycle verbs, and the redeploy prompt in both with `--no-prompt` (decided 2026-11-04) |
+| S8 | watch | A: no screen clears into a pipe (section lines instead); a refresh reports its own error and returns nil; a fixed pause after each refresh rather than a fixed rate; the header reads `Every <d>: <title>   <time>   Ctrl-C to stop`. B: the same header text, and `--interval` gains a 1h ceiling | none |
 | S9 | kube, rbac, nsgate | A creates the namespace only when absent, waits for rollout, probes every written kind and uses B's can-i parser | namespace gate policy; read probes in B |
 
-S7 needs `docker-compose` v1 and `nerdctl compose` checked for `-f -` first. A's
+S7 needs `docker-compose` v1 and `nerdctl compose` checked for `-f -` first;
+the aim is no interim files on the host, so a compose that refuses stdin is a
+decision for S7, not a silent temp file. A's
 Kubernetes path has never run on a real cluster. The root deploy for a declared
 rootless user stays a design task after S6.
 

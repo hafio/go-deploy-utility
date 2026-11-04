@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-20 test files, 243 test functions. Two are not tests, and both are os/exec
+23 test files, 276 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -48,7 +48,10 @@ helper-process shims that the tests re-execute as a child:
 | podman | 1 | 12 |
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
-| **Total** | **20** | **243** |
+| containercli | 1 | 17 |
+| containercli/inspect | 1 | 8 |
+| watch | 1 | 8 |
+| **Total** | **23** | **276** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -401,9 +404,60 @@ and B `TestLoadSecretRefErrors`.
 | `TestNextFreeRange` | Past every allocation in any order, junk skipped, widened for a large need | new; cases from B `TestSuggestSubIDRangeAvoidsExistingAllocations` |
 | `TestSubIDFix` | The usermod line for the next free block, named literally, and the caveat only when not computed | new; from B `TestIDMappingErrProposesTheNextFreeBlock` and `TestSuggestSubIDRangeSaysWhenItIsGuessing` |
 
+### containercli, containercli_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestInfoArgv` | `<base> info`, the base's own flags first | new |
+| `TestInfoErrorPerEngine` | The cause is wrapped; the engine, the command and the hint are named for docker, rootful and rootless podman, another engine and none | new; cases from B `internal/container/preflight_test.go` `TestPreflightFailureStopsTheDeploy` and `TestPreflightHintIsPlatformShaped`, and A `internal/runner/runner_test.go` `TestPreflightFailureWrapsPlatformHint` |
+| `TestInfoErrorCarriesTheEngineOutput` | Captured engine output sits between the cause and the hint | new |
+| `TestComposeUpAndDown` | `-f - --project-directory <dir> up -d [--force-recreate]` and `down`, the file on stdin, the secrets in env | new; cases from A `TestDockerUpAndDown` |
+| `TestLifecycleArgv` | `start`, `stop`, `restart` and `rm` on the container, after the base's flags | new; cases from A `TestLifecycleArgv` |
+| `TestListArgvAndTabs` | The `ps` argv, plain and running-only, with real tab bytes in the template | new |
+| `TestParseList` | Fields trimmed, blank and short rows skipped, a CR dropped | new |
+| `TestHasNameIsExact` | An exact name only: a sibling, a prefix and an empty name do not match | new; listings from B `internal/container/manager_test.go` `TestContainerRunningMatchesNameExactly`, as three-column rows |
+| `TestByImage` | Substring match on the image, in listing order | new; cases from A `internal/statusreport/parse_test.go` `TestEngineNamesByImage` |
+| `TestValidName` | The name grammar both engines accept; separators, controls and non-ASCII refused | new; the grammar is B's `engineNameRE` |
+| `TestExec` | `exec [-i] [-t] <name> <argv...>`, no `--`, no stdin set | new; cases from A `TestExecArgvPerPlatform` |
+| `TestExecRefuses` | An empty name, an empty command and a terminal without stdin | new; from A `TestExecArgvRefusesATTYWithoutStdin` |
+| `TestUpload` | The destination single-quoted (a quote inside it too), `mkdir -p` of its directory, the body on stdin | new; cases from B `internal/container/transport_test.go` `TestTransportUploadQuotesDest` and A `TestInstallScriptArgv` |
+| `TestUploadRefuses` | An empty name or destination | new |
+| `TestLogsFlagOrder` | `-f`, `--timestamps`, `--tail`, `--since`, then the container; empty values leave flags out | new; cases from A `TestLogsArgvPerPlatform` |
+| `TestNoPrevious` | The `--previous` refusal names the flag, Kubernetes and the engine | new |
+| `TestBuildersCopyInputs` | No builder writes through the base or keeps the caller's file or env | new |
+
+### containercli/inspect, inspect_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestContainersArgv` | `container inspect <names...>`; no names is nothing to run; the base is copied | new |
+| `TestDecodeDocker` | Every field from a docker answer, the name without its slash, networks sorted | new; fixture from A `internal/statusreport/parse_test.go` `dockerInspectJSON` |
+| `TestDecodePodman` | A podman answer: the Healthcheck spelling, OOM and error state, secret names | new; fixture from B `internal/container/inspect_test.go` `podmanInspect` |
+| `TestDecodeHealthSpellings` | The first spelling with a status wins; an empty Health does not hide a Healthcheck; no healthcheck is zero | new; cases from B `TestInspectHealthReadsBothSpellings` and `TestInspectDistinguishesNoHealthcheckFromUnknown` |
+| `TestDecodeNeverReadsEnv` | No field can hold the environment, and a secret in `Config.Env` reaches nothing decoded | new |
+| `TestDecodeRefuses` | Empty, blank, invalid, object and mistyped answers fail; `[]` and `null` are no containers | new; cases from B `TestInspectRejectsAnEmptyReply` and A `TestParseInspectFilterAndErrors` |
+| `TestDecodePartial` | Missing fields decode as zero values | new; from B `TestInspectDecodesPartialOutput` |
+| `TestPrintable` | C0, DEL and C1 controls dropped; printable text, UTF-8 included, kept | new; cases from B `TestPrintableStripsControlCharacters` |
+
+### watch, watch_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestLoopRedraws` | Clear, header with the pass's time, refresh, pause; each refresh gets its own time | new; from B `internal/cli/watch_test.go` `TestWatchRedrawsInPlaceOnATerminal` |
+| `TestLoopAppendsSections` | No escape bytes; one 60-column section line per refresh; a long title is not padded | new; from B `TestWatchAppendsWhenNotATerminal` and `TestWatchNeverRedrawsIntoAPipe` |
+| `TestLoopRetriesAfterAFailedRefresh` | The failure goes to Warn with the retry interval, and the next refresh runs | new; from B `TestWatchKeepsGoingAfterAFailedRefresh` |
+| `TestLoopEndsQuietlyOnCancel` | A refresh cut short by the cancel ends the loop with nil, no warning and nothing more written | new; from B `TestWatchEndsQuietlyWhenInterrupted` |
+| `TestDefaultSleepHonoursCancel` | The default pause ends at once on cancel and runs out otherwise; Loop uses it when no Sleep is given | new; from B `TestWatchSleepHonoursCtrlC` |
+| `TestLoopRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new |
+| `TestCheckInterval` | 1s to 1h inclusive; the error names the range | new |
+| `TestCanRedraw` | A regular file, no file and an unreadable file are not redrawn; a character device is | new |
+
+`vt_windows.go` is built only on Windows, so its lines are outside the recorded
+total; `GOOS=windows go vet ./watch/` checks that it compiles.
+
 ## Coverage
 
-The last recorded total is 99.6%, from B5 (2026-11-04; B4 and B3 were 99.5%,
-B2 99.3%, B1 99.1%, the scaffold 0.0%). The
+The last recorded total is 99.6%, from B6 (2026-11-04; B5 was also 99.6%, B4
+and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change.

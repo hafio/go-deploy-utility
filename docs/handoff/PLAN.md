@@ -161,6 +161,11 @@ Verify before coding: `docker-compose` v1 and `nerdctl compose` acceptance of `-
 refuses, that engine keeps a temp file written to a 0700 directory and removed after the call,
 documented as the exception.
 
+> Superseded 2026-11-04: the compose, listing, inspect and lifecycle commands are built in M
+> `containercli` and `containercli/inspect` (step B6). Lifecycle verbs are plain engine verbs on the
+> container in both tools, not `compose -p`, and inspect is `container inspect`. A compose that
+> refuses `-f -` is a decision for S7, not a silent temp file. See docs/developer.md.
+
 ## Stage 3: B non-TTY confirmations fail fast
 
 `internal/cli/confirm.go` `confirmGate` (L72-85): when `noPrompt` is false and stdin is not a
@@ -266,6 +271,10 @@ with tool-originated use. Output is a decision, then a stage per tool.
 
 - Redeploy over a running service: keep B's consent prompt and add it to A, or let the platform
   recreate silently in both.
+
+> Superseded 2026-11-04: decided. Both tools ask before restarting or recreating a running service
+> whose artifact or secrets changed, and `--no-prompt` skips the prompt (applied at S7).
+
 - subuid coverage: A warns, B refuses. Validate-is-golden argues for an error in both.
 
 > Superseded 2026-11-04: decided. Both tools check the run-as ids against `podman info`'s own

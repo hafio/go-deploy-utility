@@ -1,6 +1,6 @@
 {
   "0": "dev.sh",
-  "1": "Package layout and build order",
+  "1": "podman_test.go",
   "2": "testing.T",
   "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
@@ -13,11 +13,18 @@
   "11": "github.com/hafio/go-deploy-utility",
   "12": "exitcode_test.go",
   "13": "rootless.go",
-  "14": "Echo",
+  "14": "echo_test.go",
   "15": "confirm/doc.go",
   "16": "execguard_test.go",
   "17": "envref_test.go",
   "18": "artifacttest.go",
   "19": "compose_test.go",
-  "20": "runnertest_test.go"
+  "20": "runnertest_test.go",
+  "21": "containercli.go",
+  "22": "systemd.go",
+  "23": "watch_test.go",
+  "24": "inspect.go",
+  "25": "Runner",
+  "26": "Package layout and build order",
+  "27": ".Run"
 }
