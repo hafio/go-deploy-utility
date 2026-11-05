@@ -1,17 +1,17 @@
 # Graph Report - go-deploy-utility  (2026-11-05)
 
 ## Corpus Check
-- 67 files · ~93,320 words
+- 67 files · ~93,495 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
 ## Summary
-- 896 nodes · 2973 edges · 24 communities (20 shown, 4 thin omitted)
-- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 798 edges (avg confidence: 0.9)
+- 896 nodes · 2975 edges · 24 communities (20 shown, 4 thin omitted)
+- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 800 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `cf06d8cb`
+- Built from commit: `14bd6150`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -40,7 +40,7 @@
 - inspect.go
 
 ## God Nodes (most connected - your core abstractions)
-1. `Package layout and build order` - 78 edges
+1. `Package layout and build order` - 80 edges
 2. `Cmd` - 63 edges
 3. `runner, runner_test.go` - 54 edges
 4. `Runner` - 46 edges
@@ -157,9 +157,9 @@ Nodes (16): Decode(), health(), TestContainersArgv(), TestDecodeDocker(), TestDe
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `Package layout and build order` connect `Package layout and build order` to `podman_test.go`, `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `Echo`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`?**
-  _High betweenness centrality (0.104) - this node is a cross-community bridge._
-- **Are the 77 inferred relationships involving `Package layout and build order` (e.g. with `Prompter` and `HostNetwork()`) actually correct?**
-  _`Package layout and build order` has 77 INFERRED edges - model-reasoned connections that need verification._
+  _High betweenness centrality (0.106) - this node is a cross-community bridge._
+- **Are the 79 inferred relationships involving `Package layout and build order` (e.g. with `Prompter` and `.Ask()`) actually correct?**
+  _`Package layout and build order` has 79 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `github.com/hafio/go-deploy-utility`, `NO_COLOR` to the rest of the system?**
   _2 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `testing.T` be split into smaller, more focused modules?**

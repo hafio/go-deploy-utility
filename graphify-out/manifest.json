@@ -54,15 +54,15 @@
     "semantic_hash": ""
   },
   "docs/consuming.md": {
-    "mtime": 1793624474.9077578,
-    "seen": 1793628891.731971,
-    "ast_hash": "0c98f941472dd027e7fe39b15b3b84d9",
+    "mtime": 1793837894.877189,
+    "seen": 1793845072.4161665,
+    "ast_hash": "328347476dcba48f811ca1516e00c2b7",
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793837040.644612,
-    "seen": 1793837754.2372298,
-    "ast_hash": "7c7125eec5865d7f3f1746098e1199e8",
+    "mtime": 1793838985.9378798,
+    "seen": 1793845072.4161685,
+    "ast_hash": "166b6d1910d1a7ded4f8ba858ffedd9c",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "paritydoc/body.md": {
-    "mtime": 1793616601.2355633,
-    "seen": 1793628891.7319782,
-    "ast_hash": "94f26d43b48fdbaa29ab16f911b51a3f",
+    "mtime": 1793838985.9369884,
+    "seen": 1793845072.4161742,
+    "ast_hash": "468adf1a93e880d5b40f7b67c527f05c",
     "semantic_hash": ""
   },
   "envref/envref.go": {

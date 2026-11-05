@@ -5,6 +5,9 @@
 # Dev-script logs
 /scripts/logs/
 
+# Local helper that runs all three workspace repos' dev scripts; machine-specific, never committed
+/scripts/dev-all.sh
+
 # Build outputs: a library writes none, ignored in case a tool is added later
 /dist/
 
