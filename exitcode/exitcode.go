@@ -4,9 +4,12 @@
 // cluster failure must not retry a typo, and one code for both makes that
 // undecidable.
 //
-// The line between 1 and 2 is "would a different command line have helped?".
-// The caller decides which errors are usage errors by marking them with Usagef or
-// AsUsage; an unmarked error is a failure. The package never prints and never
+// The line between 1 and 2 is whether the tool refused before acting because of
+// what it was given. That is the command line, the env file, and the files and
+// environment variables the env file names, so a missing, unreadable or invalid env
+// file is a 2. A 1 means something ran and failed, or the live system said no: a
+// preflight, a host check, a deploy. The caller decides which errors are usage
+// errors by marking them with Usagef or AsUsage; an unmarked error is a failure. The package never prints and never
 // exits: a tool's main calls os.Exit(exitcode.Code(err)) itself, and a tool whose
 // handlers return an int uses the constants directly.
 package exitcode

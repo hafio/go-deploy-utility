@@ -1,17 +1,17 @@
 # Graph Report - go-deploy-utility  (2026-11-05)
 
 ## Corpus Check
-- 67 files · ~93,084 words
+- 67 files · ~93,320 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
 ## Summary
-- 896 nodes · 2971 edges · 24 communities (20 shown, 4 thin omitted)
-- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 796 edges (avg confidence: 0.9)
+- 896 nodes · 2973 edges · 24 communities (20 shown, 4 thin omitted)
+- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 798 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `50db64c4`
+- Built from commit: `cf06d8cb`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -56,12 +56,12 @@
   docs/handoff/HANDOFF.md → docs_test.go
 - `Stage 2: B compose on stdin, like A` --references--> `Delete()`  [INFERRED]
   docs/handoff/PLAN.md → kube/kube.go
-- `confirm, terminal_test.go, line_test.go, prompter_test.go` --references--> `TestPromptYesNo()`  [INFERRED]
-  docs/test.md → confirm/line_test.go
-- `confirm, terminal_test.go, line_test.go, prompter_test.go` --references--> `TestPromptYes()`  [INFERRED]
-  docs/test.md → confirm/line_test.go
-- `confirm, terminal_test.go, line_test.go, prompter_test.go` --references--> `TestLineReusesBufferedReader()`  [INFERRED]
-  docs/test.md → confirm/line_test.go
+- `Package layout and build order` --references--> `Prompter`  [INFERRED]
+  docs/developer.md → confirm/prompter.go
+- `Package layout and build order` --references--> `Widening()`  [INFERRED]
+  docs/developer.md → containerart/artifacttest/artifacttest.go
+- `Package layout and build order` --references--> `HostNetwork()`  [INFERRED]
+  docs/developer.md → containerart/artifacttest/artifacttest.go
 
 ## Import Cycles
 - None detected.
@@ -89,32 +89,32 @@ Cohesion: 0.22
 Nodes (12): Get-Log(), Get-Now(), Invoke-Logged(), Task-build(), Task-cov(), Task-graphify(), Task-scan(), Task-test() (+4 more)
 
 ### Community 5 - "noticetest_test.go"
-Cohesion: 0.09
+Cohesion: 0.10
 Nodes (52): Files, parity.md content, Stage 0: capture (both repos, docs only), Verification, notice, notice_test.go, notice/noticetest, noticetest_test.go, root, docs_test.go, TestEveryDocCarriesTheSupportNotice() (+44 more)
 
 ### Community 6 - "prompter_test.go"
-Cohesion: 0.13
-Nodes (24): countingReader, IsNotTerminal(), New(), TestAskNonTerminalNeverWrites(), TestAskUnansweredIsNotAnError(), TestGateCustomNoPromptFlagAndDoing(), TestGateNonTerminalFailsNamingTheFlag(), TestGateNoPromptSkipsEverything() (+16 more)
+Cohesion: 0.08
+Nodes (35): countingReader, Form, Line(), TestLineReusesBufferedReader(), TestPromptYes(), TestPromptYesNo(), Yes(), YesNo() (+27 more)
 
 ### Community 7 - "abbrev_test.go"
 Cohesion: 0.15
 Nodes (21): checkShort(), New(), mustPanic(), sample(), TestAccessorsReturnCopies(), TestDigitsAreAllowed(), TestEntriesCloneKeepsNilShort(), TestExpandResolvesBothSpellings() (+13 more)
 
 ### Community 8 - "paritydoc_test.go"
-Cohesion: 0.08
-Nodes (36): Conventions, go-deploy-utility, Process, Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order, paritydoc, paritydoc_test.go (+28 more)
+Cohesion: 0.07
+Nodes (41): Conventions, go-deploy-utility, Process, Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order, Coverage (+33 more)
 
 ### Community 12 - "exitcode_test.go"
-Cohesion: 0.15
-Nodes (25): Coverage, exitcode, exitcode_test.go, Running, Summary, Tests, Tests by package, childExitError, AsUsage() (+17 more)
+Cohesion: 0.19
+Nodes (20): exitcode, exitcode_test.go, childExitError, AsUsage(), ChildExit(), ChildStatus(), Code(), IsUsage(), childStatusError() (+12 more)
 
 ### Community 13 - "rootless.go"
 Cohesion: 0.11
 Nodes (34): rootless, rootless_test.go, CheckCore(), CheckIDMap(), CheckLinger(), covers(), Decide(), HardLimit(), LimitText() (+26 more)
 
 ### Community 14 - "Echo"
-Cohesion: 0.05
-Nodes (52): Form, Line(), TestLineReusesBufferedReader(), TestPromptYes(), TestPromptYesNo(), Yes(), YesNo(), NotTerminalError (+44 more)
+Cohesion: 0.07
+Nodes (41): 1. What this is, 2. State at export, 3. House rules that bind the next session, 4. Decisions already taken, 5.1 Same in both (the contract), 5.2 Different by policy, 5.3 Runner seams (why nothing is shared yet), 5. Exact similarities and differences (+33 more)
 
 ### Community 16 - "execguard_test.go"
 Cohesion: 0.14
@@ -156,7 +156,7 @@ Nodes (16): Decode(), health(), TestContainersArgv(), TestDecodeDocker(), TestDe
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Package layout and build order` connect `Package layout and build order` to `podman_test.go`, `testing.T`, `noticetest_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `Echo`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`?**
+- **Why does `Package layout and build order` connect `Package layout and build order` to `podman_test.go`, `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `Echo`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`?**
   _High betweenness centrality (0.104) - this node is a cross-community bridge._
 - **Are the 77 inferred relationships involving `Package layout and build order` (e.g. with `Prompter` and `HostNetwork()`) actually correct?**
   _`Package layout and build order` has 77 INFERRED edges - model-reasoned connections that need verification._
@@ -164,7 +164,7 @@ _Questions this graph is uniquely positioned to answer:_
   _2 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `testing.T` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
-- **Why does `Echo` connect `Echo` to `podman_test.go`, `noticetest_test.go`, `rootless.go`, `execguard_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `Package layout and build order`, `inspect.go`?**
+- **Why does `Echo` connect `Echo` to `podman_test.go`, `prompter_test.go`, `exitcode_test.go`, `rootless.go`, `execguard_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `Package layout and build order`, `inspect.go`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `Cmd` (e.g. with `Conventions` and `Package layout and build order`) actually correct?**
   _`Cmd` has 3 INFERRED edges - model-reasoned connections that need verification._

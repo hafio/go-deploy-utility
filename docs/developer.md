@@ -70,7 +70,11 @@ B uses it until then. Each tool keeps its own version printing.
 Notes on the available packages:
 
 - `exitcode` never prints or exits. A tool marks usage errors with `Usagef` or
-  `AsUsage`, and its main calls `os.Exit(exitcode.Code(err))`.
+  `AsUsage`, and its main calls `os.Exit(exitcode.Code(err))`; a tool whose
+  handlers return an int uses the constants. 2 means the tool refused before
+  acting because of what it was given: argv, the env file, and the files and
+  environment variables the env file names (decided 2026-11-05). 1 means
+  something ran and failed, or the live system said no.
 - `notice.New` takes the name, the kind word and the covers clause without its
   final period. One greedy wrap at 80 columns reproduces every committed notice.
 - `noticetest` checks `README.md` plus `docs/*.md` by default. The glob does not
@@ -255,7 +259,7 @@ states the old and new totals and why.
 
 | Step | Component | Behaviour change | Decision needed first |
 | --- | --- | --- | --- |
-| S1 | exitcode, notice, paritydoc, abbrev; both tools re-copy `tag.yml` and add `go.work` to `.gitignore` | none when the notice goldens match | env-file exit code, A 1 vs B 2 |
+| S1 | exitcode, notice, paritydoc, abbrev; both tools re-copy `tag.yml`, add `go.work` and `go.work.sum` to `.gitignore`, and require v0.1.0 through an untracked `go.work` | A: an env file that is missing, unreadable, unparsable or invalid, the files and environment variables it names, an unknown `--platform` or missing platform section, an unsafe configured command or name, and bad `status --user` or `--management-port` values exit 2 instead of 1; `validate` exits 2 when the env file has errors and 1 when only host checks fail; the alias tables are `abbrev` sets, so a declaration that breaks the shared rules fails at start-up. B: none; `internal/abbrev` and the lifted `exit.go` code move to the module, so its coverage total drops by what they carried. Both: the notice is built by `notice.New` and `docs/parity.md` is checked by `paritydoc.Check`, with no change to any committed doc but B's abbreviation.md naming the module's `abbrev` | none: env-file problems exit 2 in both (decided 2026-11-05) |
 | S2 | confirm | B fails a non-TTY destructive prompt without `--no-prompt` with exit 1 and names the flag; B's downgrade prompt gains `--no-prompt` | none, already decided |
 | S3 | execguard, envref | A refuses invisible and C1 characters, invalid UTF-8, any escalator in a command (`sudo podman` goes; run `sudo solmq-conn-util` instead) and a set-but-empty `-env` variable at deploy, accepts embedded `~` and `.Exe`, and takes B's guard messages; B refuses C1 characters, invalid UTF-8 and 8 more escalators, its escalator messages change, and an invalid `*Env` name is no longer echoed back | none, already decided (ban in both, 2026-11-02) |
 | S4 | runner; the parity body's "Runner seams" section is rewritten in the same step | A: every call takes a context and is interrupted, then killed, on cancel (was `Stream` only); a cancel is an error, which `logs --follow` maps to its clean end; errors read `kubectl: exit status 1`; B's resolve messages, and a relative resolution is refused; the optional `Streamer`, `Splitter` and `Attacher` interfaces go; a pipe held open after exit 0 no longer hangs. B: a cancel interrupts, then kills, instead of killing; stdin and env pass together; `RunInteractive` becomes `Attach`, which returns the exit code and is never killed; Echo annotates stdin and env on one line; `Quote` quotes more shell syntax and escapes unprintable runes; a held pipe no longer hangs; `EnvRunner` becomes a B-side wrapper | none |

@@ -33,11 +33,16 @@ this module through an untracked `go.work` at the tool's repo root:
 ```
 go 1.27
 
-use (
-	.
-	../go-deploy-utility
-)
+use .
+
+replace github.com/hafio/go-deploy-utility => ../go-deploy-utility
 ```
+
+The `replace` points every version of this module at the checkout, including the
+exact tag the tool's `go.mod` requires before that tag exists. Listing the
+checkout under `use` instead is not enough while the tag is missing: Go still
+reads the required version's `go.mod` to build the module graph, and an
+unpublished version fails with `unknown revision`.
 
 Both `go.work` and `go.work.sum` are gitignored in every repo. Keep the file in
 the tool's root, never in a shared parent directory, because Go applies the

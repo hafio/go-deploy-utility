@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793809412.9886527,
-    "seen": 1793810234.6663084,
-    "ast_hash": "deaa5c4d553a5dd76cf932dd9cdca330",
+    "mtime": 1793837040.644612,
+    "seen": 1793837754.2372298,
+    "ast_hash": "7c7125eec5865d7f3f1746098e1199e8",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793809443.6402843,
-    "seen": 1793810234.6663125,
-    "ast_hash": "79e25f8921253625f7177855f1d8a9b3",
+    "mtime": 1793810381.2581322,
+    "seen": 1793837754.2372346,
+    "ast_hash": "5352bf4450f16fd6660a093a60b78f41",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -150,9 +150,9 @@
     "semantic_hash": ""
   },
   "exitcode/exitcode.go": {
-    "mtime": 1793623886.1181626,
-    "seen": 1793628891.7319503,
-    "ast_hash": "cf4b5f8aebf5f9003709a7501ccd4fb6",
+    "mtime": 1793837040.642626,
+    "seen": 1793837754.2371733,
+    "ast_hash": "a48edb4578fc0023c2c0b382e2713070",
     "semantic_hash": ""
   },
   "exitcode/exitcode_test.go": {
