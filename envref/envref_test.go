@@ -150,6 +150,13 @@ func TestResolveUnsetAndEmpty(t *testing.T) {
 			}
 		})
 	}
+	// A lookup that says the variable is not set is believed, whatever value it
+	// also hands back.
+	_, err := ref("", "ADMIN_PASS").Resolve(func(string) (string, bool) { return "stale", false })
+	var u *UnsetError
+	if !errors.As(err, &u) || u.Empty {
+		t.Errorf("Resolve with a lookup reporting unset = %v, want a not-set *UnsetError", err)
+	}
 }
 
 // TestResolveNoEnvironmentAccess: a named variable on a command with no

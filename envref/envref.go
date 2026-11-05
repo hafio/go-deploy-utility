@@ -118,7 +118,8 @@ func (r Ref) Check() error {
 // variable's value through lookup. It runs Check first. lookup is the
 // environment seam, normally os.LookupEnv; nil means the calling command has no
 // environment access, which is an error only when a variable is named. An unset
-// or empty variable is an *UnsetError.
+// or empty variable is an *UnsetError; a lookup that reports a variable unset is
+// believed whatever value it also returns.
 func (r Ref) Resolve(lookup func(string) (string, bool)) (string, error) {
 	if err := r.Check(); err != nil {
 		return "", err
@@ -131,7 +132,7 @@ func (r Ref) Resolve(lookup func(string) (string, bool)) (string, error) {
 			"to read it; run a command that deploys", r.EnvKey, r.Name)
 	}
 	v, set := lookup(r.Name)
-	if v == "" {
+	if !set || v == "" {
 		return "", &UnsetError{EnvKey: r.EnvKey, Name: r.Name, Empty: set}
 	}
 	return v, nil

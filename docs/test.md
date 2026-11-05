@@ -142,7 +142,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 157 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 160 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |
@@ -226,7 +226,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestRefWiringErrors` | A Ref without its key names is a wiring error | new |
 | `TestResolveLiteralSkipsLookup` | A literal never consults the environment | new |
 | `TestResolveFromEnv` | A set variable resolves; a literal `${X}` stays verbatim | new |
-| `TestResolveUnsetAndEmpty` | Both are an `*UnsetError`, told apart | new |
+| `TestResolveUnsetAndEmpty` | Both are an `*UnsetError`, told apart; a lookup that reports a variable unset is believed even when it returns a value | new |
 | `TestResolveNoEnvironmentAccess` | A nil lookup is its own error, not an unset variable | new |
 | `TestMessagesNeverCarryTheValue` | No error path prints the literal, a resolved value, or a name that fails the name rules | new |
 

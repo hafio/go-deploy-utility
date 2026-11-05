@@ -1,17 +1,17 @@
 # Graph Report - go-deploy-utility  (2026-11-05)
 
 ## Corpus Check
-- 67 files · ~93,495 words
+- 67 files · ~93,725 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
 ## Summary
-- 896 nodes · 2975 edges · 24 communities (20 shown, 4 thin omitted)
+- 896 nodes · 2976 edges · 24 communities (20 shown, 4 thin omitted)
 - Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 800 edges (avg confidence: 0.9)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `14bd6150`
+- Built from commit: `2a0ff850`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -89,7 +89,7 @@ Cohesion: 0.22
 Nodes (12): Get-Log(), Get-Now(), Invoke-Logged(), Task-build(), Task-cov(), Task-graphify(), Task-scan(), Task-test() (+4 more)
 
 ### Community 5 - "noticetest_test.go"
-Cohesion: 0.10
+Cohesion: 0.09
 Nodes (52): Files, parity.md content, Stage 0: capture (both repos, docs only), Verification, notice, notice_test.go, notice/noticetest, noticetest_test.go, root, docs_test.go, TestEveryDocCarriesTheSupportNotice() (+44 more)
 
 ### Community 6 - "prompter_test.go"
@@ -101,12 +101,12 @@ Cohesion: 0.15
 Nodes (21): checkShort(), New(), mustPanic(), sample(), TestAccessorsReturnCopies(), TestDigitsAreAllowed(), TestEntriesCloneKeepsNilShort(), TestExpandResolvesBothSpellings() (+13 more)
 
 ### Community 8 - "paritydoc_test.go"
-Cohesion: 0.07
-Nodes (41): Conventions, go-deploy-utility, Process, Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order, Coverage (+33 more)
+Cohesion: 0.08
+Nodes (36): Conventions, go-deploy-utility, Process, Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order, paritydoc, paritydoc_test.go (+28 more)
 
 ### Community 12 - "exitcode_test.go"
-Cohesion: 0.19
-Nodes (20): exitcode, exitcode_test.go, childExitError, AsUsage(), ChildExit(), ChildStatus(), Code(), IsUsage(), childStatusError() (+12 more)
+Cohesion: 0.15
+Nodes (25): Coverage, exitcode, exitcode_test.go, Running, Summary, Tests, Tests by package, childExitError, AsUsage() (+17 more)
 
 ### Community 13 - "rootless.go"
 Cohesion: 0.11
@@ -164,7 +164,7 @@ _Questions this graph is uniquely positioned to answer:_
   _2 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `testing.T` be split into smaller, more focused modules?**
   _Cohesion score 0.13333333333333333 - nodes in this community are weakly interconnected._
-- **Why does `Echo` connect `Echo` to `podman_test.go`, `prompter_test.go`, `exitcode_test.go`, `rootless.go`, `execguard_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `Package layout and build order`, `inspect.go`?**
+- **Why does `Echo` connect `Echo` to `podman_test.go`, `noticetest_test.go`, `prompter_test.go`, `rootless.go`, `execguard_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `Package layout and build order`, `inspect.go`?**
   _High betweenness centrality (0.055) - this node is a cross-community bridge._
 - **Are the 3 inferred relationships involving `Cmd` (e.g. with `Conventions` and `Package layout and build order`) actually correct?**
   _`Cmd` has 3 INFERRED edges - model-reasoned connections that need verification._

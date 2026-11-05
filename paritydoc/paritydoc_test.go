@@ -1,6 +1,7 @@
 package paritydoc
 
 import (
+	"fmt"
 	"strings"
 	"testing"
 
@@ -53,8 +54,8 @@ func TestBodyShape(t *testing.T) {
 		t.Errorf("body must end with exactly one newline")
 	}
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-	if len(lines) != 157 {
-		t.Errorf("body has %d lines, want 157; update this count when the body changes on purpose", len(lines))
+	if len(lines) != 160 {
+		t.Errorf("body has %d lines, want 160; update this count when the body changes on purpose", len(lines))
 	}
 	if lines[0] == "" || strings.HasPrefix(lines[0], "#") || strings.HasPrefix(lines[0], ">") {
 		t.Errorf("body line 1 = %q, want the intro paragraph", lines[0])
@@ -148,6 +149,9 @@ func TestCheckReportsFirstDifference(t *testing.T) {
 		c[docLine-1] = text
 		return strings.Join(c, "\n") + "\n"
 	}
+	// last is the doc's last line and the body's; derived, so a body edit moves
+	// them without touching this test (TestBodyShape pins the length on purpose).
+	last, bodyLast := len(lines), len(lines)-10
 	for _, tc := range []struct {
 		name string
 		doc  string
@@ -155,14 +159,15 @@ func TestCheckReportsFirstDifference(t *testing.T) {
 	}{
 		{"a changed line", edit(41, "changed by hand"),
 			[]string{"doc line 41", "body line 31", "changed by hand", "Change paritydoc/body.md"}},
-		{"the last line changed", edit(167, "changed last line"),
-			[]string{"doc line 167", "body line 157", "changed last line"}},
+		{"the last line changed", edit(last, "changed last line"),
+			[]string{fmt.Sprintf("doc line %d", last), fmt.Sprintf("body line %d", bodyLast), "changed last line"}},
 		{"the last line deleted", strings.Join(lines[:len(lines)-1], "\n") + "\n",
-			[]string{"ends after body line 156", "next expected line 157"}},
+			[]string{fmt.Sprintf("ends after body line %d", bodyLast-1),
+				fmt.Sprintf("next expected line %d", bodyLast)}},
 		{"a line appended", good + "extra\n",
-			[]string{"extra line 168", "extra"}},
+			[]string{fmt.Sprintf("extra line %d", last+1), "extra"}},
 		{"a blank line appended", good + "\n",
-			[]string{"extra line 168"}},
+			[]string{fmt.Sprintf("extra line %d", last+1)}},
 		{"the final newline dropped", strings.TrimSuffix(good, "\n"),
 			[]string{"missing its final newline"}},
 	} {
