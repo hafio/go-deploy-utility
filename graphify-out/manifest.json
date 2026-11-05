@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793851740.2428014,
-    "seen": 1793854582.401184,
-    "ast_hash": "e9b8279912a22d56a7366daf593aafc1",
+    "mtime": 1793859442.3311014,
+    "seen": 1793867251.1005673,
+    "ast_hash": "a8a137e9c88030b479b1a8993b9fbe2e",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793854713.9649992,
-    "seen": 1793857966.821174,
-    "ast_hash": "4b81700ac7f37667dc121f8e37e60407",
+    "mtime": 1793859424.8059402,
+    "seen": 1793867251.100572,
+    "ast_hash": "bbb58cff0ef9fdbb3d18bea153c11d76",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -150,15 +150,15 @@
     "semantic_hash": ""
   },
   "exitcode/exitcode.go": {
-    "mtime": 1793837040.642626,
-    "seen": 1793837754.2371733,
-    "ast_hash": "a48edb4578fc0023c2c0b382e2713070",
+    "mtime": 1793859398.307182,
+    "seen": 1793867251.1005116,
+    "ast_hash": "8366bd561ac9ca37cf0d74c4fabecc31",
     "semantic_hash": ""
   },
   "exitcode/exitcode_test.go": {
-    "mtime": 1793623886.2771645,
-    "seen": 1793628891.7319517,
-    "ast_hash": "b56f712bc9f1c94c2d9e890b35bbb298",
+    "mtime": 1793859398.489184,
+    "seen": 1793867251.100514,
+    "ast_hash": "c32b5ada6d16fa30dae1a295d841459f",
     "semantic_hash": ""
   },
   "notice/notice.go": {
@@ -192,15 +192,15 @@
     "semantic_hash": ""
   },
   "paritydoc/paritydoc_test.go": {
-    "mtime": 1793853457.336636,
-    "seen": 1793854582.4011533,
-    "ast_hash": "52c5068dd527c33b657de197ae4c8cbd",
+    "mtime": 1793859411.2667463,
+    "seen": 1793867251.100534,
+    "ast_hash": "9abf52da241a7273b77369366bce9984",
     "semantic_hash": ""
   },
   "paritydoc/body.md": {
-    "mtime": 1793851740.2414024,
-    "seen": 1793854582.4011903,
-    "ast_hash": "2e3bc771d185193f42f8c6b8db5be71e",
+    "mtime": 1793859406.1196613,
+    "seen": 1793867251.1005733,
+    "ast_hash": "48e2f05898b180b9424d40476bc7edca",
     "semantic_hash": ""
   },
   "envref/envref.go": {

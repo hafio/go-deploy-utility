@@ -17,7 +17,6 @@ package exitcode
 import (
 	"errors"
 	"fmt"
-	"os/exec"
 )
 
 // The three exit statuses. They are public contract: scripts branch on them.
@@ -86,6 +85,30 @@ func ChildExit(err error) error {
 	return childExitError{err}
 }
 
+// exitedError is a child's non-zero exit status as a value, for a runner that hands back
+// the code rather than an *exec.ExitError, as runner.Exec.Attach does. It reads the way
+// os/exec words a status, so a message does not depend on which runner produced it.
+type exitedError struct {
+	name string
+	code int
+}
+
+func (e exitedError) Error() string { return fmt.Sprintf("%s: exit status %d", e.name, e.code) }
+
+// ExitCode is the method ChildStatus reads, the one *exec.ExitError has too.
+func (e exitedError) ExitCode() int { return e.code }
+
+// Exited turns a child's exit code into an error: nil for 0, otherwise one reading
+// "<name>: exit status <code>" that carries the code. It is not marked, so it is a
+// Failure until the caller wraps it in ChildExit: a session's status passes through
+// only where the caller says it should.
+func Exited(name string, code int) error {
+	if code == 0 {
+		return nil
+	}
+	return exitedError{name, code}
+}
+
 // Code classifies an error into the exit status the process should end with: nil
 // is OK, a usage error is Usage (checked first, so it beats a child status), a
 // ChildExit-marked session with a positive status passes that status through, and
@@ -105,10 +128,10 @@ func Code(err error) int {
 	}
 }
 
-// ChildStatus reads the exit status out of a ChildExit-marked error that wraps a
-// real *exec.ExitError. ok is false for an unmarked error, for a marked error with
-// no exit status behind it, and for a child killed by a signal; code is meaningful
-// only when ok is true.
+// ChildStatus reads the exit status out of a ChildExit-marked error that carries one:
+// a real *exec.ExitError, or an Exited error. ok is false for an unmarked error, for a
+// marked error with no exit status behind it, and for a child killed by a signal; code
+// is meaningful only when ok is true.
 //
 // A child killed by a signal reports -1, which os.Exit cannot take, so the status is
 // returned with `code > 0` as the ok answer rather than through a branch: the
@@ -120,10 +143,10 @@ func ChildStatus(err error) (code int, ok bool) {
 	if !errors.As(err, &marked) {
 		return 0, false
 	}
-	var ee *exec.ExitError
-	if !errors.As(err, &ee) {
+	var st interface{ ExitCode() int }
+	if !errors.As(err, &st) {
 		return 0, false
 	}
-	code = ee.ExitCode()
+	code = st.ExitCode()
 	return code, code > 0
 }

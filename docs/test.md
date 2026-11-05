@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-26 test files, 307 test functions. Two are not tests, and both are os/exec
+26 test files, 308 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -32,7 +32,7 @@ helper-process shims that the tests re-execute as a child:
 | Package | Files | Tests |
 | --- | --- | --- |
 | root (`deployutility`) | 1 | 1 |
-| exitcode | 1 | 11 |
+| exitcode | 1 | 12 |
 | abbrev | 1 | 14 |
 | notice | 1 | 8 |
 | notice/noticetest | 1 | 14 |
@@ -54,7 +54,7 @@ helper-process shims that the tests re-execute as a child:
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **307** |
+| **Total** | **26** | **308** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -82,6 +82,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 | `TestHelperExitProcess` | Not a test: the child process the two tests above start | B `internal/cli/exit_test.go` |
 | `TestCodeClassifiesEveryBranch` | Every outcome of `Code`, including status passthrough and an unmarked status staying a failure | new |
 | `TestChildStatusReportsOnlyMarkedRealStatus` | Each early return of `ChildStatus` | new |
+| `TestExitedCarriesTheStatus` | `Exited` is nil for 0, reads as os/exec words the same status, is a failure unmarked, passes its code through once marked, loses to a usage marker, and never reports a negative code | new |
 | `TestUsagefWrapsWithPercentW` | `Usagef` with `%w` keeps the cause and reads like `fmt.Errorf` | new |
 | `TestIsUsageAcrossWrapping` | The marker is found through `%w` and `errors.Join` | new |
 | `TestExitValuesAreTheContract` | The values are 0, 1 and 2 | new |
@@ -142,7 +143,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 160 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 166 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |

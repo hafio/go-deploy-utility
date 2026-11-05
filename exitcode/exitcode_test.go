@@ -192,6 +192,31 @@ func TestChildStatusReportsOnlyMarkedRealStatus(t *testing.T) {
 	}
 }
 
+// TestExitedCarriesTheStatus: Exited is the status of a runner that hands back the code
+// rather than an *exec.ExitError. It reads exactly as os/exec words the same status, is a
+// failure until it is marked, and once marked passes the code through like a real one.
+func TestExitedCarriesTheStatus(t *testing.T) {
+	if err := Exited("docker", 0); err != nil {
+		t.Errorf("Exited(0) = %v, want nil", err)
+	}
+	err := Exited("docker", 3)
+	if want := fmt.Errorf("docker: %w", childStatusError(t, 3)).Error(); err.Error() != want {
+		t.Errorf("Exited message = %q, want os/exec's %q", err, want)
+	}
+	if got := Code(err); got != Failure {
+		t.Errorf("Code(unmarked Exited) = %d, want %d", got, Failure)
+	}
+	if got := Code(ChildExit(fmt.Errorf("opening a session: %w", err))); got != 3 {
+		t.Errorf("Code(marked Exited) = %d, want 3", got)
+	}
+	if got := Code(AsUsage(ChildExit(err))); got != Usage {
+		t.Errorf("usage marker over Exited: got %d, want %d", got, Usage)
+	}
+	if code, ok := ChildStatus(ChildExit(Exited("docker", -1))); ok {
+		t.Errorf("ChildStatus(marked Exited(-1)) = (%d, true), want ok false", code)
+	}
+}
+
 // TestUsagefWrapsWithPercentW: a usage error built around a cause keeps that cause
 // in the chain and reads exactly like fmt.Errorf.
 func TestUsagefWrapsWithPercentW(t *testing.T) {
