@@ -12,9 +12,12 @@
 package containercli
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/hafio/go-deploy-utility/runner"
@@ -122,6 +125,33 @@ func ComposeUp(compose []string, file []byte, projectDir string, env []string, r
 // ComposeDown takes the project in file down, read from stdin the same way.
 func ComposeDown(compose []string, file []byte, projectDir string, env []string) runner.Cmd {
 	return composeCmd(compose, file, projectDir, env, "down")
+}
+
+// ComposeDigest is the hex sha256 of a compose deploy: the file, prefixed with its
+// length, then every entry of env (the compose child's environment, secret values
+// included), sorted, each preceded by a NUL. An environment entry cannot hold a
+// NUL, so no two different deploys hash the same bytes. env is not modified.
+//
+// Compose recreates a container when its service configuration changes, but a
+// secret's content is not part of that configuration. A tool therefore writes a
+// label whose value the file interpolates from an environment variable ("${VAR}"),
+// sets that variable to this digest, and lets compose decide: any change to the
+// file or to a value changes the label, so compose recreates, and an unchanged
+// deploy changes nothing. Before `up`, the tool compares the digest with the
+// running container's label (inspect.Container.Labels) to know whether compose is
+// about to recreate it, and so whether to ask first. The digest is computed with
+// the variable itself absent from env.
+func ComposeDigest(file []byte, env []string) string {
+	sorted := append([]string(nil), env...)
+	sort.Strings(sorted)
+	h := sha256.New()
+	fmt.Fprintf(h, "%d\n", len(file))
+	h.Write(file)
+	for _, e := range sorted {
+		h.Write([]byte{0})
+		h.Write([]byte(e))
+	}
+	return hex.EncodeToString(h.Sum(nil))
 }
 
 // Start starts the named container. The lifecycle verbs act on the container

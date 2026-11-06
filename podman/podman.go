@@ -82,6 +82,28 @@ func CreateSecret(base []string, name string, value []byte, replace bool, labels
 	return c
 }
 
+// SecretLabel asks for one label of the named secret: `secret inspect --format
+// {{index .Spec.Labels "<key>"}} <name>`. Read stdout alone and trim it: an absent
+// label prints an empty line, and a missing secret is an error. Both tools write a
+// digest of the value as a label with CreateSecret and compare it here, so an
+// unchanged secret is neither replaced nor counted as a change.
+//
+// key is placed inside a Go template, so an empty key, or one holding '"', '\',
+// '{', '}' or a control character, is refused; so is an empty name.
+func SecretLabel(base []string, name, key string) (runner.Cmd, error) {
+	if name == "" || key == "" {
+		return runner.Cmd{}, fmt.Errorf("podman: reading a secret label needs a secret name and a label key, "+
+			"got %q and %q", name, key)
+	}
+	for _, r := range key {
+		if r == '"' || r == '\\' || r == '{' || r == '}' || r < 0x20 || r == 0x7f {
+			return runner.Cmd{}, fmt.Errorf("podman: the label key %q holds %q, which cannot be placed in a "+
+				"--format template; use letters, digits, '.', '-' and '_'", key, r)
+		}
+	}
+	return cmd(base, "secret", "inspect", "--format", `{{index .Spec.Labels "`+key+`"}}`, name), nil
+}
+
 // RemoveSecrets removes every named secret in one call, `secret rm --ignore
 // <names...>`, so a name that is already gone is not an error. With no names there
 // is nothing to run, and ok is false.

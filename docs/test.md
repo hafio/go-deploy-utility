@@ -45,16 +45,16 @@ helper-process shims that the tests re-execute as a child:
 | containerart/compose | 1 | 8 |
 | containerart/quadlet | 1 | 7 |
 | containerart/artifacttest | 1 | 11 |
-| podman | 1 | 12 |
+| podman | 1 | 13 |
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
-| containercli | 1 | 17 |
+| containercli | 1 | 18 |
 | containercli/inspect | 1 | 8 |
 | watch | 1 | 8 |
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **308** |
+| **Total** | **26** | **310** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -143,7 +143,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 172 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 181 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |
@@ -370,6 +370,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestCreateSecretReplaceIsOneCall` | 4.7 and later: one `secret create --replace` with the value on stdin | new; cases from A `TestPodmanSecretCreateReplacesInOneCall` |
 | `TestCreateSecretLabelOrder` | `--replace` leads, then the labels in the order given (B's digest label) | new |
 | `TestCreateSecretEmptyValueIsNonNil` | An empty or nil value is an empty non-nil stdin, and the stdin is a copy | new |
+| `TestSecretLabel` | `secret inspect --format {{index .Spec.Labels "<key>"}} <name>`; an empty name or key, and a key holding a quote, backslash, brace or control character, are refused | new; template from B `internal/container/manager.go` `certSecretHash` |
 | `TestRemoveSecrets` | All names in one `secret rm --ignore`; no names is nothing to run | new; cases from A `TestPodmanSecretRemoveBatchesNames` and `TestPodmanSecretRemoveNoNamesIsNoop` |
 | `TestBuildersCopyBase` | A base with spare capacity is never written through; a multi-token base leads the argv | new |
 | `TestIDMapArgv` | B's `podman info` IDMappings template, for the uid and the gid map | new; template from B `internal/container/rootless.go` |
@@ -429,6 +430,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestLogsFlagOrder` | `-f`, `--timestamps`, `--tail`, `--since`, then the container; empty values leave flags out | new; cases from A `TestLogsArgvPerPlatform` |
 | `TestNoPrevious` | The `--previous` refusal names the flag, Kubernetes and the engine | new |
 | `TestBuildersCopyInputs` | No builder writes through the base or keeps the caller's file or env | new |
+| `TestComposeDigest` | 64 hex digits; independent of env order; moved by the file, a value, an extra entry, merged entries or an entry moved into the file; the caller's slice keeps its order | new |
 
 ### containercli/inspect, inspect_test.go
 

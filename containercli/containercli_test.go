@@ -316,3 +316,41 @@ func TestBuildersCopyInputs(t *testing.T) {
 		t.Error("an empty file is still stdin")
 	}
 }
+
+// TestComposeDigest: the digest is a property of the deploy, not of how the tool
+// happened to order its environment; any change to the file or to one value moves
+// it; entries cannot run into each other or into the file; and the caller's slice
+// keeps its order.
+func TestComposeDigest(t *testing.T) {
+	file := []byte("name: \"solace\"\n")
+	env := []string{"B=2", "A=1"}
+	d := ComposeDigest(file, env)
+	if len(d) != 64 || strings.Trim(d, "0123456789abcdef") != "" {
+		t.Fatalf("digest = %q, want 64 lower-case hex digits", d)
+	}
+	if env[0] != "B=2" {
+		t.Errorf("env = %v; the caller's slice must not be sorted", env)
+	}
+	if got := ComposeDigest(file, []string{"A=1", "B=2"}); got != d {
+		t.Error("the digest must not depend on the environment's order")
+	}
+	for _, c := range []struct {
+		name string
+		file []byte
+		env  []string
+	}{
+		{"file", []byte("name: \"solace2\"\n"), env},
+		{"value", file, []string{"A=1", "B=3"}},
+		{"extra entry", file, []string{"A=1", "B=2", "C="}},
+		{"entries merged", file, []string{"A=1B=2"}},
+		{"entry moved into the file", append(append([]byte(nil), file...), "A=1"...), []string{"B=2"}},
+		{"no env", file, nil},
+	} {
+		if ComposeDigest(c.file, c.env) == d {
+			t.Errorf("%s: the digest did not change", c.name)
+		}
+	}
+	if ComposeDigest(nil, []string{"a=b", "c"}) == ComposeDigest(nil, []string{"a=bc"}) {
+		t.Error("entry boundaries must be part of the digest")
+	}
+}

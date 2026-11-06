@@ -210,3 +210,31 @@ func TestQuadletDirHomeErrors(t *testing.T) {
 		t.Errorf("with XDG set the home is never asked for, got %v", err)
 	}
 }
+
+// TestSecretLabel: the label is read with a template naming the key, and a key that
+// could change the template, or an empty name or key, is refused before anything
+// runs.
+func TestSecretLabel(t *testing.T) {
+	base := make([]string, 1, 4)
+	base[0] = "podman"
+	c, err := SecretLabel(base, "sol-tls", "solace-util.sha256")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"podman", "secret", "inspect", "--format", `{{index .Spec.Labels "solace-util.sha256"}}`, "sol-tls"}
+	if !reflect.DeepEqual(c.Argv, want) {
+		t.Errorf("argv = %v, want %v", c.Argv, want)
+	}
+	if base[:2][1] != "" {
+		t.Errorf("the builder wrote into the caller's base: %v", base[:2])
+	}
+	for _, bad := range []struct{ name, key string }{
+		{"", "k"}, {"n", ""}, {"n", `a"b`}, {"n", `a\b`}, {"n", "a{b"}, {"n", "a}b"}, {"n", "a\nb"}, {"n", "a\x7fb"},
+	} {
+		if _, err := SecretLabel([]string{"podman"}, bad.name, bad.key); err == nil {
+			t.Errorf("SecretLabel(%q, %q) was accepted", bad.name, bad.key)
+		} else if !strings.Contains(err.Error(), "podman:") {
+			t.Errorf("SecretLabel(%q, %q) error %q does not name the package", bad.name, bad.key, err)
+		}
+	}
+}

@@ -1,6 +1,6 @@
 {
   "0": "dev.sh",
-  "1": "podman_test.go",
+  "1": "compose_test.go",
   "2": "testing.T",
   "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
@@ -19,8 +19,12 @@
   "17": "envref_test.go",
   "18": "artifacttest.go",
   "19": "nsgate.go",
-  "20": "Runner",
+  "20": "watch_test.go",
   "21": "containercli.go",
   "22": "Cmd",
-  "24": "inspect.go"
+  "23": "runnertest.go",
+  "24": "inspect.go",
+  "25": "Runner",
+  "26": "Handoff: aligning solmq-conn-util and solace-util on Docker, Podman and Kubernetes",
+  "27": "Echo"
 }
