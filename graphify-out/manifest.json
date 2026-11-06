@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793894062.2393675,
-    "seen": 1793922252.3896565,
-    "ast_hash": "ac696ee91d6111e76d533b8950512bec",
+    "mtime": 1793945140.3738127,
+    "seen": 1793948098.1501398,
+    "ast_hash": "d79c21bbc642a2004e115599fc558b77",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793894055.0911756,
-    "seen": 1793922252.3896606,
-    "ast_hash": "35f1f4bcfc1314acead746099c82bd45",
+    "mtime": 1793945190.0112083,
+    "seen": 1793948098.1501498,
+    "ast_hash": "0da5c313b7d5d8e35419c4ab60837187",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -192,15 +192,15 @@
     "semantic_hash": ""
   },
   "paritydoc/paritydoc_test.go": {
-    "mtime": 1793894055.0885608,
-    "seen": 1793922252.389625,
-    "ast_hash": "a6311294ce7bfba82d617193e9b32a01",
+    "mtime": 1793945183.5763733,
+    "seen": 1793948098.1500988,
+    "ast_hash": "42ce787473b3a894b51b7945ccbffab4",
     "semantic_hash": ""
   },
   "paritydoc/body.md": {
-    "mtime": 1793894054.779376,
-    "seen": 1793922252.3896618,
-    "ast_hash": "bddab1ff61c928f258e104839e593f06",
+    "mtime": 1793945164.6721566,
+    "seen": 1793948098.1501517,
+    "ast_hash": "270f92ab1090dd9704e17566bf897a06",
     "semantic_hash": ""
   },
   "envref/envref.go": {
@@ -312,15 +312,15 @@
     "semantic_hash": ""
   },
   "rootless/rootless.go": {
-    "mtime": 1793803542.1405258,
-    "seen": 1793804613.7823036,
-    "ast_hash": "3bb630616d94d14e14a9318763a0904d",
+    "mtime": 1793945073.8951726,
+    "seen": 1793948098.1501033,
+    "ast_hash": "53ee11955d71b017532b2184ad5a827e",
     "semantic_hash": ""
   },
   "rootless/rootless_test.go": {
-    "mtime": 1793803542.3463373,
-    "seen": 1793804613.7823045,
-    "ast_hash": "521758aacd04200934958a52055ce7dd",
+    "mtime": 1793945091.3690464,
+    "seen": 1793948098.1501045,
+    "ast_hash": "32607ba32dac7c01e51a4d6dd0c17dbd",
     "semantic_hash": ""
   },
   "systemd/systemd.go": {
@@ -336,9 +336,9 @@
     "semantic_hash": ""
   },
   "containercli/containercli.go": {
-    "mtime": 1793806084.375002,
-    "seen": 1793807246.6906543,
-    "ast_hash": "241046b3d637a1180961a55ef68f1cd1",
+    "mtime": 1793945100.8151522,
+    "seen": 1793948098.150059,
+    "ast_hash": "a6d96b34d2b75de850d7a22a4cf79e89",
     "semantic_hash": ""
   },
   "containercli/containercli_test.go": {

@@ -2,7 +2,7 @@
   "0": "dev.sh",
   "1": "podman_test.go",
   "2": "testing.T",
-  "3": "Appendix A: research notes (licensing and shared module)",
+  "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
   "5": "noticetest_test.go",
   "6": "prompter_test.go",
@@ -21,14 +21,6 @@
   "19": "nsgate.go",
   "20": "Runner",
   "21": "containercli.go",
-  "22": "systemd.go",
-  "23": "compose_test.go",
-  "24": "inspect.go",
-  "25": "Appendix C: deferred code stages (not in this plan, separate approval)",
-  "26": "Developer guide",
-  "27": "TestEveryDocCarriesTheSupportNotice",
-  "28": "Tests by package",
-  "29": "go-deploy-utility",
-  "30": "Consuming go-deploy-utility",
-  "31": "PLAN.md"
+  "22": "Cmd",
+  "24": "inspect.go"
 }

@@ -7,30 +7,25 @@ import (
 	"testing"
 )
 
-func ptr(b bool) *bool { return &b }
-
-// TestDecide is the rule: unset derives from the euid, a declared value the account
-// contradicts is refused, and no euid leaves the declared value standing (the rule
-// rows from solace-util's TestGuardPodmanEUID).
+// TestDecide is the rule: rootless unless rootful is asked for, rootful only for
+// root, root never rootful unasked, and no euid leaves the setting standing (the rule
+// rows began as solace-util's TestGuardPodmanEUID).
 func TestDecide(t *testing.T) {
 	for _, c := range []struct {
-		name     string
-		declared *bool
-		euid     int
-		want     bool
-		wantErr  bool
+		name    string
+		rootful bool
+		euid    int
+		want    bool
+		wantErr bool
 	}{
-		{"unset as root is rootful", nil, 0, false, false},
-		{"unset as a user is rootless", nil, 1000, true, false},
-		{"unset with no euid is rootless", nil, -1, true, false},
-		{"rootless as root fails", ptr(true), 0, false, true},
-		{"rootful as non-root fails", ptr(false), 1000, false, true},
-		{"rootless as non-root passes", ptr(true), 1000, true, false},
-		{"rootful as root passes", ptr(false), 0, false, false},
-		{"non-posix euid keeps rootful", ptr(false), -1, false, false},
-		{"non-posix euid keeps rootless", ptr(true), -1, true, false},
+		{"a user is rootless by default", false, 1000, true, false},
+		{"a user asking for rootful fails", true, 1000, false, true},
+		{"root asking for rootful is rootful", true, 0, false, false},
+		{"root without asking fails", false, 0, false, true},
+		{"non-posix euid is rootless by default", false, -1, true, false},
+		{"non-posix euid keeps rootful", true, -1, false, false},
 	} {
-		got, err := Decide(c.euid, c.declared)
+		got, err := Decide(c.euid, c.rootful, "podman.rootful")
 		if (err != nil) != c.wantErr {
 			t.Errorf("%s: err = %v, wantErr %v", c.name, err, c.wantErr)
 			continue
@@ -43,17 +38,21 @@ func TestDecide(t *testing.T) {
 
 // TestDecideMessagesNameTheKeyAndTheFix: each refusal names the key, the account it
 // found and both ways out (solace-util's TestGuardPodmanEUIDMessagesNameTheKeyAndTheFix).
+// The key is the caller's, so two different spellings are passed and each must come
+// back: the package knows no tool's config.
 func TestDecideMessagesNameTheKeyAndTheFix(t *testing.T) {
-	_, err := Decide(0, ptr(true))
-	for _, want := range []string{"podman.rootless=true", "running as root", "without sudo", "podman.rootless=false"} {
-		if err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("the rootless-as-root refusal should name %q, got: %v", want, err)
+	for _, key := range []string{"podman.rootful", "engine.rootful"} {
+		_, err := Decide(0, false, key)
+		for _, want := range []string{"running as root", "only when asked", key + "=true", "without sudo"} {
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("%s: the root-without-asking refusal should name %q, got: %v", key, want, err)
+			}
 		}
-	}
-	_, err = Decide(1000, ptr(false))
-	for _, want := range []string{"podman.rootless=false", "requires root", "euid 1000", "sudo", "podman.rootless=true"} {
-		if err == nil || !strings.Contains(err.Error(), want) {
-			t.Errorf("the rootful-as-non-root refusal should name %q, got: %v", want, err)
+		_, err = Decide(1000, true, key)
+		for _, want := range []string{key + "=true", "requires root", "euid 1000", "sudo", "remove " + key} {
+			if err == nil || !strings.Contains(err.Error(), want) {
+				t.Errorf("%s: the rootful-as-non-root refusal should name %q, got: %v", key, want, err)
+			}
 		}
 	}
 }

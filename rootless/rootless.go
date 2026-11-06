@@ -1,7 +1,7 @@
 // Package rootless holds the rules and host checks for running podman as an ordinary
-// user that solmq-conn-util and solace-util share: who deploys rootless, the user
-// session systemctl --user needs, linger, the session's core limit, and whether the
-// container's ids fit the user's subordinate ranges.
+// user that solmq-conn-util and solace-util share: rootless unless rootful is asked
+// for, the user session systemctl --user needs, linger, the session's core limit, and
+// whether the container's ids fit the user's subordinate ranges.
 //
 // The checks take what a tool has already read (environment values, command
 // output, file contents) and return an error that says what is wrong and how to
@@ -11,7 +11,6 @@
 package rootless
 
 import (
-	"errors"
 	"fmt"
 	"math"
 	"strconv"
@@ -32,30 +31,31 @@ const (
 	subIDBlock = 65536
 )
 
-// Decide applies the rootless rule both tools follow. declared is podman.rootless
-// as the env file states it, or nil when the file leaves it unset; euid is the
-// effective uid, or -1 where there is none (Windows).
+// Decide applies the rootless rule both tools follow and reports whether to deploy
+// rootless. Rootless is the default: rootful podman is deployed only when asked for.
+// rootful is the tool's setting that asks for it, false when unset, and key is how
+// the tool names that setting in its config, such as "podman.rootful", for the
+// refusals. euid is the effective uid, or -1 where there is none (Windows).
 //
-// Unset, the mode is derived: rootless unless running as root. Declared, the value
-// decides, and a value the account contradicts is refused: rootless as root (a
-// deploy on behalf of another user is not built yet), or rootful as anyone else.
-// With no euid to compare against, the declared value stands, so an artifact still
-// renders. The bool is meaningless when the error is not nil.
-func Decide(euid int, declared *bool) (bool, error) {
-	if declared == nil {
-		return euid != 0, nil
-	}
+// An ordinary user deploys rootless as itself, and asking for rootful as one is
+// refused, since rootful needs root. Root deploys rootful only when asked; root
+// without it is refused, because deploying on behalf of a rootless user is not built
+// yet and rootful is never assumed. With no euid to compare against, the setting
+// stands, so an artifact still renders. The bool is meaningless when the error is not
+// nil.
+func Decide(euid int, rootful bool, key string) (bool, error) {
 	switch {
 	case euid < 0:
-		return *declared, nil
-	case *declared && euid == 0:
-		return false, errors.New("podman.rootless=true but running as root (euid 0); run as the rootless " +
-			"user itself, without sudo -- or set podman.rootless=false to deploy the rootful engine")
-	case !*declared && euid != 0:
-		return false, fmt.Errorf("podman.rootless=false requires root, but running as euid %d; re-run with "+
-			"sudo -- or set podman.rootless=true to deploy as this user", euid)
+		return !rootful, nil
+	case rootful && euid != 0:
+		return false, fmt.Errorf("%s=true requires root, but running as euid %d; re-run with sudo -- or "+
+			"remove %s to deploy rootless as this user", key, euid, key)
+	case !rootful && euid == 0:
+		return false, fmt.Errorf("running as root (euid 0), and rootful podman is deployed only when asked "+
+			"for: set %s=true to deploy the rootful engine -- or run as the rootless user itself, without sudo",
+			key)
 	}
-	return *declared, nil
+	return !rootful, nil
 }
 
 // Session is the user session `systemctl --user` and loginctl talk through: the

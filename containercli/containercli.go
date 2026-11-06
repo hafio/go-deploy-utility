@@ -87,8 +87,8 @@ func EngineHint(engine Engine, rootless bool) string {
 			"(and `loginctl enable-linger` so it survives logout); if podman named /etc/subuid, " +
 			"this account has no subuid range and an administrator has to allocate one " +
 			"(`sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 $(id -un)`, " +
-			"then `podman system migrate`) -- do NOT use sudo for podman itself, " +
-			"podman.rootless=true deploys as this user"
+			"then `podman system migrate`) -- do NOT use sudo for podman itself; " +
+			"a rootless deployment runs as this user"
 	case engine == Podman:
 		return "start the engine: `sudo systemctl start podman.socket`, and re-run with the privileges " +
 			"rootful podman needs; on macOS or Windows, start the podman machine instead " +

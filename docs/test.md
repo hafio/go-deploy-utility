@@ -143,7 +143,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 169 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 172 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |
@@ -392,8 +392,8 @@ and B `TestLoadSecretRefErrors`.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestDecide` | Unset derives from the euid; a contradicted declaration fails; with no euid the declaration stands | new; the rule rows from B `internal/container/manager_test.go` `TestGuardPodmanEUID` |
-| `TestDecideMessagesNameTheKeyAndTheFix` | Each refusal names the key, the account and both ways out | new; substrings from B `TestGuardPodmanEUIDMessagesNameTheKeyAndTheFix` |
+| `TestDecide` | Rootless by default; rootful only when asked for, by root; a user asking for it, and root without it, fail; with no euid the setting stands | new; the rule rows from B `internal/container/manager_test.go` `TestGuardPodmanEUID` |
+| `TestDecideMessagesNameTheKeyAndTheFix` | Each refusal names the caller's key (two spellings), the account and both ways out | new; substrings from B `TestGuardPodmanEUIDMessagesNameTheKeyAndTheFix` |
 | `TestUserSession` | Both values derived when unset, inherited ones kept, each half independent, and only the runtime dir probed | new; cases from B `internal/container/rootless_test.go` `TestEnsureUserSessionDerivesBothWhenUnset`, `...NeverOverwritesInherited` and `...DerivesEachHalfIndependently` |
 | `TestUserSessionMissingDir` | A missing runtime dir exports nothing and names sudo and linger | new; from B `TestEnsureUserSessionExportsNothingWhenTheDirIsMissing` |
 | `TestUserSessionProbeError` | A probe that could not run is wrapped, not reported as a missing dir | new |
