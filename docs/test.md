@@ -143,7 +143,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 166 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 169 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |

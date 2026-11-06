@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793859442.3311014,
-    "seen": 1793867251.1005673,
-    "ast_hash": "a8a137e9c88030b479b1a8993b9fbe2e",
+    "mtime": 1793894062.2393675,
+    "seen": 1793922252.3896565,
+    "ast_hash": "ac696ee91d6111e76d533b8950512bec",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793859424.8059402,
-    "seen": 1793867251.100572,
-    "ast_hash": "bbb58cff0ef9fdbb3d18bea153c11d76",
+    "mtime": 1793894055.0911756,
+    "seen": 1793922252.3896606,
+    "ast_hash": "35f1f4bcfc1314acead746099c82bd45",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -192,15 +192,15 @@
     "semantic_hash": ""
   },
   "paritydoc/paritydoc_test.go": {
-    "mtime": 1793859411.2667463,
-    "seen": 1793867251.100534,
-    "ast_hash": "9abf52da241a7273b77369366bce9984",
+    "mtime": 1793894055.0885608,
+    "seen": 1793922252.389625,
+    "ast_hash": "a6311294ce7bfba82d617193e9b32a01",
     "semantic_hash": ""
   },
   "paritydoc/body.md": {
-    "mtime": 1793859406.1196613,
-    "seen": 1793867251.1005733,
-    "ast_hash": "48e2f05898b180b9424d40476bc7edca",
+    "mtime": 1793894054.779376,
+    "seen": 1793922252.3896618,
+    "ast_hash": "bddab1ff61c928f258e104839e593f06",
     "semantic_hash": ""
   },
   "envref/envref.go": {

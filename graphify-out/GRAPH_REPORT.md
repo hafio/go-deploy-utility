@@ -1,7 +1,7 @@
-# Graph Report - go-deploy-utility  (2026-11-05)
+# Graph Report - go-deploy-utility  (2026-11-06)
 
 ## Corpus Check
-- 67 files · ~94,247 words
+- 67 files · ~94,347 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `71b78fd3`
+- Built from commit: `405de9de`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 

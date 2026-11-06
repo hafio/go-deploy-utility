@@ -54,8 +54,8 @@ func TestBodyShape(t *testing.T) {
 		t.Errorf("body must end with exactly one newline")
 	}
 	lines := strings.Split(strings.TrimSuffix(s, "\n"), "\n")
-	if len(lines) != 166 {
-		t.Errorf("body has %d lines, want 166; update this count when the body changes on purpose", len(lines))
+	if len(lines) != 169 {
+		t.Errorf("body has %d lines, want 169; update this count when the body changes on purpose", len(lines))
 	}
 	if lines[0] == "" || strings.HasPrefix(lines[0], "#") || strings.HasPrefix(lines[0], ">") {
 		t.Errorf("body line 1 = %q, want the intro paragraph", lines[0])
