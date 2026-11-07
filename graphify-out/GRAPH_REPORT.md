@@ -1,17 +1,17 @@
 # Graph Report - go-deploy-utility  (2026-11-07)
 
 ## Corpus Check
-- 67 files · ~96,157 words
+- 67 files · ~96,306 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
 ## Summary
-- 908 nodes · 3017 edges · 31 communities (26 shown, 5 thin omitted)
-- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 824 edges (avg confidence: 0.91)
+- 908 nodes · 3020 edges · 32 communities (27 shown, 5 thin omitted)
+- Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 827 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `30f356d9`
+- Built from commit: `de2f3fca`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -45,6 +45,7 @@
 - go-deploy-utility
 - PLAN.md
 - A.7 Code the two repos could share (synergy)
+- compose_test.go
 
 ## God Nodes (most connected - your core abstractions)
 1. `Package layout and build order` - 85 edges
@@ -73,7 +74,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (31 total, 5 thin omitted)
+## Communities (32 total, 5 thin omitted)
 
 ### Community 0 - "dev.sh"
 Cohesion: 0.19
@@ -132,32 +133,32 @@ Cohesion: 0.25
 Nodes (15): envref, envref_test.go, env(), ref(), TestCheckBothSet(), TestCheckInvalidName(), TestCheckReferenceForm(), TestMessagesNeverCarryTheValue(), TestRefWiringErrors() (+7 more)
 
 ### Community 18 - "artifacttest.go"
-Cohesion: 0.08
-Nodes (64): recorder, unitLine, Secret, AssertAbsent(), AssertComposePosture(), AssertQuadletKeys(), AssertQuadletPosture(), AssertSecretTargets() (+56 more)
+Cohesion: 0.11
+Nodes (48): recorder, unitLine, AssertAbsent(), AssertComposePosture(), AssertQuadletKeys(), AssertQuadletPosture(), AssertSecretTargets(), CheckAbsent() (+40 more)
 
 ### Community 19 - "nsgate.go"
 Cohesion: 0.10
 Nodes (38): kube/nsgate, nsgate_test.go, kube/rbac, rbac_test.go, DeleteProbe(), discounted(), List(), Occupants(), ownedBy(), Protected() (+30 more)
 
 ### Community 20 - "Runner"
-Cohesion: 0.09
-Nodes (27): watch, watch_test.go, Runner seams, Exec, Runner, applyEnv(), CheckAttach(), classify(), Resolve() (+19 more)
+Cohesion: 0.08
+Nodes (32): Adding a package, Adoption order, Dev tasks, Developer guide, Rules for shared code, watch, watch_test.go, Runner seams, Exec (+24 more)
 
 ### Community 21 - "containercli.go"
 Cohesion: 0.09
-Nodes (44): ByImage(), cmd(), composeCmd(), ComposeDown(), ComposeUp(), EngineHint(), Exec(), HasName() (+36 more)
+Nodes (45): ByImage(), cmd(), composeCmd(), ComposeDigest(), ComposeDown(), ComposeUp(), EngineHint(), Exec() (+37 more)
 
 ### Community 22 - "Cmd"
 Cohesion: 0.05
-Nodes (99): ComposeDigest(), List(), Containers(), Printable(), Adding a package, Adoption order, Dev tasks, Developer guide (+91 more)
+Nodes (92): List(), Containers(), Package layout and build order, kube, kube_test.go, podman, podman_test.go, systemd, systemd_test.go, ExecOptions, GetOptions (+84 more)
 
 ### Community 23 - "Appendix A: research notes (licensing and shared module)"
 Cohesion: 0.25
 Nodes (8): A.1 Facts that shape the answer, A.2 Enforcement options, weakest to strongest, A.3 Key format and verification (options 1 and 2), A.4 Where the key comes from, A.5 Where the gate plugs in, A.6 Shared module, A.8 Shared module: layout and GitHub mechanics, Appendix A: research notes (licensing and shared module)
 
 ### Community 24 - "inspect.go"
-Cohesion: 0.19
-Nodes (16): Decode(), health(), TestContainersArgv(), TestDecodeDocker(), TestDecodeHealthSpellings(), TestDecodeNeverReadsEnv(), TestDecodePartial(), TestDecodePodman() (+8 more)
+Cohesion: 0.18
+Nodes (17): Decode(), health(), Printable(), TestContainersArgv(), TestDecodeDocker(), TestDecodeHealthSpellings(), TestDecodeNeverReadsEnv(), TestDecodePartial() (+9 more)
 
 ### Community 25 - "TestEveryDocCarriesTheSupportNotice"
 Cohesion: 0.40
@@ -179,6 +180,10 @@ Nodes (6): Development, go-deploy-utility, Licence, Packages, Status, Using it
 Cohesion: 0.50
 Nodes (3): Align docker, podman and kubernetes behaviour across solmq-conn-util and solace-util, Appendix B: B tests and doc lines pinned to the on-disk compose file (Stage 2 input), Context
 
+### Community 31 - "compose_test.go"
+Cohesion: 0.24
+Nodes (16): Secret, Escape(), FlowList(), Quote(), ServiceSecrets(), goldenSecrets(), TestComposeQuoteEscapes(), TestEscape() (+8 more)
+
 ## Knowledge Gaps
 - **2 isolated node(s):** `github.com/hafio/go-deploy-utility`, `NO_COLOR`
   These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 85 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
@@ -187,7 +192,7 @@ Nodes (3): Align docker, podman and kubernetes behaviour across solmq-conn-util 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Package layout and build order` connect `Cmd` to `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `runnertest_test.go`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`, `Echo`?**
+- **Why does `Package layout and build order` connect `Cmd` to `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `runnertest_test.go`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`, `Echo`, `compose_test.go`?**
   _High betweenness centrality (0.110) - this node is a cross-community bridge._
 - **Are the 84 inferred relationships involving `Package layout and build order` (e.g. with `Prompter` and `.Ask()`) actually correct?**
   _`Package layout and build order` has 84 INFERRED edges - model-reasoned connections that need verification._

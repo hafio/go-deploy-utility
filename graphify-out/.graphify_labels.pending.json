@@ -29,5 +29,6 @@
   "27": "Tests by package",
   "28": "go-deploy-utility",
   "29": "PLAN.md",
-  "30": "A.7 Code the two repos could share (synergy)"
+  "30": "A.7 Code the two repos could share (synergy)",
+  "31": "compose_test.go"
 }
