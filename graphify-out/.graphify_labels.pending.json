@@ -1,8 +1,8 @@
 {
   "0": "dev.sh",
-  "1": "podman_test.go",
+  "1": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "2": "testing.T",
-  "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
+  "3": "Appendix A: research notes (licensing and shared module)",
   "4": "dev.ps1",
   "5": "noticetest_test.go",
   "6": "prompter_test.go",
@@ -13,7 +13,7 @@
   "11": "github.com/hafio/go-deploy-utility",
   "12": "exitcode_test.go",
   "13": "rootless.go",
-  "14": "runnertest_test.go",
+  "14": "Runner",
   "15": "confirm/doc.go",
   "16": "execguard_test.go",
   "17": "envref_test.go",
@@ -24,6 +24,10 @@
   "22": "Cmd",
   "23": "Smoke checks",
   "24": "inspect.go",
-  "26": "Echo",
-  "31": "compose_test.go"
+  "25": "Developer guide",
+  "26": "TestEveryDocCarriesTheSupportNotice",
+  "27": "Tests by package",
+  "28": "go-deploy-utility",
+  "29": "Consuming go-deploy-utility",
+  "30": "PLAN.md"
 }

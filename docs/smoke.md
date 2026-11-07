@@ -57,6 +57,29 @@ Compose from stdin (docker only; the compose file now goes in through `-f -`):
       title `solace-util broker status`.
 - [ ] `solace-util broker status --watch --interval 2h`: exits 2 with "is above 1h".
 
+## S9: kube, rbac and the namespace gate (not yet run)
+
+Needs a cluster (kind, or OpenShift with `oc`) and two identities: a cluster admin, and one
+bound only to `edit` (plus the broker resource for solace-util) in an existing namespace.
+
+| Check | solmq-conn-util | solace-util |
+| --- | --- | --- |
+| 1. Namespace-scoped identity deploys into an existing namespace: no namespace probe, no create | [ ] | [ ] |
+| 2. Admin deploys into an absent namespace: it is created on its own, then the deploy | [ ] | [ ] |
+| 3. Namespace-scoped identity, absent namespace: refused, names `create namespace`, nothing applied | [ ] | [ ] |
+| 4. Identity without `get` on the rollout target: start or restart warns about the wait and exits 0 | [ ] | [ ] |
+| 5. Remove with a foreign object in the namespace: kept, the object named | [ ] | [ ] |
+| 6. Remove at a terminal, Ctrl-D at the namespace question: kept, exit 0 | [ ] | [ ] |
+| 7. Remove with `--no-prompt` on an emptied namespace: deleted | [ ] | [ ] |
+| 8. Remove as the namespace-scoped identity: `delete namespaces` refused, kept with a warning, exit 0 | [ ] | [ ] |
+| 9. `status`, `logs` and the shell or cli run with a read-only identity (no probes) | [ ] | [ ] |
+
+solace-util only:
+
+- [ ] `broker deploy` by an identity that may create but not get the broker resource: warns that
+      the read-back was refused, exits 0.
+- [ ] `broker remove --delete-data` with retained claims of another broker: kept.
+
 ## Runs
 
 | Date | Host | docker / compose | podman | Steps | Result |
