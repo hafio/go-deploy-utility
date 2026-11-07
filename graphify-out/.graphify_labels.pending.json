@@ -1,6 +1,6 @@
 {
   "0": "dev.sh",
-  "1": "Consuming go-deploy-utility",
+  "1": "podman_test.go",
   "2": "testing.T",
   "3": "Appendix C: deferred code stages (not in this plan, separate approval)",
   "4": "dev.ps1",
@@ -22,13 +22,8 @@
   "20": "Runner",
   "21": "containercli.go",
   "22": "Cmd",
-  "23": "Appendix A: research notes (licensing and shared module)",
+  "23": "Smoke checks",
   "24": "inspect.go",
-  "25": "TestEveryDocCarriesTheSupportNotice",
   "26": "Echo",
-  "27": "Tests by package",
-  "28": "go-deploy-utility",
-  "29": "PLAN.md",
-  "30": "A.7 Code the two repos could share (synergy)",
   "31": "compose_test.go"
 }

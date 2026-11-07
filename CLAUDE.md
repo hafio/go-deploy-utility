@@ -39,4 +39,5 @@ no image, no binaries; consumers fetch the tag.
 | Rules, package layout, build and adoption order | docs/developer.md |
 | Tests and their sources | docs/test.md |
 | Pinning, go.work, release order | docs/consuming.md |
+| Hand checks on real engines, per step | docs/smoke.md |
 | Planning history and the original stage plan | docs/handoff/ |
