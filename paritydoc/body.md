@@ -37,8 +37,8 @@ Both tools follow every rule in this section today.
 5. **Podman secrets arrive on stdin.** `podman secret create <name> -` reads the value from
    stdin. A value never appears on argv. On podman 4.7 and later a secret is replaced with
    `secret create --replace`; below that it is removed with `podman secret rm --ignore`
-   first. Each secret carries a digest of its value as a label, read back with
-   `secret inspect`, so an unchanged secret is not replaced. Stale secrets go with
+   first. On 4.7 and later the stored value is read back with `secret inspect --showsecret`
+   and compared in memory, so an unchanged secret is not replaced. Stale secrets go with
    `podman secret rm --ignore`. `solmq-conn-util`:
    `internal/runner/runner.go` (`PodmanSecretCreate`). `solace-util`:
    `internal/container/manager.go` (`createPodmanSecrets`).
@@ -114,7 +114,7 @@ Both tools follow every rule in this section today.
 | Waiting after a change | none | `rollout status --timeout=300s`, then the resource is read back | adopt: solmq-conn-util |
 | Permission probes | one per verb, including status, logs and cli | every kind before the first write; none for status, logs and exec | adopt: solmq-conn-util probes every kind it writes; read probes in solace-util are open |
 | `can-i` answer parsing | `no` and `no - ...` | last line; `no`, `no - ...` and `no (...)`; anything but `yes` refuses; unanswered is distinct from refused | adopt: solmq-conn-util takes the wider parser |
-| Podman secret replace | `secret create --replace` on podman 4.7 and later, remove then create below | the same; skipped when the digest label is unchanged | aligned |
+| Podman secret replace | `secret create --replace` on podman 4.7 and later, remove then create below; on 4.7 and later a secret whose stored value is unchanged is skipped | the same | aligned |
 | Redeploy over a running service | left to the platform; a change to a running service asks before anything is written, and `--no-prompt` approves | the same; `--restart` also approves, and recreates an unchanged service | aligned |
 | subuid range too small | asked of `podman info` and refused, with a `usermod` fix naming both ranges, in deploy and validate | the same | aligned |
 | Namespace gate details | discounts objects owned by the deployment; does not probe `delete namespaces` | counts every object; probes `delete namespaces` first | open |
@@ -137,7 +137,7 @@ since rootful is never assumed. Root deploying on behalf of a rootless user is a
 **Redeploy over a running service.** The platform decides, and an unchanged deploy changes
 nothing. A compose file carries a label set from a digest of the file and every value the
 compose child receives, so compose recreates exactly when one of them changed. On podman each
-secret carries a digest label and the unit is compared with the one on disk; only a change is
+secret's stored value and the unit on disk are compared with the new ones; only a change is
 written, and only a change restarts an active unit. When a running service would be recreated
 or restarted, the tool asks before writing anything. A "no" changes nothing. `--no-prompt`
 approves, and without a terminal the deploy fails with exit 1 naming it.

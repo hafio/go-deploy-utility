@@ -60,9 +60,9 @@
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1793976966.4470856,
-    "seen": 1793977424.1891243,
-    "ast_hash": "fc31066d91ae5c1179af15605523246d",
+    "mtime": 1793979844.70326,
+    "seen": 1794013593.013602,
+    "ast_hash": "78d45b9c8feb2aadce68000ab9b27eec",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1793977019.7066863,
-    "seen": 1793977424.1891286,
-    "ast_hash": "edd5a901b5c534f4e2f6954ecdd53ac6",
+    "mtime": 1793979837.7047803,
+    "seen": 1794013593.0136073,
+    "ast_hash": "0f28bd31035ec584a809d04153f4db64",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -198,9 +198,9 @@
     "semantic_hash": ""
   },
   "paritydoc/body.md": {
-    "mtime": 1793977012.5610301,
-    "seen": 1793977424.1891298,
-    "ast_hash": "b0663a24342a8de68ab0b0a4d0d67bfb",
+    "mtime": 1793979844.7029626,
+    "seen": 1794013593.0136085,
+    "ast_hash": "ee537d4ca2fef4fdff9aa6845a1dfb42",
     "semantic_hash": ""
   },
   "envref/envref.go": {
@@ -300,15 +300,15 @@
     "semantic_hash": ""
   },
   "podman/podman.go": {
-    "mtime": 1793976901.937363,
-    "seen": 1793977424.1890957,
-    "ast_hash": "01b88f7c62cbb2c71faca9abb1086a88",
+    "mtime": 1793979818.154996,
+    "seen": 1794013593.0135684,
+    "ast_hash": "d9e0c116f914f253d17ddc3c6694ef38",
     "semantic_hash": ""
   },
   "podman/podman_test.go": {
-    "mtime": 1793976925.9806323,
-    "seen": 1793977424.189097,
-    "ast_hash": "476b28fc21ea3d1d290ed2d78210c330",
+    "mtime": 1793979818.1554518,
+    "seen": 1794013593.0135708,
+    "ast_hash": "c41f8578e0cff92b8a0174bbddaa6424",
     "semantic_hash": ""
   },
   "rootless/rootless.go": {

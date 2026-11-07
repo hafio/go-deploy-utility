@@ -211,30 +211,45 @@ func TestQuadletDirHomeErrors(t *testing.T) {
 	}
 }
 
-// TestSecretLabel: the label is read with a template naming the key, and a key that
-// could change the template, or an empty name or key, is refused before anything
-// runs.
-func TestSecretLabel(t *testing.T) {
+// TestSecretData: the stored value is asked for on stdout through a fixed template,
+// with nothing about it on argv, and an empty name is refused.
+func TestSecretData(t *testing.T) {
 	base := make([]string, 1, 4)
 	base[0] = "podman"
-	c, err := SecretLabel(base, "sol-tls", "solace-util.sha256")
+	c, err := SecretData(base, "sol-tls")
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := []string{"podman", "secret", "inspect", "--format", `{{index .Spec.Labels "solace-util.sha256"}}`, "sol-tls"}
-	if !reflect.DeepEqual(c.Argv, want) {
-		t.Errorf("argv = %v, want %v", c.Argv, want)
+	want := []string{"podman", "secret", "inspect", "--showsecret", "--format", "{{.SecretData}}", "sol-tls"}
+	if !reflect.DeepEqual(c.Argv, want) || c.Stdin != nil || c.Env != nil {
+		t.Errorf("cmd = %+v, want argv %v and no stdin or env", c, want)
 	}
 	if base[:2][1] != "" {
 		t.Errorf("the builder wrote into the caller's base: %v", base[:2])
 	}
-	for _, bad := range []struct{ name, key string }{
-		{"", "k"}, {"n", ""}, {"n", `a"b`}, {"n", `a\b`}, {"n", "a{b"}, {"n", "a}b"}, {"n", "a\nb"}, {"n", "a\x7fb"},
+	if _, err := SecretData([]string{"podman"}, ""); err == nil || !strings.Contains(err.Error(), "podman:") {
+		t.Errorf("an empty name: err = %v, want a refusal naming the package", err)
+	}
+}
+
+// TestSecretMatches: only the value followed by podman's one newline matches, so a
+// trailing newline in the value or in the store is never lost to a trim.
+func TestSecretMatches(t *testing.T) {
+	for _, c := range []struct {
+		out, value string
+		want       bool
+	}{
+		{"abc\n", "abc", true},
+		{"-----PEM-----\n\n", "-----PEM-----\n", true},
+		{"\n", "", true},
+		{"abc", "abc", false},
+		{"abc\n", "abc\n", false},
+		{"abc\n\n", "abc", false},
+		{"abd\n", "abc", false},
+		{"", "", false},
 	} {
-		if _, err := SecretLabel([]string{"podman"}, bad.name, bad.key); err == nil {
-			t.Errorf("SecretLabel(%q, %q) was accepted", bad.name, bad.key)
-		} else if !strings.Contains(err.Error(), "podman:") {
-			t.Errorf("SecretLabel(%q, %q) error %q does not name the package", bad.name, bad.key, err)
+		if got := SecretMatches(c.out, []byte(c.value)); got != c.want {
+			t.Errorf("SecretMatches(%q, %q) = %v, want %v", c.out, c.value, got, c.want)
 		}
 	}
 }

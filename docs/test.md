@@ -45,7 +45,7 @@ helper-process shims that the tests re-execute as a child:
 | containerart/compose | 1 | 8 |
 | containerart/quadlet | 1 | 7 |
 | containerart/artifacttest | 1 | 11 |
-| podman | 1 | 13 |
+| podman | 1 | 14 |
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
 | containercli | 1 | 18 |
@@ -54,7 +54,7 @@ helper-process shims that the tests re-execute as a child:
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **310** |
+| **Total** | **26** | **311** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -370,7 +370,8 @@ and B `TestLoadSecretRefErrors`.
 | `TestCreateSecretReplaceIsOneCall` | 4.7 and later: one `secret create --replace` with the value on stdin | new; cases from A `TestPodmanSecretCreateReplacesInOneCall` |
 | `TestCreateSecretLabelOrder` | `--replace` leads, then the labels in the order given (B's digest label) | new |
 | `TestCreateSecretEmptyValueIsNonNil` | An empty or nil value is an empty non-nil stdin, and the stdin is a copy | new |
-| `TestSecretLabel` | `secret inspect --format {{index .Spec.Labels "<key>"}} <name>`; an empty name or key, and a key holding a quote, backslash, brace or control character, are refused | new; template from B `internal/container/manager.go` `certSecretHash` |
+| `TestSecretData` | `secret inspect --showsecret --format {{.SecretData}} <name>`, with no stdin or env and the base not written through; an empty name is refused | new |
+| `TestSecretMatches` | Only the value followed by podman's one newline matches; a trailing newline in the value or the store is never trimmed into a false match | new |
 | `TestRemoveSecrets` | All names in one `secret rm --ignore`; no names is nothing to run | new; cases from A `TestPodmanSecretRemoveBatchesNames` and `TestPodmanSecretRemoveNoNamesIsNoop` |
 | `TestBuildersCopyBase` | A base with spare capacity is never written through; a multi-token base leads the argv | new |
 | `TestIDMapArgv` | B's `podman info` IDMappings template, for the uid and the gid map | new; template from B `internal/container/rootless.go` |

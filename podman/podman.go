@@ -82,26 +82,30 @@ func CreateSecret(base []string, name string, value []byte, replace bool, labels
 	return c
 }
 
-// SecretLabel asks for one label of the named secret: `secret inspect --format
-// {{index .Spec.Labels "<key>"}} <name>`. Read stdout alone and trim it: an absent
-// label prints an empty line, and a missing secret is an error. Both tools write a
-// digest of the value as a label with CreateSecret and compare it here, so an
-// unchanged secret is neither replaced nor counted as a change.
+// SecretData asks for the value stored under name: `secret inspect --showsecret
+// --format {{.SecretData}} <name>`. The flag arrived in podman 4.7, the release
+// that also brings `secret create --replace`, so ask only where SupportsReplace
+// holds; an older podman refuses it, and a missing secret is an error too.
 //
-// key is placed inside a Go template, so an empty key, or one holding '"', '\',
-// '{', '}' or a control character, is refused; so is an empty name.
-func SecretLabel(base []string, name, key string) (runner.Cmd, error) {
-	if name == "" || key == "" {
-		return runner.Cmd{}, fmt.Errorf("podman: reading a secret label needs a secret name and a label key, "+
-			"got %q and %q", name, key)
+// Both tools compare the stored value with the one they are about to write, so an
+// unchanged secret is neither replaced nor counted as a change. The value travels
+// on the child's stdout alone, never on argv: read it with runner.Output or
+// runner.Split, compare it with SecretMatches, and never print it. Nothing about the
+// value is written as a label, since a label goes on `secret create`'s argv, which
+// any local user can read. An empty name is refused.
+func SecretData(base []string, name string) (runner.Cmd, error) {
+	if name == "" {
+		return runner.Cmd{}, errors.New("podman: reading a secret's value needs the secret's name")
 	}
-	for _, r := range key {
-		if r == '"' || r == '\\' || r == '{' || r == '}' || r < 0x20 || r == 0x7f {
-			return runner.Cmd{}, fmt.Errorf("podman: the label key %q holds %q, which cannot be placed in a "+
-				"--format template; use letters, digits, '.', '-' and '_'", key, r)
-		}
-	}
-	return cmd(base, "secret", "inspect", "--format", `{{index .Spec.Labels "`+key+`"}}`, name), nil
+	return cmd(base, "secret", "inspect", "--showsecret", "--format", "{{.SecretData}}", name), nil
+}
+
+// SecretMatches reports whether out, SecretData's stdout, is exactly value: podman
+// prints the template's output followed by one newline. Anything else reads as a
+// change, which costs at most a rewrite, never a stale secret kept: a value "abc"
+// is not matched by a stored "abc\n", nor the other way round.
+func SecretMatches(out string, value []byte) bool {
+	return out == string(value)+"\n"
 }
 
 // RemoveSecrets removes every named secret in one call, `secret rm --ignore
