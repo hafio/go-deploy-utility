@@ -19,15 +19,16 @@
   "17": "envref_test.go",
   "18": "artifacttest.go",
   "19": "nsgate.go",
-  "20": "Runner",
+  "20": "runnertest_test.go",
   "21": "containercli.go",
   "22": "Cmd",
   "23": "Smoke checks",
   "24": "inspect.go",
-  "25": "Developer guide",
+  "25": "Consuming go-deploy-utility",
   "26": "TestEveryDocCarriesTheSupportNotice",
   "27": "Tests by package",
   "28": "go-deploy-utility",
-  "29": "Consuming go-deploy-utility",
-  "30": "PLAN.md"
+  "29": "podman_test.go",
+  "30": "PLAN.md",
+  "31": "A.7 Code the two repos could share (synergy)"
 }

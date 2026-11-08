@@ -6,6 +6,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -196,7 +197,9 @@ func TestCheckInterval(t *testing.T) {
 }
 
 // TestCanRedraw: a regular file is never redrawn; a character device (the null
-// device on Unix) is, once its console takes escape sequences.
+// device on Unix) is, once its console takes escape sequences. On Windows the null
+// device is a character device but no console, so enableVT refuses it and the loop
+// appends.
 func TestCanRedraw(t *testing.T) {
 	f, err := os.Create(filepath.Join(t.TempDir(), "out"))
 	if err != nil {
@@ -222,7 +225,9 @@ func TestCanRedraw(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer null.Close()
-	if fi, _ := null.Stat(); fi.Mode()&os.ModeCharDevice != 0 && !CanRedraw(null) {
-		t.Error("a character device must be redrawn")
+	if fi, _ := null.Stat(); fi.Mode()&os.ModeCharDevice != 0 {
+		if want := runtime.GOOS != "windows"; CanRedraw(null) != want {
+			t.Errorf("CanRedraw(%s) = %v on %s, want %v", os.DevNull, !want, runtime.GOOS, want)
+		}
 	}
 }

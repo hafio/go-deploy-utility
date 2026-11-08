@@ -54,7 +54,9 @@ module proxy, so it fails until the required tag exists.
 
 ## Release and merge order
 
-1. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout.
+1. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout,
+   and `.\scripts\dev.ps1 full` on a Windows clean checkout: the tag pipeline
+   runs the gates on both, and a test that holds only on Linux fails there.
 2. Tag this repo `v0.x.y` and push the tag. The tag pipeline runs the gates and
    publishes a notes-only release.
 3. In each tool, set the exact `require` to the new tag.

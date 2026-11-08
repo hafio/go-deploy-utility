@@ -2,7 +2,9 @@ package podman
 
 import (
 	"errors"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -158,6 +160,16 @@ func homeAt(dir string) func() (string, error) {
 	return func() (string, error) { return dir, nil }
 }
 
+// abs is the slash path p made absolute on the OS running the test. Windows calls
+// a path absolute only with a drive, so it gains "C:" there, as an
+// XDG_CONFIG_HOME set on that host would carry.
+func abs(p string) string {
+	if runtime.GOOS == "windows" {
+		return "C:" + filepath.FromSlash(p)
+	}
+	return p
+}
+
 // TestQuadletDir: rootful is fixed; rootless follows XDG_CONFIG_HOME and falls back
 // to <home>/.config (cases from solmq-conn-util's TestResolveQuadletScope and
 // solace-util's TestApplyDefaultsPodmanRootlessXDG and ...HomeDir).
@@ -171,9 +183,9 @@ func TestQuadletDir(t *testing.T) {
 		{"rootful", false, nil, "/etc/containers/systemd"},
 		{"rootful ignores XDG", false, map[string]string{"XDG_CONFIG_HOME": "/x"}, "/etc/containers/systemd"},
 		{"rootless under home", true, nil, "/home/deployer/.config/containers/systemd"},
-		{"rootless under XDG", true, map[string]string{"XDG_CONFIG_HOME": "/srv/cfg"}, "/srv/cfg/containers/systemd"},
+		{"rootless under XDG", true, map[string]string{"XDG_CONFIG_HOME": abs("/srv/cfg")}, filepath.ToSlash(abs("/srv/cfg")) + "/containers/systemd"},
 		{"an empty XDG is unset", true, map[string]string{"XDG_CONFIG_HOME": ""}, "/home/deployer/.config/containers/systemd"},
-		{"XDG is cleaned", true, map[string]string{"XDG_CONFIG_HOME": "/srv/cfg/"}, "/srv/cfg/containers/systemd"},
+		{"XDG is cleaned", true, map[string]string{"XDG_CONFIG_HOME": abs("/srv/cfg/")}, filepath.ToSlash(abs("/srv/cfg")) + "/containers/systemd"},
 	} {
 		got, err := QuadletDir(c.rootless, env(c.env), homeAt("/home/deployer"))
 		if err != nil || got != c.want {
@@ -204,7 +216,7 @@ func TestQuadletDirHomeErrors(t *testing.T) {
 	if err == nil || !strings.Contains(err.Error(), "empty") {
 		t.Errorf("an empty home must be refused, got %v", err)
 	}
-	if _, err := QuadletDir(true, env(map[string]string{"XDG_CONFIG_HOME": "/x"}), func() (string, error) {
+	if _, err := QuadletDir(true, env(map[string]string{"XDG_CONFIG_HOME": abs("/x")}), func() (string, error) {
 		return "", cause
 	}); err != nil {
 		t.Errorf("with XDG set the home is never asked for, got %v", err)

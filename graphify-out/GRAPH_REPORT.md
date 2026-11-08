@@ -1,17 +1,17 @@
-# Graph Report - go-deploy-utility  (2026-11-07)
+# Graph Report - go-deploy-utility  (2026-11-08)
 
 ## Corpus Check
-- 68 files · ~97,873 words
+- 68 files · ~98,014 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 3 file(s) not represented in the graph (top: (none) 3)
 
 ## Summary
-- 915 nodes · 3029 edges · 31 communities (27 shown, 4 thin omitted)
+- 916 nodes · 3033 edges · 32 communities (27 shown, 5 thin omitted)
 - Extraction: 73% EXTRACTED · 27% INFERRED · 0% AMBIGUOUS · INFERRED: 830 edges (avg confidence: 0.91)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `528180cf`
+- Built from commit: `b7b9e474`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -34,17 +34,18 @@
 - envref_test.go
 - artifacttest.go
 - nsgate.go
-- Runner
+- runnertest_test.go
 - containercli.go
 - Cmd
 - Smoke checks
 - inspect.go
-- Developer guide
+- Consuming go-deploy-utility
 - TestEveryDocCarriesTheSupportNotice
 - Tests by package
 - go-deploy-utility
-- Consuming go-deploy-utility
+- podman_test.go
 - PLAN.md
+- A.7 Code the two repos could share (synergy)
 
 ## God Nodes (most connected - your core abstractions)
 1. `Package layout and build order` - 85 edges
@@ -73,7 +74,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (31 total, 4 thin omitted)
+## Communities (32 total, 5 thin omitted)
 
 ### Community 0 - "dev.sh"
 Cohesion: 0.19
@@ -88,8 +89,8 @@ Cohesion: 0.10
 Nodes (76): runner, echo_test.go, runner, runner_test.go, TestEchoDefaultWriter(), TestEchoOutput(), TestEchoOutputInput(), TestEchoRefusesWhatExecRefuses(), TestEchoRun(), TestEchoRunEnv() (+68 more)
 
 ### Community 3 - "Appendix A: research notes (licensing and shared module)"
-Cohesion: 0.17
-Nodes (10): A.1 Facts that shape the answer, A.2 Enforcement options, weakest to strongest, A.3 Key format and verification (options 1 and 2), A.4 Where the key comes from, A.5 Where the gate plugs in, A.6 Shared module, A.7 Code the two repos could share (synergy), A.8 Shared module: layout and GitHub mechanics (+2 more)
+Cohesion: 0.25
+Nodes (8): A.1 Facts that shape the answer, A.2 Enforcement options, weakest to strongest, A.3 Key format and verification (options 1 and 2), A.4 Where the key comes from, A.5 Where the gate plugs in, A.6 Shared module, A.8 Shared module: layout and GitHub mechanics, Appendix A: research notes (licensing and shared module)
 
 ### Community 4 - "dev.ps1"
 Cohesion: 0.22
@@ -101,7 +102,7 @@ Nodes (46): notice, notice_test.go, notice/noticetest, noticetest_test.go, check
 
 ### Community 6 - "prompter_test.go"
 Cohesion: 0.08
-Nodes (34): countingReader, Form, Line(), TestLineReusesBufferedReader(), TestPromptYes(), TestPromptYesNo(), Yes(), YesNo() (+26 more)
+Nodes (35): countingReader, Form, Line(), TestLineReusesBufferedReader(), TestPromptYes(), TestPromptYesNo(), Yes(), YesNo() (+27 more)
 
 ### Community 7 - "abbrev_test.go"
 Cohesion: 0.15
@@ -121,14 +122,14 @@ Nodes (33): rootless, rootless_test.go, CheckCore(), CheckIDMap(), CheckLinger()
 
 ### Community 14 - "Runner"
 Cohesion: 0.05
-Nodes (55): Options, 1. What this is, 2. State at export, 4. Decisions already taken, 5.1 Same in both (the contract), 5.2 Different by policy, 5.3 Runner seams (why nothing is shared yet), 5. Exact similarities and differences (+47 more)
+Nodes (52): 1. What this is, 2. State at export, 4. Decisions already taken, 5.1 Same in both (the contract), 5.2 Different by policy, 5.3 Runner seams (why nothing is shared yet), 5. Exact similarities and differences, 6.1 Repo A, solmq-conn-util (+44 more)
 
 ### Community 16 - "execguard_test.go"
 Cohesion: 0.14
 Nodes (43): execguard, execguard_test.go, Approvals, Approve(), base(), Check(), checkBinary(), checkFlagShape(), checkToken() (+35 more)
 
 ### Community 17 - "envref_test.go"
-Cohesion: 0.19
+Cohesion: 0.20
 Nodes (16): envref, envref_test.go, env(), ref(), TestCheckBothSet(), TestCheckInvalidName(), TestCheckReferenceForm(), TestMessagesNeverCarryTheValue(), TestRefWiringErrors() (+8 more)
 
 ### Community 18 - "artifacttest.go"
@@ -137,31 +138,31 @@ Nodes (64): recorder, unitLine, Secret, AssertAbsent(), AssertComposePosture(), 
 
 ### Community 19 - "nsgate.go"
 Cohesion: 0.10
-Nodes (39): kube/nsgate, nsgate_test.go, kube/rbac, rbac_test.go, DeleteProbe(), discounted(), List(), Occupants(), ownedBy(), Protected() (+31 more)
+Nodes (37): kube/nsgate, nsgate_test.go, kube/rbac, rbac_test.go, DeleteProbe(), discounted(), Occupants(), ownedBy(), Protected(), listing() (+29 more)
 
-### Community 20 - "Runner"
-Cohesion: 0.17
-Nodes (19): Adoption order, watch, watch_test.go, Options, CanRedraw(), CheckInterval(), Loop(), section(), Sleep() (+11 more)
+### Community 20 - "runnertest_test.go"
+Cohesion: 0.18
+Nodes (20): runner/runnertest, runnertest_test.go, cloneStrings(), FailOn(), Seq(), cmd(), files(), TestCallHasAndString(), TestFakeAttach() (+12 more)
 
 ### Community 21 - "containercli.go"
 Cohesion: 0.09
-Nodes (46): ByImage(), cmd(), composeCmd(), ComposeDigest(), ComposeDown(), ComposeUp(), EngineHint(), Exec() (+38 more)
+Nodes (44): ByImage(), cmd(), composeCmd(), ComposeDown(), ComposeUp(), EngineHint(), Exec(), HasName() (+36 more)
 
 ### Community 22 - "Cmd"
-Cohesion: 0.06
-Nodes (88): Package layout and build order, kube, kube_test.go, podman, podman_test.go, systemd, systemd_test.go, ExecOptions, GetOptions, Apply(), cmd() (+80 more)
+Cohesion: 0.07
+Nodes (73): ComposeDigest(), List(), Containers(), Printable(), Adding a package, Adoption order, Dev tasks, Developer guide (+65 more)
 
 ### Community 23 - "Smoke checks"
 Cohesion: 0.29
 Nodes (6): Environment, Runs, S7: redeploy asks before any write (not yet run), S8: the shared watch loop (not yet run), S9: kube, rbac and the namespace gate (not yet run), Smoke checks
 
 ### Community 24 - "inspect.go"
-Cohesion: 0.17
-Nodes (18): Containers(), Decode(), health(), Printable(), TestContainersArgv(), TestDecodeDocker(), TestDecodeHealthSpellings(), TestDecodeNeverReadsEnv() (+10 more)
+Cohesion: 0.18
+Nodes (16): Decode(), health(), TestContainersArgv(), TestDecodeDocker(), TestDecodeHealthSpellings(), TestDecodeNeverReadsEnv(), TestDecodePartial(), TestDecodePodman() (+8 more)
 
-### Community 25 - "Developer guide"
+### Community 25 - "Consuming go-deploy-utility"
 Cohesion: 0.32
-Nodes (4): Adding a package, Dev tasks, Developer guide, Rules for shared code
+Nodes (4): Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order
 
 ### Community 26 - "TestEveryDocCarriesTheSupportNotice"
 Cohesion: 0.40
@@ -175,9 +176,9 @@ Nodes (6): Coverage, root, docs_test.go, Running, Summary, Tests, Tests by packa
 Cohesion: 0.33
 Nodes (6): Development, go-deploy-utility, Licence, Packages, Status, Using it
 
-### Community 29 - "Consuming go-deploy-utility"
-Cohesion: 0.50
-Nodes (4): Consuming go-deploy-utility, Develop against a local checkout, Pin an exact version, Release and merge order
+### Community 29 - "podman_test.go"
+Cohesion: 0.17
+Nodes (26): podman, podman_test.go, cmd(), CreateSecret(), IDMap(), QuadletDir(), RemoveSecrets(), SecretData(), SecretMatches() (+18 more)
 
 ### Community 30 - "PLAN.md"
 Cohesion: 0.50
@@ -185,23 +186,23 @@ Nodes (3): Align docker, podman and kubernetes behaviour across solmq-conn-util 
 
 ## Knowledge Gaps
 - **2 isolated node(s):** `github.com/hafio/go-deploy-utility`, `NO_COLOR`
-  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 91 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
-- **4 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+  These have ≤1 connection - possible missing edges or undocumented components. (Counts symbols only; 92 node(s) total have ≤1 connection when file, concept and rationale nodes are included.)
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Package layout and build order` connect `Cmd` to `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `Runner`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `Runner`, `containercli.go`, `inspect.go`, `Developer guide`?**
+- **Why does `Package layout and build order` connect `Cmd` to `testing.T`, `noticetest_test.go`, `prompter_test.go`, `paritydoc_test.go`, `exitcode_test.go`, `rootless.go`, `Runner`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `runnertest_test.go`, `containercli.go`, `inspect.go`, `podman_test.go`?**
   _High betweenness centrality (0.107) - this node is a cross-community bridge._
 - **Are the 84 inferred relationships involving `Package layout and build order` (e.g. with `Prompter` and `.Ask()`) actually correct?**
   _`Package layout and build order` has 84 INFERRED edges - model-reasoned connections that need verification._
 - **What connects `github.com/hafio/go-deploy-utility`, `NO_COLOR` to the rest of the system?**
   _2 weakly-connected nodes found - possible documentation gaps or missing edges._
 - **Should `testing.T` be split into smaller, more focused modules?**
-  _Cohesion score 0.1002710027100271 - nodes in this community are weakly interconnected._
-- **Why does `Echo` connect `Runner` to `prompter_test.go`, `rootless.go`, `execguard_test.go`, `envref_test.go`, `artifacttest.go`, `nsgate.go`, `containercli.go`, `Cmd`, `inspect.go`?**
-  _High betweenness centrality (0.054) - this node is a cross-community bridge._
+  _Cohesion score 0.09844255069056715 - nodes in this community are weakly interconnected._
+- **Why does `Echo` connect `Runner` to `noticetest_test.go`, `prompter_test.go`, `rootless.go`, `execguard_test.go`, `artifacttest.go`, `nsgate.go`, `runnertest_test.go`, `containercli.go`, `Cmd`, `inspect.go`, `podman_test.go`?**
+  _High betweenness centrality (0.053) - this node is a cross-community bridge._
 - **Are the 4 inferred relationships involving `Cmd` (e.g. with `Conventions` and `Package layout and build order`) actually correct?**
   _`Cmd` has 4 INFERRED edges - model-reasoned connections that need verification._
 - **Should `noticetest_test.go` be split into smaller, more focused modules?**
-  _Cohesion score 0.1092896174863388 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10787942887361185 - nodes in this community are weakly interconnected._

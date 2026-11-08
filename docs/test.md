@@ -375,7 +375,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestRemoveSecrets` | All names in one `secret rm --ignore`; no names is nothing to run | new; cases from A `TestPodmanSecretRemoveBatchesNames` and `TestPodmanSecretRemoveNoNamesIsNoop` |
 | `TestBuildersCopyBase` | A base with spare capacity is never written through; a multi-token base leads the argv | new |
 | `TestIDMapArgv` | B's `podman info` IDMappings template, for the uid and the gid map | new; template from B `internal/container/rootless.go` |
-| `TestQuadletDir` | Rootful is fixed; rootless follows an absolute `XDG_CONFIG_HOME` or falls back to `<home>/.config` | new; cases from A `TestResolveQuadletScope` and B `internal/config/config_test.go` `TestApplyDefaultsPodmanRootlessXDG` and `TestApplyDefaultsPodmanRootlessHomeDir` |
+| `TestQuadletDir` | Rootful is fixed; rootless follows an absolute `XDG_CONFIG_HOME` (with a drive on Windows) or falls back to `<home>/.config` | new; cases from A `TestResolveQuadletScope` and B `internal/config/config_test.go` `TestApplyDefaultsPodmanRootlessXDG` and `TestApplyDefaultsPodmanRootlessHomeDir` |
 | `TestQuadletDirRefusesRelativeXDG` | A relative `XDG_CONFIG_HOME` is refused, naming it and the fix | new |
 | `TestQuadletDirHomeErrors` | A home lookup error is wrapped and an empty home refused; with XDG set the home is never asked for | new |
 
@@ -457,7 +457,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestDefaultSleepHonoursCancel` | The default pause ends at once on cancel and runs out otherwise; Loop uses it when no Sleep is given | new; from B `TestWatchSleepHonoursCtrlC` |
 | `TestLoopRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new |
 | `TestCheckInterval` | 1s to 1h inclusive; the error names the range | new |
-| `TestCanRedraw` | A regular file, no file and an unreadable file are not redrawn; a character device is | new |
+| `TestCanRedraw` | A regular file, no file and an unreadable file are not redrawn; a character device is, except the Windows null device, which is no console | new |
 
 `vt_windows.go` is built only on Windows, so its lines are outside the recorded
 total; `GOOS=windows go vet ./watch/` checks that it compiles.
