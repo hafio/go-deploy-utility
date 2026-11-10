@@ -336,3 +336,13 @@ key naming the user and a way to run podman and `systemctl --user` as that user.
 and graphify, and is the sweep before a tag. The tag pipeline uses the
 init-devops library shape, which needs the repo variable `SHIP_LIBRARY=true`.
 Releases and the order across the three repos are in [consuming.md](consuming.md).
+
+`scripts/dev-all.sh`, and `scripts/dev-all.ps1` on Windows, run the same tasks
+in this repo and both tools, each repo getting only the words its own dev script
+knows, and print which go-deploy-utility code each tool is tested with. Two more
+words stand alone and change files in the tools only: `pin <version>` sets both
+tools' `require` and copies the parity body into their `docs/parity.md`, and
+`resolve` writes their `go.sum` once the tag is pushed. The tools are expected
+next to this repo; `DEV_ALL_SOLMQ_DIR` and `DEV_ALL_SOLACE_UTIL_DIR` point
+elsewhere. Neither script is part of the dev-script contract, and CI never
+calls them, since a runner checks out only this repo.

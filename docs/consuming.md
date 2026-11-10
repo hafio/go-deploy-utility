@@ -23,7 +23,8 @@ for every consumer. Its `toolchain` line applies to this repo only.
 
 Each tool's tests check its own `docs/parity.md` with `paritydoc.Check` against
 the body pinned with the module. A change to the shared parity text is made in
-`paritydoc/body.md`, tagged, and then picked up by both tools in the same step.
+`paritydoc/body.md` and copied into both tools by `scripts/dev-all.sh pin`
+before the tag, so both tools are tested against it first.
 
 ## Develop against a local checkout
 
@@ -50,7 +51,9 @@ nearest `go.work` above the current directory to every module below it.
 
 The workspace hides a wrong `require` line, since the local checkout satisfies
 every import. `go mod tidy` ignores the workspace and resolves through the
-module proxy, so it fails until the required tag exists.
+module proxy, so it fails until the required tag exists. `scripts/dev-all.sh`
+prints one line per tool before its tasks, and warns when this checkout holds
+code the tool's pinned version does not contain.
 
 ## What each version adds
 
@@ -67,15 +70,31 @@ module proxy, so it fails until the required tag exists.
 
 ## Release and merge order
 
-1. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout,
-   and `.\scripts\dev.ps1 full` on a Windows clean checkout: the tag pipeline
-   runs the gates on both, and a test that holds only on Linux fails there.
-2. Tag this repo `v0.x.y` and push the tag. The tag pipeline runs the gates and
-   publishes a notes-only release.
-3. In each tool, set the exact `require` to the new tag.
-4. In each tool, run `GOWORK=off ./scripts/dev.sh all scan`.
-5. Merge each tool's `adopt-go-deploy-utility` branch to `main`, then tag the
-   tool as usual.
+Both tools adopt a change through their `go.work` before this repo is tagged,
+so a tag is cut only once all three pass together. `scripts/dev-all.sh` runs
+the steps across the three repos, and `scripts/dev-all.ps1` is its Windows
+mirror with the same words.
+
+1. Make the change in this repo, committed or not, and leave it untagged.
+2. Run `./scripts/dev-all.sh pin v0.x.y`. It sets each tool's `require` to the
+   coming tag, which works before the tag exists because each tool's `go.work`
+   replaces every version with this checkout, and copies `paritydoc/body.md`
+   into each tool's `docs/parity.md`, printing any change to the shared rules.
+3. Adopt the change in each tool on its adoption branch. A change to the parity
+   body must hold in both tools before step 5; an additive API change can be
+   adopted later, since the tools still build without using it.
+4. Run `./scripts/dev-all.sh regen all scan cov` until all three pass, and
+   `.\scripts\dev-all.ps1 regen all scan cov` on Windows.
+5. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout and
+   `.\scripts\dev.ps1 full` on a Windows clean checkout, since the tag
+   pipeline runs the gates on both. Commit, then tag `v0.x.y` and push the tag.
+   The tag pipeline runs the gates and publishes a notes-only release.
+6. Run `./scripts/dev-all.sh resolve`, which runs `GOWORK=off go mod tidy` in
+   each tool to write `go.sum` from the module proxy.
+7. Run `GOWORK=off ./scripts/dev-all.sh all scan`, and the same on Windows, so
+   each tool is checked against the published tag instead of this checkout.
+8. Commit each tool, merge its adoption branch to `main`, then tag the tool as
+   usual.
 
 A pushed tag is public at once, and the Go module proxy keeps it permanently.
 Never move or reuse a tag. A bad release is fixed by a new patch tag, and a

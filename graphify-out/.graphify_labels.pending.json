@@ -27,8 +27,16 @@
   "25": "watch_test.go",
   "26": "Runner",
   "27": "Echo",
-  "28": "context.Context",
+  "28": "dev-all.sh",
   "29": "os.File",
   "30": ".Run",
-  "31": "writes"
+  "31": "Call",
+  "32": "dev-all.ps1",
+  "33": "Consuming go-deploy-utility",
+  "34": "Appendix A: research notes (licensing and shared module)",
+  "35": "TestEveryDocCarriesTheSupportNotice",
+  "36": "Tests by package",
+  "37": "go-deploy-utility",
+  "38": "PLAN.md",
+  "39": "A.7 Code the two repos could share (synergy)"
 }

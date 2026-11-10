@@ -16,6 +16,8 @@ one of the tools keeps its original name, and its row names the source.
 The user runs the gates: `./scripts/dev.sh all scan` for the fast loop and
 `./scripts/dev.sh full` before a tag. `DEV_RACE=1` adds the race detector, which
 needs cgo. `./scripts/dev.ps1` takes the same tasks.
+`./scripts/dev-all.sh regen all scan cov` runs the gates across this repo and
+both tools ([consuming.md](consuming.md)).
 
 ## Summary
 

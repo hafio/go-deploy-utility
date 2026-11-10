@@ -54,15 +54,15 @@
     "semantic_hash": ""
   },
   "docs/consuming.md": {
-    "mtime": 1794279764.494186,
-    "seen": 1794280067.8227015,
-    "ast_hash": "5a5968b4c2225e976ca659ecb2806ad1",
+    "mtime": 1794281344.084534,
+    "seen": 1794282052.9132633,
+    "ast_hash": "c95be91b7c7de50b4036c700ddcdfd65",
     "semantic_hash": ""
   },
   "docs/developer.md": {
-    "mtime": 1794279764.4936752,
-    "seen": 1794280067.822703,
-    "ast_hash": "a3e9ca218e569c502f9739a12173424e",
+    "mtime": 1794281344.0848637,
+    "seen": 1794282052.9132648,
+    "ast_hash": "d28d3b7f3ccec480be95441b9bd3bc55",
     "semantic_hash": ""
   },
   "docs/handoff/HANDOFF.md": {
@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1794279764.493139,
-    "seen": 1794280067.822709,
-    "ast_hash": "5c5e5f2d0160d6f29e9fa8da00a4e7d7",
+    "mtime": 1794281344.0851753,
+    "seen": 1794282052.913271,
+    "ast_hash": "610672f1324a1f5036ffac4d1a7720c3",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -423,6 +423,18 @@
     "mtime": 1794040175.8011062,
     "seen": 1794066456.8525496,
     "ast_hash": "bfa9ab0fe647f06e2c3999b066c37af2",
+    "semantic_hash": ""
+  },
+  "scripts/dev-all.ps1": {
+    "mtime": 1794281306.8940625,
+    "seen": 1794282052.9132433,
+    "ast_hash": "32c0836e89c56545141d75374658dde5",
+    "semantic_hash": ""
+  },
+  "scripts/dev-all.sh": {
+    "mtime": 1794281264.5685883,
+    "seen": 1794282052.9132454,
+    "ast_hash": "4ecc04c569c7a52424fbea83eeab4c47",
     "semantic_hash": ""
   }
 }
