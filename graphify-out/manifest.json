@@ -84,9 +84,9 @@
     "semantic_hash": ""
   },
   "docs/test.md": {
-    "mtime": 1794281344.0851753,
-    "seen": 1794282052.913271,
-    "ast_hash": "610672f1324a1f5036ffac4d1a7720c3",
+    "mtime": 1794284237.9804513,
+    "seen": 1794284334.040603,
+    "ast_hash": "e29223cdef94c4b6027a9141fd8f1246",
     "semantic_hash": ""
   },
   "abbrev/abbrev.go": {
@@ -372,15 +372,15 @@
     "semantic_hash": ""
   },
   "watch/watch.go": {
-    "mtime": 1794280022.6616776,
-    "seen": 1794280067.822692,
-    "ast_hash": "b437d922b7e607736d0d2db43b996cc8",
+    "mtime": 1794284228.5537884,
+    "seen": 1794284334.0405838,
+    "ast_hash": "a8ed8ce7a2f1fc63fb818095d4520d7e",
     "semantic_hash": ""
   },
   "watch/watch_test.go": {
-    "mtime": 1794279726.204357,
-    "seen": 1794280067.822693,
-    "ast_hash": "74041da91e6fdb2ef0054a5a0678f581",
+    "mtime": 1794284237.780892,
+    "seen": 1794284334.0405862,
+    "ast_hash": "a37b7fd425a79bba8fbb360b65962ad8",
     "semantic_hash": ""
   },
   "kube/kube.go": {

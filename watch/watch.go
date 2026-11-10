@@ -121,7 +121,9 @@ func LoopFrames(ctx context.Context, o Options, refresh func(now time.Time, fram
 
 // loop checks o and then makes one pass per interval until ctx is done. set says
 // whether the caller's refresh function is present. A pass error goes to Warn,
-// unless ctx is done, which ends the loop with nil.
+// unless ctx is done, which ends the loop with nil. The error text is trimmed
+// first: one that carries a command's stderr often ends in a newline, which would
+// push the retry onto a line of its own.
 func loop(ctx context.Context, o Options, set bool, pass func(t time.Time) error) error {
 	if err := CheckInterval(o.Every); err != nil {
 		return err
@@ -141,7 +143,7 @@ func loop(ctx context.Context, o Options, set bool, pass func(t time.Time) error
 			if ctx.Err() != nil {
 				return nil
 			}
-			o.Warn(fmt.Sprintf("%v -- trying again in %s", err, o.Every))
+			o.Warn(fmt.Sprintf("%s -- trying again in %s", strings.TrimSpace(err.Error()), o.Every))
 		}
 		if sleep(ctx, o.Every) != nil {
 			return nil

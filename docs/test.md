@@ -21,7 +21,7 @@ both tools ([consuming.md](consuming.md)).
 
 ## Summary
 
-26 test files, 317 test functions. Two are not tests, and both are os/exec
+26 test files, 318 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -52,11 +52,11 @@ helper-process shims that the tests re-execute as a child:
 | rootless | 1 | 15 |
 | containercli | 1 | 18 |
 | containercli/inspect | 1 | 8 |
-| watch | 1 | 14 |
+| watch | 1 | 15 |
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **317** |
+| **Total** | **26** | **318** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -455,6 +455,7 @@ and B `TestLoadSecretRefErrors`.
 | `TestLoopRedraws` | Clear, header with the pass's time, refresh, pause; each refresh gets its own time | new; from B `internal/cli/watch_test.go` `TestWatchRedrawsInPlaceOnATerminal` |
 | `TestLoopAppendsSections` | No escape bytes; one 60-column section line per refresh; a long title is not padded | new; from B `TestWatchAppendsWhenNotATerminal` and `TestWatchNeverRedrawsIntoAPipe` |
 | `TestLoopRetriesAfterAFailedRefresh` | The failure goes to Warn with the retry interval, and the next refresh runs | new; from B `TestWatchKeepsGoingAfterAFailedRefresh` |
+| `TestLoopTrimsTheFailureBeforeTheRetry` | An error ending in a newline, as one carrying a command's stderr does, is trimmed so the retry stays on its line | new; found adopting `LoopFrames` in A |
 | `TestLoopEndsQuietlyOnCancel` | A refresh cut short by the cancel ends the loop with nil, no warning and nothing more written | new; from B `TestWatchEndsQuietlyWhenInterrupted` |
 | `TestDefaultSleepHonoursCancel` | The default pause ends at once on cancel and runs out otherwise; Loop uses it when no Sleep is given | new; from B `TestWatchSleepHonoursCtrlC` |
 | `TestLoopRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new |

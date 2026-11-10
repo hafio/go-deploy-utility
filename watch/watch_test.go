@@ -116,6 +116,17 @@ func TestLoopRetriesAfterAFailedRefresh(t *testing.T) {
 	}
 }
 
+// TestLoopTrimsTheFailureBeforeTheRetry: an error that carries a command's stderr
+// ends in a newline, which is trimmed so the retry stays on the same line.
+func TestLoopTrimsTheFailureBeforeTheRetry(t *testing.T) {
+	_, warned, _ := run(t, false, 1, func(time.Time) error {
+		return errors.New("inspecting solmq-connector: engine down\n")
+	})
+	if len(warned) != 1 || warned[0] != "inspecting solmq-connector: engine down -- trying again in 1s" {
+		t.Errorf("warned %q, want the error trimmed and the retry on its line", warned)
+	}
+}
+
 // TestLoopEndsQuietlyOnCancel carries solace-util's
 // TestWatchEndsQuietlyWhenInterrupted: a refresh cut short by Ctrl-C returns nil
 // with no retry message, and nothing is printed on the way out.
