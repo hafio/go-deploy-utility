@@ -19,7 +19,7 @@ needs cgo. `./scripts/dev.ps1` takes the same tasks.
 
 ## Summary
 
-26 test files, 308 test functions. Two are not tests, and both are os/exec
+26 test files, 317 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -50,11 +50,11 @@ helper-process shims that the tests re-execute as a child:
 | rootless | 1 | 15 |
 | containercli | 1 | 18 |
 | containercli/inspect | 1 | 8 |
-| watch | 1 | 8 |
+| watch | 1 | 14 |
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **311** |
+| **Total** | **26** | **317** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -143,7 +143,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 226 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII, 228 lines, LF endings, one final newline | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |
@@ -457,6 +457,12 @@ and B `TestLoadSecretRefErrors`.
 | `TestDefaultSleepHonoursCancel` | The default pause ends at once on cancel and runs out otherwise; Loop uses it when no Sleep is given | new; from B `TestWatchSleepHonoursCtrlC` |
 | `TestLoopRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new |
 | `TestCheckInterval` | 1s to 1h inclusive; the error names the range | new |
+| `TestLoopFramesRedraws` | Each frame is the clear, the header with the time its pass started and the report, in one write; each refresh gets its own time | new; mirrors `TestLoopRedraws` |
+| `TestLoopFramesAppendsSections` | Off a terminal each write is the 60-column section line and the report, with no escape byte | new; mirrors `TestLoopAppendsSections` |
+| `TestLoopFramesKeepsTheLastFrameUntilTheNextIsCollected` | Nothing is written before the first refresh returns; during the second, Out holds exactly the first frame | new; from A `cmd/solmq-conn-util/main_test.go` `TestWatchStatusKeepsTheLastReportUntilTheNextIsCollected` |
+| `TestLoopFramesWarnsAfterTheHeader` | A failed refresh writes its header and partial frame, then warns with the retry interval; the next refresh runs | new; mirrors `TestLoopRetriesAfterAFailedRefresh` |
+| `TestLoopFramesDrawsNothingForARefreshCutShort` | A refresh that returns once the context is done, with nil or an error, writes nothing, warns nothing and ends with nil without another pause | new; from A `TestWatchStatusDrawsNothingForARefreshCutShort`, mirrors `TestLoopEndsQuietlyOnCancel` |
+| `TestLoopFramesRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new; mirrors `TestLoopRefusesBadOptions` |
 | `TestCanRedraw` | A regular file, no file and an unreadable file are not redrawn; a character device is, except the Windows null device, which is no console | new |
 
 `vt_windows.go` is built only on Windows, so its lines are outside the recorded

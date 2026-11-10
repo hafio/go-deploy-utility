@@ -35,7 +35,7 @@ may change the API.
 | `runner`, `runner/runnertest` | The command runner seam and its test fake | available |
 | `containerart/compose`, `containerart/quadlet`, `containerart/artifacttest` | Compose and quadlet escaping and quoting, hardening lines, secret wiring, posture checks | available |
 | `podman`, `systemd`, `rootless` | Podman and systemd commands, rootless rules, host checks | available |
-| `containercli`, `containercli/inspect`, `watch` | Docker and compose commands, inspect decoding, the watch loop | available |
+| `containercli`, `containercli/inspect`, `watch` | Docker and compose commands, inspect decoding, the watch loop and a variant that collects before it clears | available |
 | `kube`, `kube/rbac`, `kube/nsgate` | kubectl commands, permission probes, the namespace gate | available |
 
 ## Using it

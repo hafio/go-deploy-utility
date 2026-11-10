@@ -52,6 +52,19 @@ The workspace hides a wrong `require` line, since the local checkout satisfies
 every import. `go mod tidy` ignores the workspace and resolves through the
 module proxy, so it fails until the required tag exists.
 
+## What each version adds
+
+- v0.1.0: the first release.
+- v0.1.1: tests that hold on Windows; no API change.
+- v0.1.2: `watch.LoopFrames`, which runs each refresh into a buffer and draws
+  the clear, header and frame in one write, so a `status --watch` screen keeps
+  its last report while a slow refresh is collected, and Ctrl-C mid-refresh
+  leaves it in place. Use it instead of `watch.Loop` when a refresh takes
+  noticeable time; `Loop` is unchanged. Moving to it, the refresh writes to the
+  frame writer instead of stdout and returns its error rather than printing it,
+  and the tool re-syncs `docs/parity.md`, whose rule 13 now says a refresh is
+  collected before the screen is cleared.
+
 ## Release and merge order
 
 1. In this repo, run `GOWORK=off ./scripts/dev.sh full` on a clean checkout,

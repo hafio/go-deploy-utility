@@ -3,9 +3,14 @@
 // else (a pipe, a file, a console without escape processing) each refresh is
 // appended under a timestamped section line, so no escape bytes reach a log. A
 // refresh that fails is reported and retried. Ctrl-C ends the loop with success.
+//
+// Loop writes the header and then lets the refresh print as it goes. LoopFrames
+// collects each refresh first and draws it only once it is complete, so the last
+// frame stays on screen while the next is collected; use it when a refresh is slow.
 package watch
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -37,7 +42,7 @@ func CheckInterval(d time.Duration) error {
 	return nil
 }
 
-// Options configure Loop.
+// Options configure Loop and LoopFrames.
 type Options struct {
 	// Every is the pause after each refresh; it must pass CheckInterval.
 	Every time.Duration
@@ -50,7 +55,8 @@ type Options struct {
 	// appended under a section line. Pass CanRedraw(os.Stdout).
 	Redraw bool
 
-	// Out receives the header or section line. The refresh writes its own output.
+	// Out receives the header or section line. Under Loop the refresh writes its
+	// own output; under LoopFrames Out receives each whole frame in one Write.
 	Out io.Writer
 
 	// Warn receives the message for a failed refresh, on the tool's own warning
@@ -75,10 +81,52 @@ type Options struct {
 // Options that cannot work (an interval out of range, no Out, Warn or refresh) are
 // an error before anything runs.
 func Loop(ctx context.Context, o Options, refresh func(now time.Time) error) error {
+	return loop(ctx, o, refresh != nil, func(t time.Time) error {
+		io.WriteString(o.Out, o.head(t))
+		return refresh(t)
+	})
+}
+
+// LoopFrames is Loop for a refresh that writes its frame to the writer it is given
+// instead of printing it. Use it instead of Loop when a refresh is slow, such as a
+// status report that runs commands inside containers: Loop clears the screen
+// before the refresh runs, so the screen sits blank for the whole collection. Loop
+// stays the choice for a refresh that is quick or streams its own output.
+//
+// Each pass collects the refresh into a buffer and then writes the clear-screen,
+// the header and the frame to Out in a single Write, or off a terminal the
+// section line and the frame; the time shown is when the pass started. Nothing is
+// written before the first refresh returns, and the last frame stays on screen
+// until the next is complete. A refresh that returns once ctx is done was cut
+// short, so it writes nothing at all, not even the header, and the loop ends with
+// nil: Ctrl-C leaves the last complete frame in place. A refresh error is written
+// first, with the header and whatever the refresh wrote before failing, and then
+// goes to Warn, so no clear can wipe the message. Otherwise it is Loop: the same
+// Options, checks, pause, retry and quiet end.
+func LoopFrames(ctx context.Context, o Options, refresh func(now time.Time, frame io.Writer) error) error {
+	var frame, screen bytes.Buffer
+	return loop(ctx, o, refresh != nil, func(t time.Time) error {
+		frame.Reset()
+		err := refresh(t, &frame)
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+		screen.Reset()
+		screen.WriteString(o.head(t))
+		screen.Write(frame.Bytes())
+		o.Out.Write(screen.Bytes())
+		return err
+	})
+}
+
+// loop checks o and then makes one pass per interval until ctx is done. set says
+// whether the caller's refresh function is present. A pass error goes to Warn,
+// unless ctx is done, which ends the loop with nil.
+func loop(ctx context.Context, o Options, set bool, pass func(t time.Time) error) error {
 	if err := CheckInterval(o.Every); err != nil {
 		return err
 	}
-	if o.Out == nil || o.Warn == nil || refresh == nil {
+	if o.Out == nil || o.Warn == nil || !set {
 		return errors.New("watch: Options.Out, Options.Warn and the refresh function must all be set")
 	}
 	now, sleep := o.Now, o.Sleep
@@ -89,14 +137,7 @@ func Loop(ctx context.Context, o Options, refresh func(now time.Time) error) err
 		sleep = Sleep
 	}
 	for {
-		t := now()
-		if o.Redraw {
-			fmt.Fprintf(o.Out, "%sEvery %s: %s   %s   Ctrl-C to stop\n\n", ClearScreen, o.Every, o.Title,
-				t.Format(timeLayout))
-		} else {
-			fmt.Fprintln(o.Out, section(t.Format(timeLayout)))
-		}
-		if err := refresh(t); err != nil {
+		if err := pass(now()); err != nil {
 			if ctx.Err() != nil {
 				return nil
 			}
@@ -106,6 +147,16 @@ func Loop(ctx context.Context, o Options, refresh func(now time.Time) error) err
 			return nil
 		}
 	}
+}
+
+// head is the clear-screen and header for a pass started at t, or the section
+// line when o does not redraw.
+func (o Options) head(t time.Time) string {
+	if o.Redraw {
+		return fmt.Sprintf("%sEvery %s: %s   %s   Ctrl-C to stop\n\n", ClearScreen, o.Every, o.Title,
+			t.Format(timeLayout))
+	}
+	return section(t.Format(timeLayout)) + "\n"
 }
 
 // section is "=== <title> " padded with '=' to sectionWidth.

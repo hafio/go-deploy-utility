@@ -244,6 +244,13 @@ Notes on the available packages:
   refresh error goes to the tool's `Warn` and the loop carries on; a refresh that
   reports its own failure returns nil. The loop ends with nil when its context
   does, so Ctrl-C exits 0.
+- `watch.LoopFrames` is the same loop for a slow refresh, such as a status report
+  that runs commands inside containers. The refresh writes its frame to the
+  writer it is given; the clear, header and frame then go to `Out` in one Write,
+  so the last frame stays on screen while the next is collected. A refresh that
+  returns once the context is done writes nothing, and a refresh error is written
+  with its header before `Warn`. `Loop` stays for a refresh that is quick or
+  streams its own output.
 - `kube` builders take `base`, the guarded kubectl argv with any `--context` or
   `--kubeconfig`, and put a namespace after the subcommand's own arguments as
   `-n <ns>`. They trust their names: a tool checks every namespace and object
