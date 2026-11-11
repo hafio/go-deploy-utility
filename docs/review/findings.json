@@ -1,0 +1,658 @@
+{
+  "version": 1,
+  "updated": "2026-11-11",
+  "next_id": 26,
+  "runs": [
+    {
+      "date": "2026-11-11",
+      "commit": "83fa381",
+      "report": "docs/review/2026-11-11-critical-review.md",
+      "areas": [
+        "all"
+      ],
+      "new": 25,
+      "open": 0,
+      "fixed": 0,
+      "reopened": 0,
+      "accepted": 0
+    }
+  ],
+  "findings": [
+    {
+      "id": "CR-0001",
+      "fingerprint": "c75dca09ce5d",
+      "title": "Exported API with no consumer in either tool",
+      "area": "design",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "watch/watch.go:83-88",
+        "containercli/containercli.go:168-169",
+        "paritydoc/paritydoc.go:31-51",
+        "runner/runnertest/runnertest.go:164-173",
+        "confirm/prompter.go:145-149",
+        "execguard/execguard.go:53-58",
+        "scripts/dev-all.sh:83-100"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0002",
+      "fingerprint": "f5a7da82b664",
+      "title": "execguard accepts a flag value that makes the allowed binary run a file beside the env file",
+      "area": "design",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "execguard/execguard.go:9-11",
+        "execguard/execguard.go:23-27",
+        "execguard/execguard.go:378-380"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0003",
+      "fingerprint": "6c42a6eeef98",
+      "title": "Namespace gate lists only all, PVCs, Secrets and ConfigMaps, so a namespace holding other kinds is offered for deletion",
+      "area": "correctness",
+      "severity": "major",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "kube/nsgate/nsgate.go:47-57",
+        "kube/nsgate/nsgate.go:136-149",
+        "paritydoc/body.md:71-76"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0004",
+      "fingerprint": "2c994d205e95",
+      "title": "Secret wiring writes target, env var and secret name into compose and quadlet unchecked",
+      "area": "correctness",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containerart/compose/compose.go:98-101",
+        "containerart/compose/compose.go:113-116",
+        "containerart/quadlet/quadlet.go:64-73",
+        "containerart/quadlet/quadlet_test.go:91-102"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0005",
+      "fingerprint": "6ee6af433099",
+      "title": "inspect reads podman secrets from a top-level Secrets key",
+      "area": "correctness",
+      "severity": "minor",
+      "confidence": "suspected",
+      "status": "open",
+      "locations": [
+        "containercli/inspect/inspect.go:115-117",
+        "containercli/inspect/inspect.go:161-163",
+        "containercli/inspect/inspect_test.go:57-71"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0006",
+      "fingerprint": "7ee4f2680dc6",
+      "title": "quadlet.Environment leaves a dollar sign for systemd to expand",
+      "area": "correctness",
+      "severity": "minor",
+      "confidence": "suspected",
+      "status": "open",
+      "locations": [
+        "containerart/quadlet/quadlet.go:22-62",
+        "containerart/quadlet/quadlet_test.go:43"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0007",
+      "fingerprint": "5f643e3dc083",
+      "title": "cmd, stdin, shQuote and Upload are duplicated across the builder packages",
+      "area": "quality",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containercli/containercli.go:47-60",
+        "containercli/containercli.go:273-293",
+        "kube/kube.go:28-41",
+        "kube/kube.go:226-248",
+        "podman/podman.go:24-29"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0008",
+      "fingerprint": "628b78f03bf0",
+      "title": "dev-all discovers sibling tasks by scraping their dev scripts with two different regexes",
+      "area": "quality",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "scripts/dev-all.sh:56-62",
+        "scripts/dev-all.ps1:60-68"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0009",
+      "fingerprint": "1a89452821b3",
+      "title": "Real-engine smoke checks for S7 to S9 are recorded as not run for a tagged release",
+      "area": "tests",
+      "severity": "major",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "docs/smoke.md:25",
+        "docs/smoke.md:49",
+        "docs/smoke.md:60",
+        "docs/smoke.md:83-86"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0010",
+      "fingerprint": "2595fac573ce",
+      "title": "Widening and HostNetwork miss the podman flag spellings that ride PodmanArgs",
+      "area": "tests",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containerart/artifacttest/artifacttest.go:32-50",
+        "containerart/artifacttest/artifacttest.go:56-84",
+        "containerart/artifacttest/artifacttest.go:181-182"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0011",
+      "fingerprint": "5ac1a8b2162b",
+      "title": "CheckSecretTargets passes a compose secrets block it does not recognise",
+      "area": "tests",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containerart/artifacttest/artifacttest.go:217-223",
+        "containerart/artifacttest/artifacttest.go:246-270"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0012",
+      "fingerprint": "9d69ade63852",
+      "title": "The Windows console branch of CanRedraw is never executed by a test",
+      "area": "tests",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "watch/vt_windows.go:16-29",
+        "watch/watch_test.go:425-455"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0013",
+      "fingerprint": "9b2f0854705b",
+      "title": "CheckDocs passes when Exclude removes every selected doc",
+      "area": "tests",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "notice/noticetest/noticetest.go:130-148"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0014",
+      "fingerprint": "b9240f9217ac",
+      "title": "TestBodyShape pins the parity body to a line count",
+      "area": "tests",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "paritydoc/paritydoc_test.go:57-65"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0015",
+      "fingerprint": "7481b7f10847",
+      "title": "No gate runs before a tag exists, and for a Go module the tag is the release",
+      "area": "cicd",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        ".github/workflows/ci.yml:3-5",
+        ".github/workflows/ci.yml:19-24",
+        ".github/workflows/tag.yml:13-16",
+        ".github/workflows/tag.yml:38-40",
+        "docs/consuming.md:100-103"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0016",
+      "fingerprint": "c79d78706471",
+      "title": "CI never runs the tests under the race detector",
+      "area": "cicd",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        ".github/workflows/ci.yml:50-51",
+        ".github/workflows/ci.yml:59-66",
+        "scripts/dev.sh:90-99",
+        "scripts/dev.ps1:104-112",
+        "runner/runnertest/runnertest_test.go:224"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0017",
+      "fingerprint": "1d8a3593892b",
+      "title": "Dev scripts and ci.yml have fallen behind the dev-script contract",
+      "area": "cicd",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        ".github/workflows/ci.yml:59-66",
+        ".github/workflows/tag.yml:8",
+        "scripts/dev.sh:19-25",
+        "scripts/dev.sh:72-78",
+        "scripts/dev.sh:93-99",
+        "scripts/dev.ps1:19-26",
+        "scripts/dev.ps1:87-93"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0018",
+      "fingerprint": "52f666faa9d5",
+      "title": "cov truncates cov.log before the previous total can be compared",
+      "area": "build",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "scripts/dev.sh:36-39",
+        "scripts/dev.sh:101-109",
+        "scripts/dev.ps1:42-46",
+        "scripts/dev.ps1:114-126"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0019",
+      "fingerprint": "e7f9f650cb24",
+      "title": "dev.ps1 and dev.sh disagree on cov exit status, task-name matching and timestamp culture",
+      "area": "build",
+      "severity": "minor",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "scripts/dev.ps1:121-125",
+        "scripts/dev.sh:106-108",
+        "scripts/dev.ps1:36-39",
+        "scripts/dev.ps1:167-173",
+        "scripts/dev.sh:159-162"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0020",
+      "fingerprint": "c15499013a36",
+      "title": "dev-all pin edits both tools with no clean-tree or branch check and can stop half way",
+      "area": "build",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "scripts/dev-all.sh:102-140",
+        "scripts/dev-all.ps1:119-169"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0021",
+      "fingerprint": "a952a4f5adc0",
+      "title": "dev-all.sh needs bash 4 but does not check for it",
+      "area": "build",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "scripts/dev-all.sh:1",
+        "scripts/dev-all.sh:214-217"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0022",
+      "fingerprint": "a661155a373f",
+      "title": "The module zip carries graphify-out and docs/handoff, 77 percent of its bytes",
+      "area": "build",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        ".gitignore:16-19",
+        "graphify-out/graph.json:1",
+        "graphify-out/graph.html:1"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0023",
+      "fingerprint": "9fc7fe710538",
+      "title": "Builders in one package disagree on whether an empty name is refused",
+      "area": "interfaces",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containercli/containercli.go:157-169",
+        "containercli/containercli.go:254-262",
+        "containercli/containercli.go:304-319",
+        "podman/podman.go:71-83",
+        "podman/podman.go:96-101"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0024",
+      "fingerprint": "6554177159ad",
+      "title": "inspect.Printable keeps invisible format characters that execguard refuses",
+      "area": "observability",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "containercli/inspect/inspect.go:180-191",
+        "execguard/execguard.go:187-193"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    },
+    {
+      "id": "CR-0025",
+      "fingerprint": "4829bc6bbad5",
+      "title": "Developer guide statements that no longer match the code",
+      "area": "conventions",
+      "severity": "nit",
+      "confidence": "verified",
+      "status": "open",
+      "locations": [
+        "docs/developer.md:171-174",
+        "docs/developer.md:256-258",
+        "kube/kube.go:11-13",
+        "containerart/artifacttest/artifacttest.go:30-31"
+      ],
+      "first_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "last_seen": {
+        "date": "2026-11-11",
+        "commit": "83fa381"
+      },
+      "resolved": null,
+      "history": [],
+      "notes": ""
+    }
+  ]
+}
