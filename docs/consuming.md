@@ -45,6 +45,12 @@ checkout under `use` instead is not enough while the tag is missing: Go still
 reads the required version's `go.mod` to build the module graph, and an
 unpublished version fails with `unknown revision`.
 
+In workspace mode Go reads the `go` and `toolchain` lines of `go.work`, not the
+tool's `go.mod`, so a `go.work` without a `toolchain` line runs the gates on
+whatever Go is installed and a scan can report a standard-library fix the pinned
+toolchain already has. Copy the tool's `toolchain` line into its `go.work`, or run
+the gates with `GOWORK=off` once the required tag is published.
+
 Both `go.work` and `go.work.sum` are gitignored in every repo. Keep the file in
 the tool's root, never in a shared parent directory, because Go applies the
 nearest `go.work` above the current directory to every module below it.
@@ -63,10 +69,16 @@ code the tool's pinned version does not contain.
   the clear, header and frame in one write, so a `status --watch` screen keeps
   its last report while a slow refresh is collected, and Ctrl-C mid-refresh
   leaves it in place. Use it instead of `watch.Loop` when a refresh takes
-  noticeable time; `Loop` is unchanged. Moving to it, the refresh writes to the
-  frame writer instead of stdout and returns its error rather than printing it,
-  and the tool re-syncs `docs/parity.md`, whose rule 13 now says a refresh is
-  collected before the screen is cleared.
+  noticeable time; `Loop` keeps its signature and output. Moving to it, the
+  refresh writes to the frame writer instead of stdout and returns its error
+  rather than printing it, and the tool re-syncs `docs/parity.md`, whose rule 13
+  now says a refresh is collected before the screen is cleared. Both loops trim a
+  failed refresh's error before ` -- trying again in <d>`, so an error that ends
+  in a command's newline no longer pushes the retry onto a line of its own.
+
+The module stays on v0.x while both tools ship as v1. A tool's version is a
+promise to its users; this module's is a promise to its two consumers, and
+staying below v1 keeps its API free to change in step with them.
 
 ## Release and merge order
 

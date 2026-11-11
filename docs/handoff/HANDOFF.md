@@ -3,6 +3,11 @@
 > Superseded 2026-11-02 in part: Stages 1 to 7 are replaced by module build steps B1-B7 and
 > adoption steps S1-S9 in `docs/developer.md`. Work on the tools happens on the branch
 > `adopt-go-deploy-utility`, not on main. Section 4 decisions still stand.
+>
+> Superseded 2026-11-11: S1-S9 have shipped. Both tools are merged to main on
+> go-deploy-utility v0.1.2 and release as v1.0.0. The rows below still marked open
+> (redeploy over a running service, subuid coverage, namespace gate details, output
+> model and the items in 8.3) were settled in `docs/developer.md` and the parity body.
 
 Exported 2026-11-02. Everything below was true at export; re-check the repo state in
 section 2 before acting on it.
