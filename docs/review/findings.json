@@ -375,7 +375,7 @@
       "area": "cicd",
       "severity": "minor",
       "confidence": "verified",
-      "status": "open",
+      "status": "accepted",
       "locations": [
         ".github/workflows/ci.yml:3-5",
         ".github/workflows/ci.yml:19-24",
@@ -393,7 +393,7 @@
       },
       "resolved": null,
       "history": [],
-      "notes": ""
+      "notes": "Accepted 2026-11-13: the release process is to run the gates locally (full, on both systems) and tag only after they pass, so tag-only CI is by design. The contradictory ci.yml header line is corrected with the CR-0017 reconcile."
     },
     {
       "id": "CR-0016",
@@ -535,7 +535,7 @@
       "area": "build",
       "severity": "nit",
       "confidence": "verified",
-      "status": "open",
+      "status": "accepted",
       "locations": [
         "scripts/dev-all.sh:1",
         "scripts/dev-all.sh:214-217"
@@ -550,7 +550,7 @@
       },
       "resolved": null,
       "history": [],
-      "notes": ""
+      "notes": "Accepted 2026-11-13: dev-all.sh is run on Linux only, and Windows uses dev-all.ps1."
     },
     {
       "id": "CR-0022",
