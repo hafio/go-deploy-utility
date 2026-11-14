@@ -16,10 +16,10 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"path"
 	"sort"
 	"strings"
 
+	"github.com/hafio/go-deploy-utility/internal/build"
 	"github.com/hafio/go-deploy-utility/runner"
 )
 
@@ -44,24 +44,9 @@ func (e Engine) title() string {
 	return string(e)
 }
 
-// cmd is base followed by args, in a new slice.
-func cmd(base []string, args ...string) runner.Cmd {
-	argv := make([]string, 0, len(base)+len(args))
-	argv = append(argv, base...)
-	return runner.Cmd{Argv: append(argv, args...)}
-}
-
-// stdin is a copy of b that is never nil, so the child always reads exactly b and
-// then EOF.
-func stdin(b []byte) []byte {
-	c := make([]byte, len(b))
-	copy(c, b)
-	return c
-}
-
 // Info is `<engine> info`, the preflight that runs before any other engine command:
 // it fails fast, with InfoError's hint, when the engine cannot be reached.
-func Info(base []string) runner.Cmd { return cmd(base, "info") }
+func Info(base []string) runner.Cmd { return build.Cmd(base, "info") }
 
 // InfoError is the error for a failed Info: which engine, the command as run, the
 // cause (wrapped), the engine's own output when the caller captured it (out, or ""
@@ -103,8 +88,8 @@ func EngineHint(engine Engine, rootless bool) string {
 // composeCmd is `<compose> -f - --project-directory <dir> <args...>`, with file on
 // stdin and env for the child alone.
 func composeCmd(compose []string, file []byte, projectDir string, env []string, args ...string) runner.Cmd {
-	c := cmd(compose, append([]string{"-f", "-", "--project-directory", projectDir}, args...)...)
-	c.Stdin = stdin(file)
+	c := build.Cmd(compose, append([]string{"-f", "-", "--project-directory", projectDir}, args...)...)
+	c.Stdin = build.Stdin(file)
 	c.Env = append([]string(nil), env...)
 	return c
 }
@@ -157,16 +142,16 @@ func ComposeDigest(file []byte, env []string) string {
 // Start starts the named container. The lifecycle verbs act on the container
 // itself rather than through compose, so they work on every compose implementation
 // and need no file.
-func Start(base []string, name string) runner.Cmd { return cmd(base, "start", name) }
+func Start(base []string, name string) runner.Cmd { return build.Cmd(base, "start", name) }
 
 // Stop stops the named container.
-func Stop(base []string, name string) runner.Cmd { return cmd(base, "stop", name) }
+func Stop(base []string, name string) runner.Cmd { return build.Cmd(base, "stop", name) }
 
 // Restart restarts the named container.
-func Restart(base []string, name string) runner.Cmd { return cmd(base, "restart", name) }
+func Restart(base []string, name string) runner.Cmd { return build.Cmd(base, "restart", name) }
 
 // Remove removes the named, stopped container.
-func Remove(base []string, name string) runner.Cmd { return cmd(base, "rm", name) }
+func Remove(base []string, name string) runner.Cmd { return build.Cmd(base, "rm", name) }
 
 // listFormat is the ps template: name, image and status, separated by tabs.
 const listFormat = "{{.Names}}\t{{.Image}}\t{{.Status}}"
@@ -181,7 +166,7 @@ func List(base []string, running bool) runner.Cmd {
 	if running {
 		args = append(args, "--filter", "status=running")
 	}
-	return cmd(base, append(args, "--format", listFormat)...)
+	return build.Cmd(base, append(args, "--format", listFormat)...)
 }
 
 // Row is one container in List's answer.
@@ -267,11 +252,8 @@ func Exec(base []string, name string, o ExecOptions, argv ...string) (runner.Cmd
 	if o.TTY {
 		args = append(args, "-t")
 	}
-	return cmd(base, append(append(args, name), argv...)...), nil
+	return build.Cmd(base, append(append(args, name), argv...)...), nil
 }
-
-// shQuote single-quotes s for sh, so it is one word with nothing expanded.
-func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
 // Upload writes body to dest inside the named container: `exec -i <name> sh -c
 // "cat > '<dest>'"`, with body on stdin, and with `mkdir -p '<dir>' && ` first when
@@ -283,12 +265,8 @@ func Upload(base []string, name, dest string, body []byte, mkdir bool) (runner.C
 		return runner.Cmd{}, fmt.Errorf("containercli: an upload needs a container name and a destination, "+
 			"got %q and %q", name, dest)
 	}
-	script := "cat > " + shQuote(dest)
-	if mkdir {
-		script = "mkdir -p " + shQuote(path.Dir(dest)) + " && " + script
-	}
-	c, err := Exec(base, name, ExecOptions{Stdin: true}, "sh", "-c", script)
-	c.Stdin = stdin(body)
+	c, err := Exec(base, name, ExecOptions{Stdin: true}, "sh", "-c", build.UploadScript(dest, mkdir))
+	c.Stdin = build.Stdin(body)
 	return c, err
 }
 
@@ -315,7 +293,7 @@ func Logs(base []string, name string, o LogOptions) runner.Cmd {
 	if o.Since != "" {
 		args = append(args, "--since", o.Since)
 	}
-	return cmd(base, append(args, name)...)
+	return build.Cmd(base, append(args, name)...)
 }
 
 // NoPrevious is the refusal for --previous on an engine: it is a Kubernetes option,

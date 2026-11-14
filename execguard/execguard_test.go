@@ -291,6 +291,26 @@ func TestFlagValuePositionIsNotGuaranteed(t *testing.T) {
 	}
 }
 
+// TestFlagValueCanNameAFileToLoad: a flag value that is a relative path passes,
+// although the flag makes the allowed binary load and run what the path holds --
+// a docker config directory's cli-plugins, or a kubeconfig's exec credential
+// command. The package doc accepts this; the test keeps the acceptance visible.
+func TestFlagValueCanNameAFileToLoad(t *testing.T) {
+	for _, tc := range []struct {
+		rules Rules
+		cmd   []string
+	}{
+		{runtimeRules("docker"), []string{"docker", "--config", "./d"}},
+		{composeRules(), []string{"docker", "--config", "./d", "compose"}},
+		{clusterRules(), []string{"kubectl", "--kubeconfig", "./kc"}},
+	} {
+		if err := Check(tc.rules, tc.cmd, Approvals{}); err != nil {
+			t.Fatalf("the flag-value limit changed: Check(%q) now returns %v -- "+
+				"if that is deliberate, replace this test with a rejection case and update the package doc", tc.cmd, err)
+		}
+	}
+}
+
 // TestCharsetAgreesAcrossBothYAMLForms: a command may be written as one string
 // (split with strings.Fields, which is Unicode-aware) or as an explicit list
 // (preserved token for token). If the guard's whitespace test were narrower than

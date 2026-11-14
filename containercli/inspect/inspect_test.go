@@ -55,7 +55,8 @@ const dockerInspect = `[
 ]`
 
 // podmanInspect is podman's answer (solace-util's podmanInspect): no slash, the older
-// Healthcheck spelling, and the secrets podman lists.
+// Healthcheck spelling, and the secrets podman lists under Config, each with its ID,
+// as libpod's InspectContainerConfig defines them.
 const podmanInspect = `[{
   "Name": "solbroker",
   "RestartCount": 0,
@@ -65,9 +66,14 @@ const podmanInspect = `[{
     "StartedAt": "2026-09-08T10:11:12.13Z", "FinishedAt": "2026-09-08T11:00:00Z",
     "Healthcheck": {"Status": "unhealthy", "FailingStreak": 4}
   },
-  "Config": {"Image": "solace/solace-pubsub-standard:10.10.1.128"},
-  "Mounts": [{"Source": "/opt/solace/data", "Destination": "/var/lib/solace/jail", "RW": true}],
-  "Secrets": [{"Name": "solace-admin-password"}, {"Name": "solace-tls-servercertificate"}]
+  "Config": {
+    "Image": "solace/solace-pubsub-standard:10.10.1.128",
+    "Secrets": [
+      {"Name": "solace-admin-password", "ID": "2f1c0a9e8d7b6c5a4f3e2d1c0", "UID": 0, "GID": 0, "Mode": 0},
+      {"Name": "solace-tls-servercertificate", "ID": "9a8b7c6d5e4f3a2b1c0d9e8f7", "UID": 0, "GID": 0, "Mode": 0}
+    ]
+  },
+  "Mounts": [{"Source": "/opt/solace/data", "Destination": "/var/lib/solace/jail", "RW": true}]
 }]`
 
 func TestDecodeDocker(t *testing.T) {
@@ -115,6 +121,27 @@ func TestDecodePodman(t *testing.T) {
 	}
 	if want := []string{"solace-admin-password", "solace-tls-servercertificate"}; !reflect.DeepEqual(c.Secrets, want) {
 		t.Errorf("Secrets = %v, want %v", c.Secrets, want)
+	}
+}
+
+// TestDecodePodmanTopLevelSecrets: an answer that lists the secrets beside Config
+// rather than inside it, the shape the decoder read before, still gives their
+// names; one that lists them in both places takes Config's.
+func TestDecodePodmanTopLevelSecrets(t *testing.T) {
+	topLevel := `[{"Name": "solbroker", "Config": {"Image": "i"}, "Secrets": [{"Name": "a"}, {"Name": "b"}]}]`
+	cs, err := Decode(topLevel)
+	if err != nil || len(cs) != 1 {
+		t.Fatalf("Decode = %+v, %v", cs, err)
+	}
+	if want := []string{"a", "b"}; !reflect.DeepEqual(cs[0].Secrets, want) {
+		t.Errorf("Secrets = %v, want %v", cs[0].Secrets, want)
+	}
+	both := `[{"Name": "solbroker", "Config": {"Image": "i", "Secrets": [{"Name": "c"}]}, "Secrets": [{"Name": "a"}]}]`
+	if cs, err = Decode(both); err != nil || len(cs) != 1 {
+		t.Fatalf("Decode = %+v, %v", cs, err)
+	}
+	if want := []string{"c"}; !reflect.DeepEqual(cs[0].Secrets, want) {
+		t.Errorf("Secrets = %v, want Config's %v", cs[0].Secrets, want)
 	}
 }
 
@@ -196,7 +223,8 @@ func TestDecodePartial(t *testing.T) {
 }
 
 // TestPrintable carries solace-util's TestPrintableStripsControlCharacters, and adds
-// the C1 range a terminal can also act on.
+// the C1 range a terminal can also act on and the format characters execguard
+// refuses: a right-to-left override, a zero-width space and a byte-order mark.
 func TestPrintable(t *testing.T) {
 	for in, want := range map[string]string{
 		"solace/pubsub:10.10": "solace/pubsub:10.10",
@@ -205,6 +233,9 @@ func TestPrintable(t *testing.T) {
 		"line\nbreak":         "linebreak",
 		"csi\xc2\x9b31m":      "csi31m",
 		"caf\xc3\xa9":         "caf\xc3\xa9",
+		"evil\u202etxt.exe":   "eviltxt.exe",
+		"zero\u200bwidth":     "zerowidth",
+		"\ufeffbom":           "bom",
 		"":                    "",
 	} {
 		if got := Printable(in); got != want {

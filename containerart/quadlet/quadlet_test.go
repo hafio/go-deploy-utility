@@ -7,9 +7,9 @@ import (
 
 // TestSystemdEnvEscapes pins the rules the Environment= line exists for: '%'
 // doubled so systemd does not expand it as a specifier (the %p of a JVM error-file
-// path would otherwise become the unit's name), the whole assignment quoted so a
-// value with a space stays one assignment, and quotes and backslashes escaped
-// inside those quotes.
+// path would otherwise become the unit's name), '$' doubled so systemd does not
+// substitute a variable, the whole assignment quoted so a value with a space stays
+// one assignment, and quotes and backslashes escaped inside those quotes.
 func TestSystemdEnvEscapes(t *testing.T) {
 	for _, c := range []struct{ value, want string }{
 		{"-Xmx1g", `Environment="V=-Xmx1g"`},
@@ -18,6 +18,8 @@ func TestSystemdEnvEscapes(t *testing.T) {
 		{"-Dx=%t -Dy=z", `Environment="V=-Dx=%%t -Dy=z"`},
 		{`-Dx="a"`, `Environment="V=-Dx=\"a\""`},
 		{`-Dpath=C:\tmp`, `Environment="V=-Dpath=C:\\tmp"`},
+		{"-Xmx${HEAP}", `Environment="V=-Xmx$${HEAP}"`},
+		{"cost$5", `Environment="V=cost$$5"`},
 	} {
 		if got := Environment("V", c.value); got != c.want {
 			t.Errorf("Environment(%q) = %s, want %s", c.value, got, c.want)
@@ -25,10 +27,19 @@ func TestSystemdEnvEscapes(t *testing.T) {
 	}
 }
 
-// TestQuadletEscape guards the systemd Environment=" " escaping.
+// TestQuadletEscape guards the systemd Environment=" " escaping: '$' is doubled as
+// '%' is, since quadlet copies the value into ExecStart, where systemd would
+// substitute ${NAME} and $NAME.
 func TestQuadletEscape(t *testing.T) {
-	if got := Escape(`a%b"c\d`); got != `a%%b\"c\\d` {
-		t.Errorf("Escape = %q", got)
+	for in, want := range map[string]string{
+		`a%b"c\d`:   `a%%b\"c\\d`,
+		"a$b":       "a$$b",
+		"x${HOME}y": "x$${HOME}y",
+		"$$":        "$$$$",
+	} {
+		if got := Escape(in); got != want {
+			t.Errorf("Escape(%q) = %q, want %q", in, got, want)
+		}
 	}
 }
 

@@ -195,6 +195,30 @@ func TestCheckDocsNoDocs(t *testing.T) {
 	}
 }
 
+// TestCheckDocsAllExcluded: an Exclude that removes every selected doc, from the
+// glob or from an explicit list, is the same no-docs error as an empty glob, so
+// AssertDocs stops instead of passing with nothing checked.
+func TestCheckDocsAllExcluded(t *testing.T) {
+	n := testNotice(t)
+	root := writeTree(t, map[string]string{
+		"README.md": "# Readme\n\nNo notice.\n",
+		"docs/a.md": "# A\n\nNo notice.\n",
+	})
+	for name, o := range map[string]Options{
+		"glob":     {Exclude: []string{"README.md", "docs/a.md"}},
+		"explicit": {Files: []string{"docs/a.md"}, Exclude: []string{"docs/a.md"}},
+	} {
+		err := CheckDocs(root, n, o)
+		var none noDocsError
+		if !errors.As(err, &none) || !strings.Contains(err.Error(), "nothing was checked") {
+			t.Errorf("%s: err = %v, want a no-docs error saying nothing was checked", name, err)
+		}
+	}
+	if err := CheckDocs(root, n, Options{Exclude: []string{"docs/a.md"}}); err == nil || !strings.Contains(err.Error(), "README.md") {
+		t.Errorf("one doc left: err = %v, want README.md checked and reported", err)
+	}
+}
+
 // TestCheckDocsExplicitFilesAndExclude: an explicit list replaces the glob;
 // Exclude skips a path; an unreadable listed file keeps its cause.
 func TestCheckDocsExplicitFilesAndExclude(t *testing.T) {

@@ -57,8 +57,8 @@ name() { basename "$(cd "$1" && pwd)"; }
 known() {
   local script=$1
   grep -oE '^task_[a-z_]+\(\)' "$script" | sed -E 's/^task_([a-z_]+)\(\)$/\1/'
-  grep -oE '^[[:space:]]*[a-z]+\)[[:space:]].*(ALL|FULL|tasks)' "$script" |
-    sed -E 's/^[[:space:]]*([a-z]+)\).*/\1/'
+  grep -oE '^[[:space:]]*[a-z_]+\)[[:space:]].*(ALL|FULL|tasks)' "$script" |
+    sed -E 's/^[[:space:]]*([a-z_]+)\).*/\1/'
 }
 
 # required <tool>: the version of this module the tool's go.mod requires, in either

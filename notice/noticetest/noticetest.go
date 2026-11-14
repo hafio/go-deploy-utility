@@ -96,16 +96,24 @@ func describe(text, block string) error {
 		"renders inside the warning; %s", start+len(want)+1, fixHint)
 }
 
-// noDocsError reports that a glob found nothing to check, which AssertDocs treats
-// as fatal: a gate that checks no docs proves nothing.
-type noDocsError struct{ pattern string }
+// noDocsError reports that nothing was checked, which AssertDocs treats as fatal: a
+// gate that checks no docs proves nothing. Either the glob found nothing, or
+// Options.Exclude removed every doc that was selected; excluded counts those.
+type noDocsError struct {
+	pattern  string
+	excluded int
+}
 
 func (e noDocsError) Error() string {
+	if e.excluded > 0 {
+		return fmt.Sprintf("all %d selected docs are in Options.Exclude, so nothing was checked; narrow Options.Exclude", e.excluded)
+	}
 	return fmt.Sprintf("no docs matched %s; pass Options.Files, or run from the repo root", e.pattern)
 }
 
 // CheckDocs checks every doc under root that Options selects and joins every
-// failure, so one run reports them all.
+// failure, so one run reports them all. It is an error when nothing is left to
+// check, whether the glob matched nothing or Options.Exclude removed every doc.
 func CheckDocs(root string, n notice.Notice, o Options) error {
 	files := o.Files
 	if len(files) == 0 {
@@ -115,7 +123,7 @@ func CheckDocs(root string, n notice.Notice, o Options) error {
 			return fmt.Errorf("glob %s: %w", pattern, err)
 		}
 		if len(matches) == 0 {
-			return noDocsError{pattern}
+			return noDocsError{pattern: pattern}
 		}
 		sort.Strings(matches)
 		for _, m := range matches {
@@ -132,10 +140,12 @@ func CheckDocs(root string, n notice.Notice, o Options) error {
 		skip[e] = true
 	}
 	var errs []error
+	checked := 0
 	for _, rel := range files {
 		if skip[rel] {
 			continue
 		}
+		checked++
 		b, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(rel)))
 		if err != nil {
 			errs = append(errs, fmt.Errorf("read %s: %w", rel, err))
@@ -144,6 +154,9 @@ func CheckDocs(root string, n notice.Notice, o Options) error {
 		if err := Check(b, n, o); err != nil {
 			errs = append(errs, fmt.Errorf("%s: %w", rel, err))
 		}
+	}
+	if checked == 0 {
+		return noDocsError{excluded: len(files)}
 	}
 	return errors.Join(errs...)
 }

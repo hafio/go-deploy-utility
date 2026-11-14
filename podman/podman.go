@@ -15,23 +15,17 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/hafio/go-deploy-utility/internal/build"
 	"github.com/hafio/go-deploy-utility/runner"
 )
 
 // SystemQuadletDir is where rootful podman's quadlet generator reads units from.
 const SystemQuadletDir = "/etc/containers/systemd"
 
-// cmd is base followed by args, in a new slice.
-func cmd(base []string, args ...string) runner.Cmd {
-	argv := make([]string, 0, len(base)+len(args))
-	argv = append(argv, base...)
-	return runner.Cmd{Argv: append(argv, args...)}
-}
-
 // Version asks for the client version, such as 5.8.2. Read stdout alone
 // (runner.Output or runner.Split): podman can print warnings on stderr first.
 func Version(base []string) runner.Cmd {
-	return cmd(base, "version", "--format", "{{.Client.Version}}")
+	return build.Cmd(base, "version", "--format", "{{.Client.Version}}")
 }
 
 // SupportsReplace reports whether version, as Version prints it, is podman 4.7 or
@@ -76,9 +70,8 @@ func CreateSecret(base []string, name string, value []byte, replace bool, labels
 	for _, l := range labels {
 		args = append(args, "--label", l)
 	}
-	c := cmd(base, append(args, name, "-")...)
-	c.Stdin = make([]byte, len(value))
-	copy(c.Stdin, value)
+	c := build.Cmd(base, append(args, name, "-")...)
+	c.Stdin = build.Stdin(value)
 	return c
 }
 
@@ -97,7 +90,7 @@ func SecretData(base []string, name string) (runner.Cmd, error) {
 	if name == "" {
 		return runner.Cmd{}, errors.New("podman: reading a secret's value needs the secret's name")
 	}
-	return cmd(base, "secret", "inspect", "--showsecret", "--format", "{{.SecretData}}", name), nil
+	return build.Cmd(base, "secret", "inspect", "--showsecret", "--format", "{{.SecretData}}", name), nil
 }
 
 // SecretMatches reports whether out, SecretData's stdout, is exactly value: podman
@@ -115,7 +108,7 @@ func RemoveSecrets(base []string, names ...string) (c runner.Cmd, ok bool) {
 	if len(names) == 0 {
 		return runner.Cmd{}, false
 	}
-	return cmd(base, append([]string{"secret", "rm", "--ignore"}, names...)...), true
+	return build.Cmd(base, append([]string{"secret", "rm", "--ignore"}, names...)...), true
 }
 
 // IDMap asks podman for the invoking user's uid map, or its gid map when gid is
@@ -128,7 +121,7 @@ func IDMap(base []string, gid bool) runner.Cmd {
 	if gid {
 		field = "GIDMap"
 	}
-	return cmd(base, "info", "--format", "{{range .Host.IDMappings."+field+"}}{{.ContainerID}}:{{.Size}} {{end}}")
+	return build.Cmd(base, "info", "--format", "{{range .Host.IDMappings."+field+"}}{{.ContainerID}}:{{.Size}} {{end}}")
 }
 
 // QuadletDir is the directory a tool writes a quadlet unit to: SystemQuadletDir for

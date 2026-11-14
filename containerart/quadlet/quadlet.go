@@ -20,11 +20,16 @@ import (
 func EscapePercent(s string) string { return strings.ReplaceAll(s, "%", "%%") }
 
 // Escape prepares s to sit inside a double-quoted value. A backslash and a
-// double quote are backslash-escaped, '%' is doubled, and a control character is
-// written as a C escape that podman decodes when it reads the unit: \n, \r, or
-// \xNN for the rest. A raw newline would end the line and let the rest of the
-// value be read as further keys of the unit. A tab is kept, since a quoted value
-// holds it as it is.
+// double quote are backslash-escaped, '%' and '$' are doubled, and a control
+// character is written as a C escape that podman decodes when it reads the unit:
+// \n, \r, or \xNN for the rest. A raw newline would end the line and let the rest
+// of the value be read as further keys of the unit. A tab is kept, since a quoted
+// value holds it as it is.
+//
+// Quadlet copies the value into the ExecStart of the service it generates and
+// escapes neither '%' nor '$' there, and systemd expands both in a command line:
+// a % specifier, and $NAME or ${NAME} from the unit's environment, an unknown name
+// becoming empty. Doubled, each reaches the container as written.
 //
 // NUL is written as \x00, which podman refuses, dropping the whole assignment. A
 // tool refuses control characters when the config is loaded, so this is the
@@ -39,6 +44,8 @@ func Escape(s string) string {
 			b.WriteString(`\"`)
 		case c == '%':
 			b.WriteString("%%")
+		case c == '$':
+			b.WriteString("$$")
 		case c == '\n':
 			b.WriteString(`\n`)
 		case c == '\r':

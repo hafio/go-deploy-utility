@@ -122,13 +122,20 @@ func TestWideningIsTheUnionOfBothTools(t *testing.T) {
 	}
 }
 
-// TestHostNetwork: both spellings are caught, and the clean shapes carry neither.
+// TestHostNetwork: every spelling is caught, the PodmanArgs= flags included, the
+// compose and quadlet spellings stay first and second, and the clean shapes carry
+// none.
 func TestHostNetwork(t *testing.T) {
 	if err := CheckAbsent(composeFile()+"    network_mode: host\n", HostNetwork()); err == nil {
 		t.Error("network_mode: host must be caught")
 	}
-	if err := CheckAbsent(unitB()+"Network=host\n", HostNetwork()); err == nil {
-		t.Error("Network=host must be caught")
+	for _, line := range []string{"Network=host", "PodmanArgs=--network=host", "PodmanArgs=--net host", "network=HOST"} {
+		if err := CheckAbsent(unitB()+line+"\n", HostNetwork()); err == nil {
+			t.Errorf("%s must be caught", line)
+		}
+	}
+	if h := HostNetwork(); h[0] != "network_mode: host" || h[1] != "Network=host" {
+		t.Errorf("HostNetwork()[:2] = %q, want the compose spelling then the quadlet key", h[:2])
 	}
 	for name, a := range map[string]string{"compose": composeFile(), "unitA": unitA(), "unitB": unitB()} {
 		if err := CheckAbsent(a, append(Widening(), HostNetwork()...)); err != nil {
@@ -137,8 +144,10 @@ func TestHostNetwork(t *testing.T) {
 	}
 }
 
-// TestCheckAbsent catches a token however the YAML spaces or quotes it, names
-// every token found, and refuses a token that would match anything.
+// TestCheckAbsent catches a token however the YAML spaces, quotes or capitalises
+// it, and the podman flags a PodmanArgs= line can carry; names every token found,
+// once per spelling that differs only in case; and refuses a token that would
+// match anything.
 func TestCheckAbsent(t *testing.T) {
 	for _, extra := range []string{
 		"    privileged: true\n",
@@ -146,7 +155,15 @@ func TestCheckAbsent(t *testing.T) {
 		"    privileged:  true\n",
 		"    \"privileged\": true\n",
 		"    'pid': 'host'\n",
+		"    privileged: True\n",
+		"    Privileged: TRUE\n",
 		"PodmanArgs=--privileged\n",
+		"PodmanArgs=--cap-add=NET_ADMIN\n",
+		"PodmanArgs=--device=/dev/fuse\n",
+		"PodmanArgs=--sysctl net.ipv4.ip_forward=1\n",
+		"PodmanArgs=--pid=host\n",
+		"PodmanArgs=--ipc host\n",
+		"PodmanArgs=--userns=host\n",
 	} {
 		err := CheckAbsent(composeFile()+extra, Widening())
 		if err == nil {
@@ -160,6 +177,10 @@ func TestCheckAbsent(t *testing.T) {
 	err := CheckAbsent("cap_add: [NET_ADMIN]\nsysctls:\n", Widening())
 	if err == nil || !strings.Contains(err.Error(), `"cap_add"`) || !strings.Contains(err.Error(), `"sysctls:"`) {
 		t.Errorf("err = %v, want both tokens named", err)
+	}
+	err = CheckAbsent("SeccompProfile=Unconfined\n", Widening())
+	if err == nil || strings.Count(err.Error(), "nconfined") != 1 {
+		t.Errorf("err = %v, want unconfined named once although two tokens spell it", err)
 	}
 	if err := CheckAbsent("anything", []string{" \"' "}); err == nil || !strings.Contains(err.Error(), "match anything") {
 		t.Errorf("an empty token: err = %v, want it refused", err)
@@ -247,7 +268,10 @@ func TestCheckQuadletKeysBadFloor(t *testing.T) {
 
 // TestCheckSecretTargetsCompose reads only the service-level secrets: block: a
 // relative target, a missing one and the short syntax fail, a quoted absolute
-// target passes, and a content block is never read.
+// target passes, and a content block is never read. A service-level secrets: in a
+// shape it cannot read fails instead of passing unread: a flow list, items at the
+// key's own indent, and a block with no item, before the next key or at the end of
+// the file. CRLF line endings are read.
 func TestCheckSecretTargetsCompose(t *testing.T) {
 	good := composeFile()
 	if err := CheckSecretTargets(good); err != nil {
@@ -257,13 +281,24 @@ func TestCheckSecretTargetsCompose(t *testing.T) {
 	if err := CheckSecretTargets(quoted); err != nil {
 		t.Errorf("a quoted absolute target: %v", err)
 	}
+	if err := CheckSecretTargets(strings.ReplaceAll(good, "\n", "\r\n")); err != nil {
+		t.Errorf("clean file with CRLF: %v", err)
+	}
+	relative := strings.Replace(good, "target: /mnt/secrets/admin_password", "target: admin_password", 1)
 	for name, c := range map[string]struct{ artifact, want string }{
-		"relative": {strings.Replace(good, "target: /mnt/secrets/admin_password", "target: admin_password", 1),
-			`"app-admin-password" mounts at "admin_password"`},
+		"relative": {relative, `"app-admin-password" mounts at "admin_password"`},
 		"missing": {strings.Replace(good, "        target: /mnt/certs/server/tls.pem\n", "", 1),
 			`"app-tls" has no target:`},
 		"short syntax": {strings.Replace(good, "    secrets:\n", "    secrets:\n      - app-extra\n", 1),
 			"app-extra uses the short syntax"},
+		"relative with CRLF": {strings.ReplaceAll(relative, "\n", "\r\n"), `"app-admin-password" mounts at "admin_password"`},
+		"flow list": {strings.Replace(good, "    secrets:\n", "    secrets: [app-extra]\n", 1),
+			"secrets: [app-extra] is not a block this check can read"},
+		"items at the key's indent": {strings.Replace(good, "    secrets:\n      - source:", "    secrets:\n    - source:", 1),
+			"at the key's own indent"},
+		"no item before the next key": {"services:\n  app:\n    secrets:\n    ports:\n      - \"8080:8080\"\n",
+			"line 3: the service's secrets: has no item at indent 6"},
+		"no item at the end": {"services:\n  app:\n    secrets:\n", "line 3: the service's secrets: has no item at indent 6"},
 	} {
 		err := CheckSecretTargets(c.artifact)
 		if err == nil || !strings.Contains(err.Error(), c.want) {
@@ -273,7 +308,7 @@ func TestCheckSecretTargetsCompose(t *testing.T) {
 }
 
 // TestCheckSecretTargetsQuadlet: every Secret= line in [Container] needs an
-// absolute target=.
+// absolute target=, in a unit with LF or CRLF line endings.
 func TestCheckSecretTargetsQuadlet(t *testing.T) {
 	for name, u := range map[string]string{"unitA": unitA(), "unitB": unitB()} {
 		if err := CheckSecretTargets(u); err != nil {
@@ -286,9 +321,12 @@ func TestCheckSecretTargetsQuadlet(t *testing.T) {
 		"bare name": {"Secret=app-admin-password", "has no target="},
 		"relative":  {"Secret=app-admin-password,type=mount,target=admin_password", `mounts at "admin_password"`},
 	} {
-		err := CheckSecretTargets(strings.Replace(unitB(), line, c.replacement, 1))
-		if err == nil || !strings.Contains(err.Error(), c.want) {
-			t.Errorf("%s: err = %v, want it to contain %q", name, err, c.want)
+		unit := strings.Replace(unitB(), line, c.replacement, 1)
+		for _, u := range []string{unit, strings.ReplaceAll(unit, "\n", "\r\n")} {
+			err := CheckSecretTargets(u)
+			if err == nil || !strings.Contains(err.Error(), c.want) {
+				t.Errorf("%s: err = %v, want it to contain %q", name, err, c.want)
+			}
 		}
 	}
 }

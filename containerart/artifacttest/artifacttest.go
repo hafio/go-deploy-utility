@@ -24,8 +24,9 @@ import (
 // Widening returns the spellings that would widen a container's privileges in a
 // compose file or a quadlet unit: extended privileges, no-new-privileges turned
 // off, added capabilities, host devices, kernel tunables, a relaxed SELinux or
-// seccomp confinement, and the host's pid or ipc namespace. It is the union of
-// both tools' lists, keeping the broader spelling where they differed.
+// seccomp confinement, and the host's pid, ipc or user namespace. It is the union
+// of both tools' lists, keeping the broader spelling where they differed, plus the
+// podman flags that can ride a quadlet PodmanArgs= line.
 //
 // Host networking is not in it (see HostNetwork), and neither are Kubernetes
 // spellings. Each call returns a new slice.
@@ -39,32 +40,42 @@ func Widening() []string {
 		"SecurityLabelDisable", "label=disable", "label:disable",
 		"SeccompProfile=", "unconfined", "Unconfined",
 		"pid: host", "ipc: host",
+		"--cap-add", "--device", "--sysctl",
+		"--pid=host", "--pid host", "--ipc=host", "--ipc host", "--userns=host", "--userns host",
 	}
 }
 
-// HostNetwork returns the compose and quadlet spellings of host networking.
-// solmq-conn-util forbids it in every artifact. solace-util writes it only when
-// the operator asks, and checks that no other shape carries it.
+// HostNetwork returns the compose and quadlet spellings of host networking, then
+// the podman flags that can ride a quadlet PodmanArgs= line. The compose spelling
+// is always first and the quadlet key second, so a caller can pick either.
+// solmq-conn-util forbids host networking in every artifact. solace-util writes it
+// only when the operator asks, and checks that no other shape carries it.
 func HostNetwork() []string {
-	return []string{"network_mode: host", "Network=host"}
+	return []string{"network_mode: host", "Network=host",
+		"--network=host", "--network host", "--net=host", "--net host"}
 }
 
 // CheckAbsent reports every token found in the artifact. Spaces, tabs and quotes
-// are dropped from both before matching, so "privileged:true" and a quoted
-// "privileged" key are caught by "privileged: true" too. A match inside a longer
-// word is reported as well: the check errs on the strict side.
+// are dropped from both before matching, and case is folded, so "privileged:true",
+// a quoted "privileged" key and "privileged: True" are all caught by
+// "privileged: true". A match inside a longer word is reported as well: the check
+// errs on the strict side. Two tokens that differ only in case or spacing are
+// reported once, under the first spelling.
 func CheckAbsent(artifact string, tokens []string) error {
 	flat := squeeze(artifact)
 	var found []string
 	var errs []error
+	seen := make(map[string]bool, len(tokens))
 	for _, tok := range tokens {
 		t := squeeze(tok)
 		switch {
 		case t == "":
 			errs = append(errs, fmt.Errorf("token %q is empty once spaces and quotes are dropped, so it would match anything; fix the token list", tok))
+		case seen[t]:
 		case strings.Contains(flat, t):
 			found = append(found, strconv.Quote(tok))
 		}
+		seen[t] = true
 	}
 	if len(found) > 0 {
 		errs = append(errs, fmt.Errorf("carries %s, which the container posture forbids; take it out of the renderer", strings.Join(found, ", ")))
@@ -72,15 +83,15 @@ func CheckAbsent(artifact string, tokens []string) error {
 	return errors.Join(errs...)
 }
 
-// squeeze drops spaces, tabs and quotes.
+// squeeze drops spaces, tabs and quotes, and folds case.
 func squeeze(s string) string {
-	return strings.Map(func(r rune) rune {
+	return strings.ToLower(strings.Map(func(r rune) rune {
 		switch r {
 		case ' ', '\t', '"', '\'':
 			return -1
 		}
 		return r
-	}, s)
+	}, s))
 }
 
 // CheckComposePosture reports a compose file that does not carry compose.Posture
@@ -211,12 +222,17 @@ func parseRelease(v string) ([2]int, error) {
 //
 // In a compose file it reads only the service-level secrets: block at indent 4.
 // Each item must be the long syntax, a source: with a target: that starts with '/'
-// once quotes are stripped. The top-level secrets: map and inline content: blocks
-// are never read. In a quadlet unit it reads every Secret= line in [Container],
-// which must carry a target= option that starts with '/'.
+// once quotes are stripped. A service-level secrets: written in any other shape is
+// reported rather than skipped, since a check that cannot read a block would pass
+// it: a value on the key's own line (a flow list), items at the key's own indent,
+// or a block with no item at indent 6. The top-level secrets: map and inline
+// content: blocks are never read. In a quadlet unit it reads every Secret= line in
+// [Container], which must carry a target= option that starts with '/'. CRLF line
+// endings are read as LF.
 func CheckSecretTargets(artifact string) error {
-	var errs []error
-	for _, item := range composeSecretItems(strings.Split(artifact, "\n")) {
+	artifact = strings.ReplaceAll(artifact, "\r\n", "\n")
+	items, errs := composeSecretItems(strings.Split(artifact, "\n"))
+	for _, item := range items {
 		if err := checkComposeSecret(item); err != nil {
 			errs = append(errs, err)
 		}
@@ -244,21 +260,40 @@ func CheckSecretTargets(artifact string) error {
 }
 
 // composeSecretItems returns the items of every service-level secrets: block,
-// each as its trimmed lines. A block runs from a line that is exactly
-// "    secrets:" to the next non-blank line at indent 4 or less, and an item starts
-// at a "- " line at indent 6.
-func composeSecretItems(lines []string) [][]string {
+// each as its trimmed lines, and an error for each service-level secrets: it
+// cannot read. A block runs from a line at indent 4 that is "secrets:" and nothing
+// else to the next non-blank line at indent 4 or less, and an item starts at a
+// "- " line at indent 6.
+func composeSecretItems(lines []string) ([][]string, []error) {
 	var items [][]string
-	in, cur := false, -1
-	for _, l := range lines {
+	var errs []error
+	in, cur, open := false, -1, 0
+	// end closes the open block, reporting one that held no item it could read.
+	end := func() {
+		if in && cur < 0 {
+			errs = append(errs, fmt.Errorf("line %d: the service's secrets: has no item at indent 6, so its targets cannot be checked; "+
+				"write each secret as a \"- source:\" item indented under secrets:", open))
+		}
+		in, cur = false, -1
+	}
+	for i, l := range lines {
 		t := strings.TrimSpace(l)
 		indent := len(l) - len(strings.TrimLeft(l, " "))
 		switch {
-		case l == "    secrets:":
-			in, cur = true, -1
+		case indent == 4 && t == "secrets:":
+			end()
+			in, cur, open = true, -1, i+1
+		case indent == 4 && strings.HasPrefix(t, "secrets:"):
+			end()
+			errs = append(errs, fmt.Errorf("line %d: the service's %s is not a block this check can read, so its targets cannot be checked; "+
+				"write secrets: on its own line with one \"- source:\" item per secret", i+1, t))
 		case !in || t == "":
-		case indent <= 4:
+		case indent == 4 && strings.HasPrefix(t, "- "):
+			errs = append(errs, fmt.Errorf("line %d: the service's secrets: lists %s at the key's own indent, which this check cannot read; "+
+				"indent the items under secrets:", i+1, t))
 			in, cur = false, -1
+		case indent <= 4:
+			end()
 		case indent == 6 && strings.HasPrefix(t, "- "):
 			items = append(items, []string{t})
 			cur = len(items) - 1
@@ -266,7 +301,8 @@ func composeSecretItems(lines []string) [][]string {
 			items[cur] = append(items[cur], t)
 		}
 	}
-	return items
+	end()
+	return items, errs
 }
 
 // checkComposeSecret checks one service-level secrets: item.

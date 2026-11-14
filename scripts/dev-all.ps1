@@ -61,8 +61,8 @@ function Get-Known {
   param([string]$Script)
   $text = Get-Content -Raw -LiteralPath $Script
   $words = @()
-  $words += [regex]::Matches($text, '(?m)^function Task-([a-z]+)') | ForEach-Object { $_.Groups[1].Value }
-  $words += [regex]::Matches($text, '''([a-z]+)''\s*\{\s*\$queue') | ForEach-Object { $_.Groups[1].Value }
+  $words += [regex]::Matches($text, '(?m)^function Task-([a-z_]+)') | ForEach-Object { $_.Groups[1].Value }
+  $words += [regex]::Matches($text, '''([a-z_]+)''\s*\{\s*\$queue') | ForEach-Object { $_.Groups[1].Value }
   return ($words | Sort-Object -Unique)
 }
 

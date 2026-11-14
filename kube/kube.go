@@ -18,27 +18,12 @@ package kube
 import (
 	"errors"
 	"fmt"
-	"path"
 	"strconv"
 	"strings"
 
+	"github.com/hafio/go-deploy-utility/internal/build"
 	"github.com/hafio/go-deploy-utility/runner"
 )
-
-// cmd is base followed by args, in a new slice.
-func cmd(base []string, args ...string) runner.Cmd {
-	argv := make([]string, 0, len(base)+len(args))
-	argv = append(argv, base...)
-	return runner.Cmd{Argv: append(argv, args...)}
-}
-
-// stdin is a copy of b that is never nil, so the child always reads exactly b and
-// then EOF.
-func stdin(b []byte) []byte {
-	c := make([]byte, len(b))
-	copy(c, b)
-	return c
-}
 
 // nsArgs is -n <ns>, or nothing for the context's own namespace.
 func nsArgs(ns string) []string {
@@ -51,16 +36,16 @@ func nsArgs(ns string) []string {
 // Apply creates or updates what manifest describes: `apply -f -`, the manifest on
 // stdin, so it is never written to disk.
 func Apply(base []string, manifest []byte) runner.Cmd {
-	c := cmd(base, "apply", "-f", "-")
-	c.Stdin = stdin(manifest)
+	c := build.Cmd(base, "apply", "-f", "-")
+	c.Stdin = build.Stdin(manifest)
 	return c
 }
 
 // Delete removes what manifest describes, and is not an error for what is already
 // gone: `delete -f - --ignore-not-found`, the manifest on stdin.
 func Delete(base []string, manifest []byte) runner.Cmd {
-	c := cmd(base, "delete", "-f", "-", "--ignore-not-found")
-	c.Stdin = stdin(manifest)
+	c := build.Cmd(base, "delete", "-f", "-", "--ignore-not-found")
+	c.Stdin = build.Stdin(manifest)
 	return c
 }
 
@@ -122,20 +107,20 @@ func MissingNamespace(base []string, ns string, err error) error {
 // DeleteNamespace deletes ns and everything left in it: `delete namespace <ns>
 // --ignore-not-found`. Run it only through the gate in kube/nsgate.
 func DeleteNamespace(base []string, ns string) runner.Cmd {
-	return cmd(base, "delete", "namespace", ns, "--ignore-not-found")
+	return build.Cmd(base, "delete", "namespace", ns, "--ignore-not-found")
 }
 
 // Scale sets the replica count of kind/name: `scale <kind>/<name> -n <ns>
 // --replicas=<n>`.
 func Scale(base []string, kind, name, ns string, replicas int) runner.Cmd {
 	args := append([]string{"scale", kind + "/" + name}, nsArgs(ns)...)
-	return cmd(base, append(args, "--replicas="+strconv.Itoa(replicas))...)
+	return build.Cmd(base, append(args, "--replicas="+strconv.Itoa(replicas))...)
 }
 
 // RolloutRestart restarts the pods of kind/name in a rolling fashion: `rollout restart
 // <kind>/<name> -n <ns>`.
 func RolloutRestart(base []string, kind, name, ns string) runner.Cmd {
-	return cmd(base, append([]string{"rollout", "restart", kind + "/" + name}, nsArgs(ns)...)...)
+	return build.Cmd(base, append([]string{"rollout", "restart", kind + "/" + name}, nsArgs(ns)...)...)
 }
 
 // RolloutTimeout is how long RolloutStatus waits when given no timeout.
@@ -150,7 +135,7 @@ func RolloutStatus(base []string, kind, name, ns, timeout string) runner.Cmd {
 		timeout = RolloutTimeout
 	}
 	args := append([]string{"rollout", "status", kind + "/" + name}, nsArgs(ns)...)
-	return cmd(base, append(args, "--timeout="+timeout)...)
+	return build.Cmd(base, append(args, "--timeout="+timeout)...)
 }
 
 // Forbidden reports whether kubectl's output is an RBAC refusal, as opposed to a
@@ -187,7 +172,7 @@ func Get(base []string, o GetOptions, what ...string) runner.Cmd {
 	if o.Output != "" {
 		args = append(args, "-o", o.Output)
 	}
-	return cmd(base, args...)
+	return build.Cmd(base, args...)
 }
 
 // ExecOptions are exec's flags. Stdin keeps the child's stdin open (-i); TTY
@@ -220,11 +205,8 @@ func Exec(base []string, pod string, o ExecOptions, argv ...string) (runner.Cmd,
 	if o.Container != "" {
 		args = append(args, "-c", o.Container)
 	}
-	return cmd(base, append(append(args, "--"), argv...)...), nil
+	return build.Cmd(base, append(append(args, "--"), argv...)...), nil
 }
-
-// shQuote single-quotes s for sh, so it is one word with nothing expanded.
-func shQuote(s string) string { return "'" + strings.ReplaceAll(s, "'", `'\''`) + "'" }
 
 // Upload writes body to dest inside pod, through Exec with stdin: `sh -c "cat >
 // '<dest>'"`, with `mkdir -p '<dir>' && ` first when mkdir is set. dest is a POSIX
@@ -234,16 +216,12 @@ func Upload(base []string, pod string, o ExecOptions, dest string, body []byte, 
 	if dest == "" {
 		return runner.Cmd{}, fmt.Errorf("kube: an upload to %q needs a destination path", pod)
 	}
-	script := "cat > " + shQuote(dest)
-	if mkdir {
-		script = "mkdir -p " + shQuote(path.Dir(dest)) + " && " + script
-	}
 	o.Stdin, o.TTY = true, false
-	c, err := Exec(base, pod, o, "sh", "-c", script)
+	c, err := Exec(base, pod, o, "sh", "-c", build.UploadScript(dest, mkdir))
 	if err != nil {
 		return runner.Cmd{}, err
 	}
-	c.Stdin = stdin(body)
+	c.Stdin = build.Stdin(body)
 	return c, nil
 }
 
@@ -276,7 +254,7 @@ func Logs(base []string, target string, o LogOptions) runner.Cmd {
 	if o.Since != "" {
 		args = append(args, "--since", o.Since)
 	}
-	return cmd(base, args...)
+	return build.Cmd(base, args...)
 }
 
 // ValidLabel reports whether s is a DNS-1123 label: 1 to 63 lower-case letters,

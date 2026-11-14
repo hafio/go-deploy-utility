@@ -75,6 +75,21 @@ code the tool's pinned version does not contain.
   now says a refresh is collected before the screen is cleared. Both loops trim a
   failed refresh's error before ` -- trying again in <d>`, so an error that ends
   in a command's newline no longer pushes the retry onto a line of its own.
+- v0.1.3: fixes and stricter test helpers; no API change, so a tool only repins.
+  - `inspect.Decode` reads a podman container's secrets from `Config.Secrets`,
+    where podman reports them, so solmq-conn-util's `status` shows its secret
+    rows on podman.
+  - `quadlet.Escape`, and so every `quadlet.Environment` line, doubles `$`,
+    which systemd would otherwise expand in the `ExecStart` quadlet generates. A
+    rendered unit changes only where a value holds a `$`.
+  - `inspect.Printable` also drops format characters, such as a bidi override.
+  - `artifacttest` is stricter. `Widening` and `HostNetwork` gain the podman
+    flags a `PodmanArgs=` line can carry, after their existing entries, and the
+    match folds case. `CheckSecretTargets` reads CRLF and reports a
+    service-level `secrets:` it cannot read. A tool's posture test fails where an
+    artifact carries such a spelling; neither tool's goldens do.
+  - `noticetest.CheckDocs` fails when `Options.Exclude` leaves nothing to check.
+  - `graphify-out/` and `docs/review/` are left out of the module zip.
 
 The module stays on v0.x while both tools ship as v1. A tool's version is a
 promise to its users; this module's is a promise to its two consumers, and

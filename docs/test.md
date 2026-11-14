@@ -21,7 +21,7 @@ both tools ([consuming.md](consuming.md)).
 
 ## Summary
 
-26 test files, 318 test functions. Two are not tests, and both are os/exec
+28 test files, 326 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -37,10 +37,10 @@ helper-process shims that the tests re-execute as a child:
 | exitcode | 1 | 12 |
 | abbrev | 1 | 14 |
 | notice | 1 | 8 |
-| notice/noticetest | 1 | 14 |
+| notice/noticetest | 1 | 15 |
 | paritydoc | 1 | 9 |
 | confirm | 3 | 20 |
-| execguard | 1 | 24 |
+| execguard | 1 | 25 |
 | envref | 1 | 10 |
 | runner | 2 | 62 |
 | runner/runnertest | 1 | 11 |
@@ -51,12 +51,13 @@ helper-process shims that the tests re-execute as a child:
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
 | containercli | 1 | 18 |
-| containercli/inspect | 1 | 8 |
-| watch | 1 | 15 |
+| containercli/inspect | 1 | 9 |
+| watch | 2 | 16 |
 | kube | 1 | 14 |
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
-| **Total** | **26** | **318** |
+| internal/build | 1 | 4 |
+| **Total** | **28** | **326** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -136,6 +137,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 | `TestCheckZeroNotice` | An unbuilt notice is refused | new |
 | `TestCheckDocsGlobExcludesHandoff` | The default glob does not descend into `docs/` subfolders | new |
 | `TestCheckDocsNoDocs` | An empty glob is an error naming the pattern | new |
+| `TestCheckDocsAllExcluded` | An `Exclude` that removes every selected doc, from the glob or an explicit list, is the same no-docs error; with one doc left, that doc is checked | new |
 | `TestCheckDocsExplicitFilesAndExclude` | An explicit list, an exclusion, and a read failure that keeps its cause | new |
 | `TestCheckDocsReportsEveryFailure` | All failing docs are reported in one run | new |
 | `TestAssertHelpers` | The test helpers report each failure once and an empty tree fatally | new |
@@ -145,7 +147,7 @@ as repo and file: A is solmq-conn-util, B is solace-util.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestBodyShape` | The embedded body is plain ASCII, 228 lines, LF endings, one final newline | new |
+| `TestBodyShape` | The embedded body is plain ASCII with LF endings and one final newline, and opens with its intro paragraph | new |
 | `TestBodyIsACopy` | Callers get a copy | new |
 | `TestCheckAcceptsEitherToolsNotice` | Both tools' notices pass; a longer notice is the notice gate's concern | new |
 | `TestCheckCRLF` | A CRLF page passes | new |
@@ -193,6 +195,7 @@ keys) stay in B.
 | `TestCheckCommandRejects` | About 70 rejects, each with its message; the escalator rows now say "never permitted" | B `internal/config/execguard_test.go` |
 | `TestEscalationFloorFoldsCaseBothWays` | The deny list folds case at both doors; the allowlist stays exact | B `internal/config/execguard_test.go` |
 | `TestFlagValuePositionIsNotGuaranteed` | The accepted flag-value limit, and the charset still applying there | B `internal/config/execguard_test.go` |
+| `TestFlagValueCanNameAFileToLoad` | A relative path after `docker --config` or `kubectl --kubeconfig` passes, although the binary loads and runs what it holds; the accepted limit stays visible | new |
 | `TestCharsetAgreesAcrossBothYAMLForms` | The string form's split and the list form's refusal agree on Unicode spaces | B `internal/config/execguard_test.go`, without YAML |
 | `TestGuardErrorsAreActionable` | Every message is one line, names the field and a remedy | B `internal/config/execguard_test.go` |
 | `TestAllowCommandsAccepts` | Approvals record names with `.exe` folded | B `internal/config/execguard_test.go`, over `Approve` |
@@ -338,8 +341,8 @@ and B `TestLoadSecretRefErrors`.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestSystemdEnvEscapes` | `%` doubled, the whole assignment quoted, quotes and backslashes escaped; the plain `-Xmx1g` row now expects the quoted form, since A adopts B's always-quote policy | A `internal/podmangen/podmangen_test.go`, re-targeted from `systemdEnv` to `Environment` |
-| `TestQuadletEscape` | Backslash, quote and percent escaping | B `internal/render/render_test.go`, re-targeted from `quadletEscape` to `Escape` |
+| `TestSystemdEnvEscapes` | `%` and `$` doubled, the whole assignment quoted, quotes and backslashes escaped; the plain `-Xmx1g` row now expects the quoted form, since A adopts B's always-quote policy | A `internal/podmangen/podmangen_test.go`, re-targeted from `systemdEnv` to `Environment` |
+| `TestQuadletEscape` | Backslash, quote, percent and dollar escaping | B `internal/render/render_test.go`, re-targeted from `quadletEscape` to `Escape` |
 | `TestEscapePercent` | Only `%` is doubled | new |
 | `TestEscapeWritesControlsAsCEscapes` | Newline, CR, NUL, ESC and DEL become C escapes; tab and UTF-8 pass through; a newline cannot add keys to the unit | new |
 | `TestEnvironmentIsAlwaysQuoted` | B's golden lines; an empty value stays an assignment | new |
@@ -351,14 +354,14 @@ and B `TestLoadSecretRefErrors`.
 | Test | What it covers | Source |
 | --- | --- | --- |
 | `TestWideningIsTheUnionOfBothTools` | Every token either tool forbade (inline copies of both lists) is still caught; host networking is not; each call returns a new slice | new |
-| `TestHostNetwork` | Both spellings are caught; the clean shapes carry no widening or host-network token | new |
-| `TestCheckAbsent` | Spacing and quoting variants are caught, every token found is named, and an empty token is refused | new |
+| `TestHostNetwork` | Every spelling is caught, the `PodmanArgs=` flags and a case variant included; the compose and quadlet spellings stay first and second; the clean shapes carry no widening or host-network token | new |
+| `TestCheckAbsent` | Spacing, quoting and case variants and the podman flags a `PodmanArgs=` line can carry are caught, every token found is named once, and an empty token is refused | new |
 | `TestCheckComposePosture` | Missing, doubled (counted by the first line, so adjacent copies are caught), deeper-indented, incomplete and the deprecated `:` spelling fail; the whole block must appear exactly once, which is stricter than B's `Contains` check on `security_opt` | new |
 | `TestCheckQuadletPosture` | A line in `[Service]`, after `[Install]` when there is no `[Service]`, doubled or missing fails | new |
 | `TestCheckQuadletKeys` | Each tool's shape passes at its own floor; a newer key, an unknown key and a line with no `=` fail; comments, blank lines and other sections are not read | new; the release table is B's `quadletKeysByRelease` (`internal/render/render_test.go`) plus `Label` |
 | `TestCheckQuadletKeysBadFloor` | A floor that is not MAJOR.MINOR is an error | new |
-| `TestCheckSecretTargetsCompose` | Relative, missing and short-syntax targets fail; a quoted absolute target passes; a content block is not read | new |
-| `TestCheckSecretTargetsQuadlet` | No `target=`, a bare name and a relative target fail | new |
+| `TestCheckSecretTargetsCompose` | Relative, missing and short-syntax targets fail; a quoted absolute target passes; a content block is not read; a flow list, items at the key's own indent and a block with no item fail rather than pass unread; CRLF is read | new |
+| `TestCheckSecretTargetsQuadlet` | No `target=`, a bare name and a relative target fail, with LF or CRLF endings | new |
 | `TestAssertReportsWithTheName` | Each Assert fails once, naming and showing the artifact | new |
 | `TestAssertPassesQuietly` | The clean shapes report nothing | new |
 
@@ -441,12 +444,13 @@ and B `TestLoadSecretRefErrors`.
 | --- | --- | --- |
 | `TestContainersArgv` | `container inspect <names...>`; no names is nothing to run; the base is copied | new |
 | `TestDecodeDocker` | Every field from a docker answer, the name without its slash, networks sorted | new; fixture from A `internal/statusreport/parse_test.go` `dockerInspectJSON` |
-| `TestDecodePodman` | A podman answer: the Healthcheck spelling, OOM and error state, secret names | new; fixture from B `internal/container/inspect_test.go` `podmanInspect` |
+| `TestDecodePodman` | A podman answer: the Healthcheck spelling, OOM and error state, secret names read from `Config.Secrets` | new; fixture from B `internal/container/inspect_test.go` `podmanInspect`, its secrets moved under `Config` as libpod defines them |
+| `TestDecodePodmanTopLevelSecrets` | Secrets listed beside `Config` are still read; listed in both places, `Config` wins | new |
 | `TestDecodeHealthSpellings` | The first spelling with a status wins; an empty Health does not hide a Healthcheck; no healthcheck is zero | new; cases from B `TestInspectHealthReadsBothSpellings` and `TestInspectDistinguishesNoHealthcheckFromUnknown` |
 | `TestDecodeNeverReadsEnv` | No field can hold the environment, and a secret in `Config.Env` reaches nothing decoded | new |
 | `TestDecodeRefuses` | Empty, blank, invalid, object and mistyped answers fail; `[]` and `null` are no containers | new; cases from B `TestInspectRejectsAnEmptyReply` and A `TestParseInspectFilterAndErrors` |
 | `TestDecodePartial` | Missing fields decode as zero values | new; from B `TestInspectDecodesPartialOutput` |
-| `TestPrintable` | C0, DEL and C1 controls dropped; printable text, UTF-8 included, kept | new; cases from B `TestPrintableStripsControlCharacters` |
+| `TestPrintable` | C0, DEL and C1 controls and format characters (a bidi override, a zero-width space, a BOM) dropped; printable text, UTF-8 included, kept | new; cases from B `TestPrintableStripsControlCharacters` |
 
 ### watch, watch_test.go
 
@@ -468,8 +472,28 @@ and B `TestLoadSecretRefErrors`.
 | `TestLoopFramesRefusesBadOptions` | An interval below 1s, no Out, no Warn or no refresh fails before anything is written | new; mirrors `TestLoopRefusesBadOptions` |
 | `TestCanRedraw` | A regular file, no file and an unreadable file are not redrawn; a character device is, except the Windows null device, which is no console | new |
 
+### watch, vt_windows_test.go
+
+Built only on Windows.
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestEnableVTOnAConsole` | On a real console, `enableVT` reports whether escape processing is on once it returns, `CanRedraw` agrees, and the console's mode is restored; skipped where the process has no console | new |
+
 `vt_windows.go` is built only on Windows, so its lines are outside the recorded
-total; `GOOS=windows go vet ./watch/` checks that it compiles.
+total, which is measured on Linux; `GOOS=windows go vet ./watch/` checks that it
+compiles. `TestEnableVTOnAConsole` runs its console branch only when the Windows
+gate runs in a real console window, which a hosted runner is not; smoke S8 is
+the other check.
+
+### internal/build, build_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestCmdCopiesBase` | The argv is base then args, in a slice of its own; nothing else is set | new; the helper was copied in `containercli`, `kube` and `podman` |
+| `TestStdinIsNeverNil` | An empty body is a non-nil slice, and the copy shares nothing | new |
+| `TestShQuote` | One sh word with nothing expanded, a single quote included | new |
+| `TestUploadScript` | The cat, and the quoted mkdir of the destination's directory first when asked | new |
 
 ### kube, kube_test.go
 
@@ -522,4 +546,5 @@ total; `GOOS=windows go vet ./watch/` checks that it compiles.
 The last recorded total is 99.7%, from B7 (2026-11-05; B6 and B5 were 99.6%,
 B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
-there is the floor for the next change.
+there is the floor for the next change. The total is measured on Linux, so a file
+built only on Windows (`watch/vt_windows.go`) is outside it.

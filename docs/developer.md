@@ -67,6 +67,10 @@ Packages are built in this order. Each step is planned and approved on its own.
 The `output` package waits until the output-model decision is made, because only
 B uses it until then. Each tool keeps its own version printing.
 
+`internal/build` holds the helpers `containercli`, `kube` and `podman` share: the
+argv copy, the non-nil stdin copy, sh single-quoting and the upload script. It is
+internal, so neither tool can import it, and it changes no builder's output.
+
 Notes on the available packages:
 
 - `exitcode` never prints or exits. A tool marks usage errors with `Usagef` or
@@ -171,7 +175,7 @@ Notes on the available packages:
   A new quadlet key goes into the release table in `quadletKeySince`, with the
   podman release that introduced it. The Kubernetes spellings
   (`allowPrivilegeEscalation: true`, `hostNetwork`, `hostPID`, `hostIPC`) stay
-  in solmq-conn-util until B7.
+  in solmq-conn-util, the only tool that renders a pod itself.
 - `podman`, `systemd` and `rootless` build commands, read answers and check
   facts; they never execute, read a file or read the environment. Every host
   probe is a `runner.Cmd` or a seam parameter (`getenv`, `home`, `isDir`), so a
@@ -346,3 +350,11 @@ tools' `require` and copies the parity body into their `docs/parity.md`, and
 next to this repo; `DEV_ALL_SOLMQ_DIR` and `DEV_ALL_SOLACE_UTIL_DIR` point
 elsewhere. Neither script is part of the dev-script contract, and CI never
 calls them, since a runner checks out only this repo.
+
+`dev-all` learns each repo's words by reading its dev scripts, so a dev script
+keeps the shape that is read. In `dev.sh`, a task is a function `task_<name>()`
+at the start of a line, and an aggregate is a `case` arm on one line that names
+`$ALL`, `$FULL` or the word `tasks`, such as `all)  echo "$ALL" ;;`. In
+`dev.ps1`, a task is a `function Task-<name>` at the start of a line, and an
+aggregate is a switch arm `'<name>' { $queue += ... }`. A name is lower-case
+letters and `_`. A word written any other way is refused as unknown.

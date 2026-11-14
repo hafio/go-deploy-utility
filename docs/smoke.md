@@ -80,6 +80,17 @@ solace-util only:
       the read-back was refused, exits 0.
 - [ ] `broker remove --delete-data` with retained claims of another broker: kept.
 
+## v0.1.3: two fixes settled from source (not yet run)
+
+Both fixes follow podman's and quadlet's source; neither has been seen on a host.
+
+- [ ] Secret rows on podman: deploy solmq-conn-util with `--platform podman` and a credential,
+      then run `solmq-conn-util status`. Each mounted secret has a `secret ... attached` row, and
+      `podman container inspect <name>` lists them under `Config.Secrets`.
+- [ ] A `$` in a quadlet environment value: deploy on podman with a value that holds a `$`, in a key
+      the tool accepts one in. `podman exec <name> printenv <VAR>` prints the value exactly as
+      written, and `systemctl --user cat <service>` shows it with the `$` doubled.
+
 ## Runs
 
 | Date | Host | docker / compose | podman | Steps | Result |

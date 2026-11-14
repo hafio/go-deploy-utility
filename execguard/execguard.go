@@ -40,6 +40,17 @@
 // take values, which rots as those CLIs add flags. Reaching it needs write access
 // to the env file, and anyone with that can already aim an allowed binary at any
 // cluster. TestFlagValuePositionIsNotGuaranteed pins it as a known limit.
+//
+// A flag value may also be a path, and some flags make the allowed binary load and
+// run what that path holds. `docker --config ./d` makes docker run
+// `./d/cli-plugins/docker-compose` for a compose command, and
+// `kubectl --kubeconfig ./kc` makes kubectl run the exec credential command that
+// file names, resolved beside it. So an allowed binary can still be made to run a
+// file shipped beside the env file, which is the second item on the list above,
+// reached through a flag value. It is accepted for the same reasons as the case
+// before it: closing it needs a table of which flags load code, which rots, and
+// whoever writes the env file is already trusted with what the binary reaches.
+// Each tool's trust-model docs say so. TestFlagValueCanNameAFileToLoad pins it.
 package execguard
 
 import (

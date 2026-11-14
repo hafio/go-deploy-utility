@@ -102,8 +102,11 @@ type wire struct {
 	}
 	RestartCount int
 	Config       struct {
-		Image  string
-		Labels map[string]string
+		Image   string
+		Labels  map[string]string
+		Secrets []struct {
+			Name string
+		}
 	}
 	HostConfig struct {
 		NanoCpus, Memory int64
@@ -112,6 +115,8 @@ type wire struct {
 	NetworkSettings struct {
 		Networks map[string]json.RawMessage
 	}
+	// Secrets is a fallback for an answer that lists them outside Config. Podman
+	// reports them under Config (libpod's InspectContainerConfig).
 	Secrets []struct {
 		Name string
 	}
@@ -158,7 +163,11 @@ func Decode(out string) ([]Container, error) {
 			c.Networks = append(c.Networks, n)
 		}
 		sort.Strings(c.Networks)
-		for _, s := range w.Secrets {
+		secrets := w.Config.Secrets
+		if len(secrets) == 0 {
+			secrets = w.Secrets
+		}
+		for _, s := range secrets {
 			c.Secrets = append(c.Secrets, s.Name)
 		}
 		cs = append(cs, c)
@@ -177,13 +186,15 @@ func health(spellings ...*Health) Health {
 	return Health{}
 }
 
-// Printable drops every control character from s. Names, statuses, error text and
-// mount paths come from the engine, about a container the tool did not necessarily
-// create, and a terminal escape inside one would be acted on by the terminal that
-// prints it.
+// Printable drops every control character and every format character (category
+// Cf) from s. Names, statuses, error text and mount paths come from the engine,
+// about a container the tool did not necessarily create. A terminal escape inside
+// one would be acted on by the terminal that prints it, and a bidi override or a
+// zero-width character makes the line read differently from its bytes, which is
+// why execguard refuses the same characters in a command.
 func Printable(s string) string {
 	return strings.Map(func(r rune) rune {
-		if unicode.IsControl(r) {
+		if unicode.IsControl(r) || unicode.Is(unicode.Cf, r) {
 			return -1
 		}
 		return r
