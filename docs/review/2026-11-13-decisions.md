@@ -37,6 +37,16 @@ Decided 2026-11-14.
 
 Every step is still planned, approved and gated on its own.
 
+### Shipped
+
+- v0.1.3, tagged 2026-11-14 at `b9dfcf8`: CR-0002, CR-0005, CR-0006, CR-0007, CR-0008,
+  CR-0010 to CR-0014, CR-0022, CR-0024 and statement 1 of CR-0025. No API change.
+  Coverage held at 99.7%. Both tools repinned on main the same day (solmq-conn-util
+  `ef112aa`, solace-util `12e68a7`), with their gates green against the checkout and
+  against the published tag; their coverage held at 96.3% and 97.7%. The new
+  `internal/build` package holds the helpers CR-0007 moved. The host checks for CR-0005
+  and CR-0006 are the v0.1.3 section of [smoke.md](../smoke.md), not yet run.
+
 ## Decisions on the findings
 
 | ID | Severity | Decision | Home |
