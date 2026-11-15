@@ -19,8 +19,12 @@ Home says where the work lands:
 - Migration is out of scope (2026-11-14). A deployment made before a change is not carried
   over: no back-fill, no fallback kept for old deployments, no transition warning. A restart
   on the first deploy after a change is accepted.
-- Behaviour both tools share is built once in this module and imported. The shared code is
-  builders, parsers and pure functions. Each tool runs them in its own order (2026-11-14).
+- Behaviour both tools share is built once in this module and imported (2026-11-14).
+- Reopened 2026-11-15: that the shared code is only builders, parsers and pure functions,
+  run by each tool in its own order. It was recorded on 2026-11-14 inside questions about
+  other points, never asked on its own. The owner's intent is a common deployment API: the
+  module provides deploy, update, create, remove and the like for both tools to call, so
+  neither duplicates the flow. A design note settles the shape before the breaking tag.
 - Who executes: the code steps are done in the main session, and any agent it uses for them
   runs on Opus. The owner runs every gate (2026-11-14).
 
@@ -105,10 +109,13 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
 ### Other items
 
 - gdu 2: a `${` that is passed on earns no warning. A field with a grammar refuses it with
-  its normal error.
+  its normal error. The lifted `~` code goes into a new package, `tilde`, which takes the
+  home directory as an argument. Each tool keeps its own list of path keys and passes the
+  values in.
 - gdu 3: the order is stated per command. Deploy: validate and resolve, read-only preflight,
   compare, ask, act. Remove: load the names, ask, preflight for what was answered, act.
-  Remove resolves no credential. The module gets no pipeline.
+  Remove resolves no credential. That the module gets no pipeline is reopened with the
+  shared deployment API (2026-11-15).
 - gdu 4: bare-name builders check a typed grammar and return an error. Free operands refuse
   only an empty value, a leading `-` and control characters. A subdomain grammar is added.
   Every builder changes in the one breaking tag.
@@ -137,7 +144,26 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
 - gdu 19, new: the platform sections of the two tools' env files are aligned key by key,
   starting with the compose project name.
 
-## My readings, to correct if wrong
+### Decided 2026-11-15
+
+- gdu 1: `generate kubernetes` keeps its Namespace document, labelled, the same text a
+  deploy applies when it creates the namespace. A deploy creates the namespace only when it
+  is absent and the identity may, as both tools do today.
+- gdu 2: solace-util's `convert` keeps resolving a `${VAR}` reference to an earlier
+  assignment in the same file, and writes the literal value.
+- gdu 6: each engine's own network words, without the forms that join another namespace or
+  a named network. Docker: `bridge`, `host`, `none`. Podman: `private`, `bridge`, `pasta`,
+  `slirp4netns`, `host`, `none`. The lists live in this module. The read-only root check
+  stays in each tool's own tests.
+- gdu 16 and 18: a failed removal. A deploy names what stayed and exits 0. A remove exits
+  non-zero when any Secret survives; any other leftover only warns.
+- gdu 18: the tool lists by label and deletes by name, not `apply --prune`. The delete runs
+  after the rollout wait succeeds; right after the apply when the identity may not run the
+  wait; and not at all when the wait fails or times out, with a warning naming what stayed.
+- gdu 19: solace-util's project key defaults to `solace-event-brokers`. Two brokers on one
+  host then share one compose project and its network unless the key is set.
+
+## Readings the owner confirmed (2026-11-15)
 
 - `--delete-namespace` has an effect only together with `--no-prompt`. At a terminal the
   questions are asked as usual: one yes for a labelled namespace, a yes and the typed name
@@ -146,9 +172,9 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
 - When the network key is absent the artifact states the platform's own non-host default:
   `Network=private` in a quadlet unit, the project network with its bridge driver in a
   compose file. Kubernetes gets no network key.
-- gdu 11 resolves once per set of command tokens, so a `--kubeconfig` in them is honoured
-  and a run that reaches a second cluster pins each. With no current context nothing is
-  pinned and the run says so.
+- gdu 11, corrected by the owner: the context is the one the command tokens name, else the
+  session's current context (KUBECONFIG, then the default kubeconfig). It is resolved once
+  before anything runs, stored, and pinned on every kubectl call of the run.
 
 ## Review points carried into the items without a separate decision
 
@@ -165,14 +191,15 @@ The plan review raised these and nothing decided since contradicts them.
 
 ## Still open
 
-- gdu 1: the list of objects the wider listing must discount, fixed against a live
-  namespace. How a tool learns this module's version for the `lib` annotation, since a
-  workspace build carries none. Whether `generate` output holds a labelled Namespace
-  document.
-- gdu 2: the package that receives the lifted `~` code, and each tool's list of path keys.
-- gdu 6: the accepted words per platform.
-- gdu 16 and 18: what a failed removal does. The review advises a warning on deploy, and a
-  failed remove when a secret that holds a key survives.
+- The shape of the shared code: the common deployment API the owner intends (2026-11-15),
+  against builders that each tool runs. It decides how gdu 3's order, the removal of gdu 16
+  and 18 and the `lib` annotation are built. A design note settles it before the breaking
+  tag.
+- gdu 1: where the module adds the `lib` annotation and how it learns its own version. It
+  waits on the shape.
+- gdu 2: which keys count as path keys in each tool, settled in each tool's session.
+- gdu 11: what a run does with no context anywhere, as kubectl in a pod on its service
+  account.
 - gdu 19: every key but the project name.
 - The two tools' own files: the plan review lists what each still lacks (P33 to P44).
 
@@ -183,6 +210,8 @@ The plan review raised these and nothing decided since contradicts them.
   (CR-0006).
 - gdu 10: `podman container inspect <name>` before and after `podman secret create
   --replace`, to read `Config.Secrets[].ID` against the store's ID.
+- gdu 1: what a fresh namespace with one deployed instance shows under the wider listing
+  (`kubectl api-resources --verbs=list --namespaced -o name`), to fix the discount list.
 - gdu 6: that quadlet accepts `Network=private` on the oldest supported podman.
 - gdu 12: the time one real broker remove takes.
 - gdu 17, in solace-util: `kubectl get sts <name>-pubsubplus-{p,b,m} -n <ns> -o

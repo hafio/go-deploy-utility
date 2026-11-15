@@ -18,8 +18,11 @@ beside the decisions on this module's own review. Three of them apply to every i
 
 - Migration is out of scope. A deployment made before a change is not carried over, and a
   restart on the first deploy after a change is accepted.
-- The shared code is builders, parsers and pure functions. Each tool runs them in its own
-  order. The module gains no code that runs a command.
+- Reopened 2026-11-15: the shared code was to be builders, parsers and pure functions, run
+  by each tool in its own order, with no code in the module that runs a command. The
+  owner's intent is a common deployment API: the module provides deploy, update, create,
+  remove and the like, which both tools call, so neither duplicates the flow. A design note
+  settles the shape before the breaking tag.
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
   for items 1, 4 to 14, 16 and 18. Items 2, 3, 15 and 19 follow as rules both tools align
   on. Item 17 moved to solace-util.
@@ -106,13 +109,23 @@ Decided 2026-11-14.
 - `containerart/artifacttest`: a check that fails when a rendered object lacks the labels.
 - Both tools adopt the labels in one step, and the parity body gains a row for them.
 
+Decided 2026-11-15:
+
+- `--delete-namespace` has an effect only together with `--no-prompt`. At a terminal the
+  questions are asked as usual.
+- The `services.solace.com` labels go on every sink, as the other labels do.
+- `generate kubernetes` keeps its Namespace document, labelled, the same text a deploy
+  applies when it creates the namespace. A deploy reads the namespace and creates it only
+  when it is absent and the identity may, as both tools do today. A hand apply of generate
+  output over an existing namespace labels it as the tool's.
+
 ### Undecided
 
-- The full list of objects the wider listing must discount, fixed against a live namespace.
-- How a tool learns this module's version for the `lib` annotation. A build through a
-  workspace carries no version for a replaced module.
-- Whether `generate` output holds a labelled Namespace document. Applying it would label a
-  namespace the tool did not create.
+- The full list of objects the wider listing must discount, fixed against a live namespace
+  (an owner check).
+- Where the module adds the `lib` annotation and how it learns its own version. It waits on
+  the shape of the shared deployment API (reopened 2026-11-15). A build through a workspace
+  carries no version for a replaced module.
 
 ### Until then
 
@@ -153,12 +166,20 @@ it with its normal error (decided 2026-11-14). In solmq-conn-util that makes the
 `-Xmx${CONNECTOR_HEAP:1g}` a validate error, so its own decision needs a table of fields:
 error or literal.
 
+The lifted `~` code goes into a new package, `tilde`, which takes the home directory as an
+argument (decided 2026-11-14). Each tool keeps its own list of path keys and passes the
+values in; the module holds no tool's keys.
+
+solace-util's `convert` keeps resolving a `${VAR}` reference to an earlier assignment in the
+same file (decided 2026-11-15). It runs once and writes the literal value, so env.yaml still
+expands nothing at load.
+
 ### Scope
 
 - Write the rule under "Rules for shared code" in [developer.md](developer.md) and add a row
   to the parity body.
 - Lift the tilde expansion from solace-util (`expandTilde`, `expandTildeToken`) into the
-  module, so both tools share one implementation and one set of tests.
+  new package `tilde`, so both tools share one implementation and one set of tests.
 - State, per sink, what happens to a `$` that is passed on: the compose file, the quadlet
   unit, the manifest and the application's own config file.
 - [developer.md](developer.md) says leading-`~` expansion stays in each tool. That sentence
@@ -168,10 +189,7 @@ error or literal.
 
 ### Undecided
 
-- Which keys count as path keys in each tool, and whether the list lives in the module.
-- The package that receives the lifted code.
-- Whether solace-util's `convert` keeps resolving a reference to an earlier assignment in
-  the same file. Its "expands nothing" decision would remove that too.
+- Which keys count as path keys in each tool. Each tool settles its own list.
 
 ## 3. One step order for deploy and remove on every platform
 
@@ -204,8 +222,8 @@ The order is stated per command (decided 2026-11-14):
 - Every question is answered before the first write or delete. The one exception is the
   namespace offer, which follows the remove it depends on.
 - Host checks sit in the read-only preflight. Host changes come after the question.
-- The module gains no pipeline. The order is a parity rule each tool follows in its own
-  code.
+- The order is a parity rule. Who runs it, each tool or the shared deployment API, is
+  reopened (2026-11-15); the module was to gain no pipeline.
 
 ### Scope
 
@@ -346,6 +364,19 @@ Decided 2026-11-14, replacing the word `bridge` as the default:
 - The word `bridge` is not that default everywhere. Rootless podman's default is its
   user-mode network, and compose `network_mode: bridge` leaves the project network.
 
+Decided 2026-11-15:
+
+- The accepted words are each engine's own, without the forms that join another namespace
+  or a named network. Docker: `bridge`, `host`, `none`. Podman: `private`, `bridge`,
+  `pasta`, `slirp4netns`, `host`, `none`. Docker's `bridge` writes `network_mode: bridge`,
+  which leaves the project network. `container:`, `service:`, `ns:` and a network name are
+  refused, since the tool would have to manage those objects. The lists live in this module
+  beside the compose and quadlet packages.
+- With no key, a quadlet unit gets `Network=private` and a compose file the project network
+  with `driver: bridge` written out. Kubernetes gets no network key.
+- The read-only root check stays in each tool's own tests. `artifacttest` does not check
+  the root filesystem.
+
 ### Scope
 
 - A separate `artifacttest` check requires a stated network mode in compose and quadlet
@@ -357,17 +388,12 @@ Decided 2026-11-14, replacing the word `bridge` as the default:
 - Host networking: `network_mode: host`, `Network=host`, and `hostNetwork: true` where the
   tool renders the pod itself.
 - The parity body gains a row for the network mode.
-- A read-only root stays a choice of each tool. The posture check accepts either a stated
-  read-only root or a tool's recorded reason for a writable one.
+- A read-only root stays a choice of each tool, checked by its own tests.
 
 ### Undecided
 
-- The accepted words per platform, and whether the list lives in the module.
 - Whether quadlet accepts `Network=private` on the oldest supported podman. Read from the
-  man pages; not run on a host.
-- Whether the read-only root check belongs in `artifacttest` at all, given the two tools
-  differ. solmq-conn-util's read-only root also needs its quadlet key in the release table
-  of `CheckQuadletKeys`.
+  man pages; not run on a host (an owner check).
 
 ## 7. One atomic write for files a tool installs
 
@@ -580,7 +606,9 @@ nothing.
 solace-util pins the context, and the helper lives in this module (decided 2026-11-13).
 
 The context is resolved once per run, stored, and pinned on every kubectl call of that run,
-in both tools (decided 2026-11-14).
+in both tools (decided 2026-11-14). It is the context the command tokens name, else the
+session's current context (KUBECONFIG, then the default kubeconfig), resolved before
+anything runs (decided 2026-11-15).
 
 ### Scope
 
@@ -601,8 +629,10 @@ in both tools (decided 2026-11-14).
 
 ### Undecided
 
-- What a run does when the kubeconfig has no current context, which is how kubectl runs
-  inside a cluster. The review advises pinning nothing and saying so.
+- What a run does when neither the command nor the session gives a context, which is how
+  kubectl runs inside a cluster on its service account. The review advises pinning nothing
+  and saying so. Raised 2026-11-15: resolving and printing the identity once with
+  `kubectl auth whoami` (Kubernetes 1.28 and later).
 - Whether solmq-conn-util prints the resolved context, for example on its "acting on" line.
 
 ## 12. A bound on every delete
@@ -859,14 +889,21 @@ same day, docs only and then the old-unit read (decided 2026-11-13).
 - Known limit, as in item 18: a secret dropped before the labels exist stays unlabelled and
   is never found, so it is removed by hand.
 
-### Undecided
+### Failed removal
 
-- What a failed removal does. The review advises a warning on deploy, and a failed remove
-  when a secret that holds a private key survives. solace-util's remove treats a surviving
-  certificate secret as fatal today.
+Decided 2026-11-15: a deploy names what stayed and exits 0, since the cleanup is a
+convenience step. A remove exits non-zero when any Secret survives, since each holds a
+credential or a key; any other leftover only warns. This covers item 18 too.
 
-The label keys are decided in item 1. The shape is decided (2026-11-14): builders, parsers
-and one pure compare function, which each tool runs.
+The label keys are decided in item 1. The shape (builders, parsers and one pure compare
+function, run by each tool, recorded 2026-11-14) is reopened with the shared deployment API
+(2026-11-15).
+
+Decided 2026-11-15: the tool lists the objects that carry its product and instance labels,
+subtracts what it rendered, names each leftover and deletes it by name, not through
+`apply --prune`. The delete runs after the rollout wait succeeds. When the identity may not
+run the wait, it runs right after the apply. When the wait fails or times out, the leftovers
+stay and a warning names them. A failed delete follows item 16.
 
 ## 17. A readiness wait for OnDelete StatefulSets
 
@@ -998,10 +1035,6 @@ Decided 2026-11-14:
 
 ### Undecided
 
-- Whether the tool lists and deletes by name, or hands the delta to kubectl's own
-  `apply --prune`. The review advises listing: `--prune` is still alpha, and listing lets
-  the tool name what it removes before it does.
-- Where the delete sits after a deploy's apply, and what a failed delete does (see item 16).
 - The wording of the line that names a deleted leftover. It is settled when the work is
   built.
 
@@ -1028,6 +1061,9 @@ written down.
 The project name is an env-file entry in both tools, and both pass it to compose with `-p`
 (decided 2026-11-14).
 
+solace-util's project key defaults to `solace-event-brokers` (decided 2026-11-15). Two
+brokers on one host then share one compose project and its network unless the key is set.
+
 ### Scope
 
 - Compare the two tools' platform sections key by key and list every difference.
@@ -1038,8 +1074,6 @@ The project name is an env-file entry in both tools, and both pass it to compose
 ### Undecided
 
 - Every key but the project name.
-- Whether solace-util's project key defaults to the name derived from the container name,
-  as today, or to a fixed one.
 
 ## Inputs from the solace-util review to items 1 to 4 and 9
 
