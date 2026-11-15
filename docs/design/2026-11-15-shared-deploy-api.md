@@ -136,8 +136,7 @@ What the two tools run today, plus what the decided items add:
 - Every question, and the policy on each outcome: a refused wait warns, a refused write
   stops, a surviving secret fails a remove.
 - Config, credential resolution, and the workload's own steps.
-- What goes into its artifacts. The module renders them if section 8 is adopted; until then
-  each tool renders its own.
+- What goes into its artifacts. The module renders them (section 8).
 
 ### 3.6 Example
 
@@ -198,18 +197,17 @@ Answered 2026-11-15:
 2. Output: the hook and the result (3.2).
 3. Fallbacks: the module decides the commands for one operation (3.3, rule 1).
 4. Release: the clients land in the breaking tag, in the same adoption round (section 6).
+5. The lib annotation: the module writes it, with the tool's version annotation, in every
+   object's metadata when it renders (section 8.4), so deploy and `generate` both carry it.
+   A second `kubectl annotate` call was considered and dropped: it needs `patch` on every
+   kind, and `generate` output would lack it.
+7. Rendering moves into the module, all three layers of section 8 (2026-11-15).
 
 Open:
 
-5. **The lib annotation.** The owner asked whether apply could add it with a second call,
-   `kubectl annotate -f - --overwrite` on the same manifest. It can, without parsing YAML,
-   but it needs `patch` on every kind applied, a refusal could only warn, and `generate`
-   output, which never passes through the module, would lack it. If `generate` must carry
-   the annotations, the tool has to write them while it renders, from the label helper of
-   gdu 1, which fills in the module's version itself. The annotate call is then redundant.
 6. **Builders.** Which builders stay exported once the clients exist: settled in the surface
    review.
-7. **Rendering.** Adopt section 8? Which layers, and in the breaking tag or as their own step?
+7. **Rendering, timing.** In the breaking tag, or as its own step after it?
 8. **The consumer rule.** "A package needs two consumers" blocks the workload kinds only
    solmq-conn-util renders today (Deployment, Service, ConfigMap, PVC). Relax it for kinds
    the reuse aim needs (section 9)?
@@ -222,7 +220,7 @@ Open:
 12. **New-tool guide.** When is the guide of section 9.3 written, with or without an example
     tool?
 
-## 8. Rendering in the module (proposed)
+## 8. Rendering in the module
 
 ### 8.1 Today
 
@@ -245,8 +243,8 @@ Only the pieces both tools wrote identically were lifted.
 
 ### 8.2 Proposal
 
-The module renders the platform artifacts, and the tool describes its application. A
-renderer is a pure function, a typed value in and bytes out, so it fits the module's rules
+Decided 2026-11-15: the module renders the platform artifacts, and the tool describes its
+application. A renderer is a pure function, a typed value in and bytes out, so it fits the module's rules
 unchanged.
 
 - The tool supplies what to deploy: image, names, user, environment, secrets and their
@@ -305,8 +303,8 @@ docker, podman and Kubernetes.
 | Kubernetes permission probes, namespace gate | ready | the list of objects it owns |
 | Executors (one operation each) | decided, in the breaking tag | nothing, once built |
 | Labels, network mode, name checks, atomic write, context pinning | decided, in the breaking tag | nothing, once built |
-| Rendering: compose, quadlet, Secrets, Namespace | proposed (section 8, layers 1 to 3) | all of it today: about 1,370 lines in solmq-conn-util and 1,300 in solace-util |
-| Rendering: Deployment, Service, ConfigMap, PV, PVC | proposed (section 8, layer 2) | all of it today |
+| Rendering: compose, quadlet, Secrets, Namespace | decided (section 8), not built | all of it today: about 1,370 lines in solmq-conn-util and 1,300 in solace-util |
+| Rendering: Deployment, Service, ConfigMap, PV, PVC | decided (section 8), not built; open point 8 | all of it today |
 | The order of operations: compare, ask, apply, wait, clean up | stays in each tool (section 1) | all of it, guided by 9.3 |
 
 ### 9.2 Gaps beyond code

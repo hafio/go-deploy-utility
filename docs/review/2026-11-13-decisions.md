@@ -23,7 +23,9 @@ Home says where the work lands:
 - The shared code is builders, parsers, pure functions, and executors that each run one
   deployment operation through a `runner.Runner` the tool hands in (2026-11-15). Chaining and
   orchestration stay in each tool: the artifacts differ too much for a shared
-  check-then-deploy, or a shared stop, remove or restart sequence. The executor design is
+  check-then-deploy, or a shared stop, remove or restart sequence. Rendering moves into the
+  module too: the tool describes its application, and the module writes the compose file,
+  the quadlet unit and the manifests (2026-11-15). The design is
   [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
 - Who executes: the code steps are done in the main session, and any agent it uses for them
   runs on Opus. The owner runs every gate (2026-11-14).
@@ -145,6 +147,9 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
 
 ### Decided 2026-11-15
 
+- gdu 1: the module writes `deploy.solace.com/lib` and `deploy.solace.com/version` in every
+  object's metadata when it renders, so deploy and `generate` both carry them. The tool
+  passes its own version; the module reads its own.
 - gdu 1: `generate kubernetes` keeps its Namespace document, labelled, the same text a
   deploy applies when it creates the namespace. A deploy creates the namespace only when it
   is absent and the identity may, as both tools do today.
@@ -194,8 +199,6 @@ The plan review raised these and nothing decided since contradicts them.
   section 7 of
   [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
   Its form, output, fallbacks and release were answered on 2026-11-15 and are recorded there.
-- gdu 1: where the module adds the `lib` annotation and how it learns its own version
-  (question 5 of the design note).
 - gdu 2: which keys count as path keys in each tool, settled in each tool's session.
 - gdu 11: what a run does with no context anywhere, as kubectl in a pod on its service
   account.

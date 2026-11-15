@@ -20,7 +20,8 @@ beside the decisions on this module's own review. Three of them apply to every i
   restart on the first deploy after a change is accepted.
 - The shared code is builders, parsers, pure functions, and executors that each run one
   deployment operation through a `runner.Runner` the tool hands in (decided 2026-11-15).
-  Chaining and orchestration stay in each tool. The executor design is
+  Chaining and orchestration stay in each tool. Rendering moves into the module: the tool
+  describes its application, and the module writes the artifacts. The design is
   [design/2026-11-15-shared-deploy-api.md](design/2026-11-15-shared-deploy-api.md).
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
   for items 1, 4 to 14, 16 and 18. Items 2, 3, 15 and 19 follow as rules both tools align
@@ -117,13 +118,14 @@ Decided 2026-11-15:
   applies when it creates the namespace. A deploy reads the namespace and creates it only
   when it is absent and the identity may, as both tools do today. A hand apply of generate
   output over an existing namespace labels it as the tool's.
+- The module writes `deploy.solace.com/lib` and `deploy.solace.com/version` in every object's
+  metadata when it renders, so deploy and `generate` both carry them. The tool passes its
+  own version; the module reads its own, and a workspace build writes `go-deploy-devel`.
 
 ### Undecided
 
 - The full list of objects the wider listing must discount, fixed against a live namespace
   (an owner check).
-- Where the module adds the `lib` annotation and how it learns its own version: question 5
-  of the design note. A build through a workspace carries no version for a replaced module.
 
 ### Until then
 
