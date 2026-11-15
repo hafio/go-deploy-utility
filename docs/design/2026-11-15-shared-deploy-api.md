@@ -166,10 +166,13 @@ The executor runs and classifies. The tool decides that a refusal is a warning (
 | gdu 12 | The delete executors take the timeout. |
 | gdu 16, 18 | The shape decided on 2026-11-14 stands: builders, parsers and one pure compare function, which each tool runs. The listing and the deletes also get executors. |
 | gdu 1 | The namespace create, the label on secrets and the labelled listing use executors. The lib annotation is question 5. |
-| The surface review | Once the clients exist, the review also decides which builders stay exported: a tool's own steps still build commands, such as solmq-conn-util's image inspect. |
+| The surface review | A builder a client covers is unexported (section 7, point 6); the review settles the exceptions. A command the module does not offer, such as solmq-conn-util's image inspect, the tool still builds itself. |
 
 ## 5. Rules and docs that change if this is accepted
 
+- The consumer rule ("A package exists only when both tools use it" in `docs/developer.md`,
+  "A package needs two consumers" in `CLAUDE.md`) becomes: common artifacts and operations are
+  handled by the module; any customisation or orchestration stays in the tools.
 - `docs/developer.md` "Rules for shared code" (lines 29-30) already says only code taking a
   `runner.Runner` executes. It gains the executor rules of 3.3.
 - `CLAUDE.md` (lines 10-11) gains the executors beside the builders and parsers.
@@ -184,7 +187,9 @@ The executor runs and classifies. The tool decides that a refusal is a warning (
 
 The clients are new types and methods, so adding them breaks nothing. The tools change their
 call sites anyway in the breaking tag (gdu 4, 12, CR-0001), so the clients land in that tag
-and both tools adopt them in the same round (decided 2026-11-15).
+and both tools adopt them in the same round (decided 2026-11-15). Rendering lands in the same
+tag: the labels already change every artifact, so each service restarts once, not twice.
+The next tag ships everything in the plan; the module stays on v0.x.
 
 Each executor is tested against `runnertest.Fake`: its argv, what it captures, what it writes
 to the client's writers, and every typed error. The module's coverage floor of 99.7% holds.
@@ -201,24 +206,23 @@ Answered 2026-11-15:
    object's metadata when it renders (section 8.4), so deploy and `generate` both carry it.
    A second `kubectl annotate` call was considered and dropped: it needs `patch` on every
    kind, and `generate` output would lack it.
-7. Rendering moves into the module, all three layers of section 8 (2026-11-15).
+6. A builder that a client method covers is no longer exported; tools run that operation
+   through the client. A builder no client covers stays exported. Exceptions are decided
+   name by name in the surface review (2026-11-15).
+7. Rendering moves into the module, all three layers of section 8, in the breaking tag
+   (2026-11-15).
+8. The consumer rule is discarded. The rule is now: common artifacts and operations are
+   handled by the module; any customisation or orchestration stays in the tools
+   (2026-11-15).
+10. The module path stays `github.com/hafio/go-deploy-utility` (2026-11-15).
+9. The licence stays GPLv3 (2026-11-15): only GPL-compatible tools can adopt the module.
+11. The module stays on v0.x; v1 is decided later. The next tag ships everything in the plan
+    (2026-11-15).
+12. The new-tool guide and an example tool ship in the breaking tag (2026-11-15). The example
+    tool is its own module inside the repository, outside the published module.
 
-Open:
-
-6. **Builders.** Which builders stay exported once the clients exist: settled in the surface
-   review.
-7. **Rendering, timing.** In the breaking tag, or as its own step after it?
-8. **The consumer rule.** "A package needs two consumers" blocks the workload kinds only
-   solmq-conn-util renders today (Deployment, Service, ConfigMap, PVC). Relax it for kinds
-   the reuse aim needs (section 9)?
-9. **Licence.** GPLv3 binds every distributed tool that imports the module to a compatible
-   licence. Keep it, or move to a licence a non-GPL tool can use? The owner's call, and
-   possibly legal's.
-10. **Module path.** Move from the personal `github.com/hafio/...` to an organisation path
-    before more tools import it?
-11. **v1.** When is the API declared stable for tools beyond the two?
-12. **New-tool guide.** When is the guide of section 9.3 written, with or without an example
-    tool?
+Open: none. What remains is the surface review (plan review section 6), the plan for the
+breaking tag, and the owner checks.
 
 ## 8. Rendering in the module
 
@@ -304,7 +308,7 @@ docker, podman and Kubernetes.
 | Executors (one operation each) | decided, in the breaking tag | nothing, once built |
 | Labels, network mode, name checks, atomic write, context pinning | decided, in the breaking tag | nothing, once built |
 | Rendering: compose, quadlet, Secrets, Namespace | decided (section 8), not built | all of it today: about 1,370 lines in solmq-conn-util and 1,300 in solace-util |
-| Rendering: Deployment, Service, ConfigMap, PV, PVC | decided (section 8), not built; open point 8 | all of it today |
+| Rendering: Deployment, Service, ConfigMap, PV, PVC | decided (section 8), not built | all of it today |
 | The order of operations: compare, ask, apply, wait, clean up | stays in each tool (section 1) | all of it, guided by 9.3 |
 
 ### 9.2 Gaps beyond code
@@ -312,13 +316,13 @@ docker, podman and Kubernetes.
 - **No guide for a new tool.** The order of each operation, the rules a tool keeps (questions
   first, least privilege, what to probe, what a refusal means) and how to pin the module sit
   in the parity body, which names exactly two tools.
-- **Built for two tools.** "A package needs two consumers", `paritydoc`, `dev-all` and the
-  release gate ("both tools pass") assume a pair.
-- **Licence.** GPLv3: a distributed tool that imports the module must carry a compatible
-  licence.
-- **Module path.** `github.com/hafio/go-deploy-utility` is a personal account. Moving it later
-  changes every import in every consumer.
-- **Stability.** The module is v0.x, with a breaking tag ahead.
+- **Built for two tools.** `paritydoc`, `dev-all` and the release gate ("both tools pass")
+  assume a pair. The consumer rule that did too is replaced (section 7, point 8).
+- **Licence.** GPLv3, kept (section 7, point 9): a distributed tool that imports the module
+  must carry a compatible licence.
+- **Module path.** `github.com/hafio/go-deploy-utility`, a personal account, is kept (section 7,
+  point 10).
+- **Stability.** The module stays on v0.x until the owner decides on v1 (section 7, point 11).
 - **Solace values.** The `services.solace.com/*` label values (solution, developed-by) suit
   Solace Professional Services accelerators, not tools outside them.
 
@@ -328,9 +332,10 @@ docker, podman and Kubernetes.
    context pinning.
 2. Rendering, section 8.
 3. A guide for building a tool on the module: the operations and their order, the rules, how
-   to pin, and the tests a tool runs (`artifacttest`, `noticetest`, `runnertest`). An example
-   tool kept as its own module inside the repository would stay out of the published module.
-4. The licence, the module path and v1 settled before other teams adopt it.
+   to pin, and the tests a tool runs (`artifacttest`, `noticetest`, `runnertest`). With it, an
+   example tool kept as its own module inside the repository, so it stays out of the
+   published module. Both ship in the breaking tag.
+4. v1 decided before other teams adopt it.
 
 After step 2 a new tool writes its config, its application's content and its own sequence of
 operations, the last guided by step 3. Open points 7 to 12 decide these steps.

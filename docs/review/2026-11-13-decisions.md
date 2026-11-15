@@ -25,7 +25,9 @@ Home says where the work lands:
   orchestration stay in each tool: the artifacts differ too much for a shared
   check-then-deploy, or a shared stop, remove or restart sequence. Rendering moves into the
   module too: the tool describes its application, and the module writes the compose file,
-  the quadlet unit and the manifests (2026-11-15). The design is
+  the quadlet unit and the manifests (2026-11-15). The rule that a package needs two
+  consumers is discarded: common artifacts and operations are handled by the module, and any
+  customisation or orchestration stays in the tools (2026-11-15). The design is
   [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
 - Who executes: the code steps are done in the main session, and any agent it uses for them
   runs on Opus. The owner runs every gate (2026-11-14).
@@ -40,6 +42,12 @@ Decided 2026-11-14.
    and the network mode. Both tools adopt it in one round. Their adoption work stays on a
    branch until this tag, so each tool can still ship its own fixes from main.
 3. The rules that only need the two tools aligned follow: gdu 2, 3, 15 and 19.
+
+Decided 2026-11-15: the breaking tag also carries the executors and rendering in the module.
+The next tag ships everything in the plan. The module stays on v0.x, and v1 is decided
+later. The module path stays `github.com/hafio/go-deploy-utility`, and the licence stays
+GPLv3. A guide for building a tool on the module, with an example tool kept as its own
+module in the repository, ships in the same tag.
 
 Every step is still planned, approved and gated on its own.
 
@@ -195,10 +203,10 @@ The plan review raised these and nothing decided since contradicts them.
 
 ## Still open
 
-- The executor design, rendering in the module and reuse by other tools: the open points in
-  section 7 of
-  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
-  Its form, output, fallbacks and release were answered on 2026-11-15 and are recorded there.
+- The exported-surface review (plan review section 6). It now also settles the exceptions to
+  the rule that a builder a client covers is unexported. Every point of
+  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md)
+  was answered on 2026-11-15 and is recorded in its section 7.
 - gdu 2: which keys count as path keys in each tool, settled in each tool's session.
 - gdu 11: what a run does with no context anywhere, as kubectl in a pod on its service
   account.

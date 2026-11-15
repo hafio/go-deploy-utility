@@ -21,7 +21,9 @@ beside the decisions on this module's own review. Three of them apply to every i
 - The shared code is builders, parsers, pure functions, and executors that each run one
   deployment operation through a `runner.Runner` the tool hands in (decided 2026-11-15).
   Chaining and orchestration stay in each tool. Rendering moves into the module: the tool
-  describes its application, and the module writes the artifacts. The design is
+  describes its application, and the module writes the artifacts. Common artifacts and
+  operations belong to the module, and any customisation or orchestration to the tools; the
+  rule that a package needs two consumers is gone. The design is
   [design/2026-11-15-shared-deploy-api.md](design/2026-11-15-shared-deploy-api.md).
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
   for items 1, 4 to 14, 16 and 18. Items 2, 3, 15 and 19 follow as rules both tools align
