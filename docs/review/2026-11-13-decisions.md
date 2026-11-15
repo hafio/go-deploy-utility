@@ -20,11 +20,11 @@ Home says where the work lands:
   over: no back-fill, no fallback kept for old deployments, no transition warning. A restart
   on the first deploy after a change is accepted.
 - Behaviour both tools share is built once in this module and imported (2026-11-14).
-- Reopened 2026-11-15: that the shared code is only builders, parsers and pure functions,
-  run by each tool in its own order. It was recorded on 2026-11-14 inside questions about
-  other points, never asked on its own. The owner's intent is a common deployment API: the
-  module provides deploy, update, create, remove and the like for both tools to call, so
-  neither duplicates the flow. A design note settles the shape before the breaking tag.
+- The shared code is builders, parsers, pure functions, and executors that each run one
+  deployment operation through a `runner.Runner` the tool hands in (2026-11-15). Chaining and
+  orchestration stay in each tool: the artifacts differ too much for a shared
+  check-then-deploy, or a shared stop, remove or restart sequence. The executor design is
+  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
 - Who executes: the code steps are done in the main session, and any agent it uses for them
   runs on Opus. The owner runs every gate (2026-11-14).
 
@@ -114,8 +114,7 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
   values in.
 - gdu 3: the order is stated per command. Deploy: validate and resolve, read-only preflight,
   compare, ask, act. Remove: load the names, ask, preflight for what was answered, act.
-  Remove resolves no credential. That the module gets no pipeline is reopened with the
-  shared deployment API (2026-11-15).
+  Remove resolves no credential. The module gets no pipeline (confirmed 2026-11-15).
 - gdu 4: bare-name builders check a typed grammar and return an error. Free operands refuse
   only an empty value, a leading `-` and control characters. A subdomain grammar is added.
   Every builder changes in the one breaking tag.
@@ -191,12 +190,12 @@ The plan review raised these and nothing decided since contradicts them.
 
 ## Still open
 
-- The shape of the shared code: the common deployment API the owner intends (2026-11-15),
-  against builders that each tool runs. It decides how gdu 3's order, the removal of gdu 16
-  and 18 and the `lib` annotation are built. A design note settles it before the breaking
-  tag.
-- gdu 1: where the module adds the `lib` annotation and how it learns its own version. It
-  waits on the shape.
+- The executor design, rendering in the module and reuse by other tools: the open points in
+  section 7 of
+  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
+  Its form, output, fallbacks and release were answered on 2026-11-15 and are recorded there.
+- gdu 1: where the module adds the `lib` annotation and how it learns its own version
+  (question 5 of the design note).
 - gdu 2: which keys count as path keys in each tool, settled in each tool's session.
 - gdu 11: what a run does with no context anywhere, as kubectl in a pod on its service
   account.

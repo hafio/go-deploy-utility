@@ -18,11 +18,10 @@ beside the decisions on this module's own review. Three of them apply to every i
 
 - Migration is out of scope. A deployment made before a change is not carried over, and a
   restart on the first deploy after a change is accepted.
-- Reopened 2026-11-15: the shared code was to be builders, parsers and pure functions, run
-  by each tool in its own order, with no code in the module that runs a command. The
-  owner's intent is a common deployment API: the module provides deploy, update, create,
-  remove and the like, which both tools call, so neither duplicates the flow. A design note
-  settles the shape before the breaking tag.
+- The shared code is builders, parsers, pure functions, and executors that each run one
+  deployment operation through a `runner.Runner` the tool hands in (decided 2026-11-15).
+  Chaining and orchestration stay in each tool. The executor design is
+  [design/2026-11-15-shared-deploy-api.md](design/2026-11-15-shared-deploy-api.md).
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
   for items 1, 4 to 14, 16 and 18. Items 2, 3, 15 and 19 follow as rules both tools align
   on. Item 17 moved to solace-util.
@@ -123,9 +122,8 @@ Decided 2026-11-15:
 
 - The full list of objects the wider listing must discount, fixed against a live namespace
   (an owner check).
-- Where the module adds the `lib` annotation and how it learns its own version. It waits on
-  the shape of the shared deployment API (reopened 2026-11-15). A build through a workspace
-  carries no version for a replaced module.
+- Where the module adds the `lib` annotation and how it learns its own version: question 5
+  of the design note. A build through a workspace carries no version for a replaced module.
 
 ### Until then
 
@@ -222,8 +220,8 @@ The order is stated per command (decided 2026-11-14):
 - Every question is answered before the first write or delete. The one exception is the
   namespace offer, which follows the remove it depends on.
 - Host checks sit in the read-only preflight. Host changes come after the question.
-- The order is a parity rule. Who runs it, each tool or the shared deployment API, is
-  reopened (2026-11-15); the module was to gain no pipeline.
+- The module gains no pipeline (confirmed 2026-11-15). The order is a parity rule each tool
+  follows in its own code.
 
 ### Scope
 
@@ -895,9 +893,9 @@ Decided 2026-11-15: a deploy names what stayed and exits 0, since the cleanup is
 convenience step. A remove exits non-zero when any Secret survives, since each holds a
 credential or a key; any other leftover only warns. This covers item 18 too.
 
-The label keys are decided in item 1. The shape (builders, parsers and one pure compare
-function, run by each tool, recorded 2026-11-14) is reopened with the shared deployment API
-(2026-11-15).
+The label keys are decided in item 1. The shape stands (2026-11-14, confirmed 2026-11-15):
+builders, parsers and one pure compare function, which each tool runs. The listing and the
+deletes also get executors (the design note).
 
 Decided 2026-11-15: the tool lists the objects that carry its product and instance labels,
 subtracts what it rendered, names each leftover and deletes it by name, not through
