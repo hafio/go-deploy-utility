@@ -26,8 +26,13 @@ beside the decisions on this module's own review. Three of them apply to every i
   rule that a package needs two consumers is gone. The design is
   [design/2026-11-15-shared-deploy-api.md](design/2026-11-15-shared-deploy-api.md).
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
-  for items 1, 4 to 14, 16 and 18. Items 2, 3, 15 and 19 follow as rules both tools align
-  on. Item 17 moved to solace-util.
+  for items 1, 2, 4 to 14, 16, 18 and 19. Items 2 and 19 moved into it on 2026-11-15, since
+  the renderers and clients take each tool's config and should map it once. Items 3 and 15
+  follow as rules both tools align on. Item 17 moved to solace-util.
+- The surface review of 2026-11-15
+  ([review/2026-11-15-surface-review.md](review/2026-11-15-surface-review.md)) and the
+  owner's rulings on it (the design note, section 10) change several items below; each
+  change is marked where it lands.
 
 ## 1. Ownership labels on every artifact
 
@@ -101,13 +106,16 @@ Decided 2026-11-14.
 - `confirm`: a question that is answered by typing a given name.
 - Both tools gain `--delete-namespace`, valid on a Kubernetes remove only. Rule 9 of the
   parity body is rewritten for it and for the two questions.
-- Compose: the service carries the labels. Neither tool renders a top-level network or
-  volume, and a label on a compose secret or config reaches no engine object.
+- Compose: the service carries the labels. Neither tool renders a top-level volume, and a
+  label on a compose secret or config reaches no engine object. The compose file does state
+  its project network (item 6; corrected 2026-11-15); whether that block carries the labels
+  is settled in the label design.
 - Podman: the quadlet unit and every secret carry the labels. Every `secret create` passes
   them, because `--replace` sets a secret's labels to exactly those passed.
 - The value is checked per sink. A Kubernetes label value is at most 63 characters with
-  alphanumeric ends; solace-util's `container.name` may be 100 long, which is fine on podman
-  and compose. A value is never truncated or hashed.
+  alphanumeric ends. The container name is a DNS label of at most 63 characters in both
+  tools (item 19, decided 2026-11-15), so the instance value fits every sink. A value is
+  never truncated or hashed.
 - `containerart/artifacttest`: a check that fails when a rendered object lacks the labels.
 - Both tools adopt the labels in one step, and the parity body gains a row for them.
 
@@ -122,7 +130,9 @@ Decided 2026-11-15:
   output over an existing namespace labels it as the tool's.
 - The module writes `deploy.solace.com/lib` and `deploy.solace.com/version` in every object's
   metadata when it renders, so deploy and `generate` both carry them. The tool passes its
-  own version; the module reads its own, and a workspace build writes `go-deploy-devel`.
+  own version. The module's version is a variable that each tool's `build` task stamps at
+  link time from its `go.mod` (decided 2026-11-15); unstamped, as in every test run, it
+  reads `devel`, so goldens stay stable.
 
 ### Undecided
 
@@ -378,6 +388,10 @@ Decided 2026-11-15:
   with `driver: bridge` written out. Kubernetes gets no network key.
 - The read-only root check stays in each tool's own tests. `artifacttest` does not check
   the root filesystem.
+- In the shared container description the root-filesystem field has no default: the tool
+  must choose, read-only writes the line, and writable writes nothing.
+- Ports given together with host or none networking are left out by the renderer, whose
+  doc says so.
 
 ### Scope
 
@@ -387,8 +401,8 @@ Decided 2026-11-15:
 - Candidate spellings for the default: `Network=private` in a quadlet unit, which podman
   reads as bridge when rootful and as the user-mode network when rootless; in a compose
   file, the project network with its bridge driver stated.
-- Host networking: `network_mode: host`, `Network=host`, and `hostNetwork: true` where the
-  tool renders the pod itself.
+- Host networking: `network_mode: host` and `Network=host`. Kubernetes gets no network key,
+  so no pod is rendered with `hostNetwork` (corrected 2026-11-15).
 - The parity body gains a row for the network mode.
 - A read-only root stays a choice of each tool, checked by its own tests.
 
@@ -612,6 +626,12 @@ in both tools (decided 2026-11-14). It is the context the command tokens name, e
 session's current context (KUBECONFIG, then the default kubeconfig), resolved before
 anything runs (decided 2026-11-15).
 
+With no context in the command or the session, which is how kubectl runs inside a pod on its
+service account, the run reports its identity once with `kubectl auth whoami`, for example
+`no kubeconfig context; acting as system:serviceaccount:<ns>:<sa>`, pins nothing and
+continues. A refused `whoami`, or a cluster older than 1.28, warns and continues (decided
+2026-11-15).
+
 ### Scope
 
 - A helper that finds the effective context: a `--context` in the command tokens wins,
@@ -631,10 +651,6 @@ anything runs (decided 2026-11-15).
 
 ### Undecided
 
-- What a run does when neither the command nor the session gives a context, which is how
-  kubectl runs inside a cluster on its service account. The review advises pinning nothing
-  and saying so. Raised 2026-11-15: resolving and printing the identity once with
-  `kubectl auth whoami` (Kubernetes 1.28 and later).
 - Whether solmq-conn-util prints the resolved context, for example on its "acting on" line.
 
 ## 12. A bound on every delete
@@ -705,7 +721,8 @@ changes here.
 
 The loop asks `exitcode.IsUsage` itself. A refresh error that is a usage error ends the loop
 and is returned; every other error is retried (decided 2026-11-14). solmq-conn-util's
-refresh reports its own errors and returns none, so nothing changes for it.
+refresh returns its collection error to the loop too (`cmd/solmq-conn-util/status.go`;
+corrected 2026-11-15), so the rule changes both tools.
 
 ### Scope
 
@@ -1065,6 +1082,18 @@ The project name is an env-file entry in both tools, and both pass it to compose
 
 solace-util's project key defaults to `solace-event-brokers` (decided 2026-11-15). Two
 brokers on one host then share one compose project and its network unless the key is set.
+
+Decided 2026-11-15, after the surface review:
+
+- The item ships inside the breaking tag.
+- camelCase keys in both tools: solmq-conn-util renames its kebab-case keys.
+- Both layouts flatten: the instance is `<platform>.name` on all three platforms in both
+  tools, and the namespace is `kubernetes.namespace`.
+- The container name is a DNS label of at most 63 characters in both tools.
+- The key-by-key table is section 4 of
+  [review/2026-11-15-surface-review-findings.md](review/2026-11-15-surface-review-findings.md);
+  its open rows are in
+  [review/2026-11-15-surface-review-questions.md](review/2026-11-15-surface-review-questions.md).
 
 ### Scope
 

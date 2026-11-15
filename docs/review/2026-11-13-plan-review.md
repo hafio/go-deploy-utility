@@ -360,7 +360,12 @@ gdu 17 after the cluster check.
 - Low-severity problems were not re-opened; they are in the findings file as returned.
 - B's DR findings are parked and were not read.
 
-## 6. Review of the exported surface (to do)
+## 6. Review of the exported surface (done 2026-11-15)
+
+Done as [2026-11-15-surface-review.md](2026-11-15-surface-review.md), against the shape
+decided on 2026-11-15 (clients, rendering in the module, no two-consumer rule). The text
+below is the brief as written on 2026-11-14, before that design; its counts and marks are
+superseded.
 
 Added 2026-11-14 at the owner's request: review every name this module exports for the
 two tools, and decide for each whether it belongs. Proposed timing: before the breaking

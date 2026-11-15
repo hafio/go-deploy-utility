@@ -41,7 +41,8 @@ Decided 2026-11-14.
 2. One breaking tag for everything else: the builders, the removals, the labels, the digest
    and the network mode. Both tools adopt it in one round. Their adoption work stays on a
    branch until this tag, so each tool can still ship its own fixes from main.
-3. The rules that only need the two tools aligned follow: gdu 2, 3, 15 and 19.
+3. The rules that only need the two tools aligned follow: gdu 3 and 15. gdu 2 and 19 moved
+   into the breaking tag on 2026-11-15.
 
 Decided 2026-11-15: the breaking tag also carries the executors and rendering in the module.
 The next tag ships everything in the plan. The module stays on v0.x, and v1 is decided
@@ -172,6 +173,9 @@ Taken 2026-11-14. Each is written into its item of [docs/todo.md](../todo.md).
 - gdu 18: the tool lists by label and deletes by name, not `apply --prune`. The delete runs
   after the rollout wait succeeds; right after the apply when the identity may not run the
   wait; and not at all when the wait fails or times out, with a warning naming what stayed.
+- gdu 11: with no context in the command or the session, as kubectl in a pod on its service
+  account, the run reports its identity once with `kubectl auth whoami`, pins nothing and
+  continues. A refused `whoami`, or a cluster older than 1.28, warns and continues.
 - gdu 19: solace-util's project key defaults to `solace-event-brokers`. Two brokers on one
   host then share one compose project and its network unless the key is set.
 
@@ -203,13 +207,17 @@ The plan review raised these and nothing decided since contradicts them.
 
 ## Still open
 
-- The exported-surface review (plan review section 6). It now also settles the exceptions to
-  the rule that a builder a client covers is unexported. Every point of
-  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md)
-  was answered on 2026-11-15 and is recorded in its section 7.
+- The detail questions of the surface review, in
+  [2026-11-15-surface-review-questions.md](2026-11-15-surface-review-questions.md), which
+  the owner reviews. Its thirteen rulings were made on 2026-11-15 and are section 10 of
+  [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
+- The consolidation work of [2026-11-15-surface-review.md](2026-11-15-surface-review.md),
+  section 6, before the breaking tag is planned: one catalogue, one container description
+  and writer, the label design, a package inventory, the namespace gate, the guide and
+  example tool, the edit lists.
+- The defects that review found in today's code (its section 4), each in its own
+  repository's session.
 - gdu 2: which keys count as path keys in each tool, settled in each tool's session.
-- gdu 11: what a run does with no context anywhere, as kubectl in a pod on its service
-  account.
 - gdu 19: every key but the project name.
 - The two tools' own files: the plan review lists what each still lacks (P33 to P44).
 

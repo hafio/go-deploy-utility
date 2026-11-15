@@ -1,7 +1,8 @@
 # Shared deployment API (design note)
 
 Draft for the owner, 2026-11-15. Nothing is built. Section 7 records the owner's answers and
-what is still open.
+what is still open. Section 10 holds the rulings that followed the surface review of the
+same day; where it differs from sections 3 to 8, section 10 holds.
 
 ## 1. Direction
 
@@ -53,6 +54,8 @@ deploy, what is asked, in which order, what a refusal means, what is cleaned up.
 
 ### 3.1 One client per command family
 
+Set-up is by constructor, not struct literal: see section 10, ruling 3.
+
 Each package that builds a command family gains a small client type. The tool sets it up
 once at the start of the run, with what every call of that family needs, and then calls one
 method per operation (decided 2026-11-15):
@@ -76,6 +79,9 @@ executes), so a reader finds both in one place. A struct the tool fills in is an
 context, not global state, and tests fill it with `runnertest.Fake`.
 
 ### 3.2 Output and results
+
+Replaced by section 10, ruling 1: two writers the tool supplies, and an answer's stdout is
+returned, not written to them. The result type below stands.
 
 Every executor hands each chunk of the command's output to the client's hook as it arrives,
 unmodified and marked stdout or stderr, and returns a result beside its typed error
@@ -113,10 +119,14 @@ result carries the child's exit code.
 4. It never asks, never sleeps, never retries, and never reads the environment or a file.
 5. Its errors name the operation and the offending value, never a secret, and wrap the
    cause.
-6. A preview works through the runner, as today: under `runner.Echo` a read answers
-   nothing, and its parser reports "unknown".
+6. Dropped on 2026-11-15 (section 10, ruling 12). It read: a preview works through the
+   runner, as today: under `runner.Echo` a read answers nothing, and its parser reports
+   "unknown".
 
 ### 3.4 Catalogue
+
+A first list. The surface review's operations map corrects and extends it (section 10,
+rulings 2, 5, 6 and 13); the merged catalogue is the next design step.
 
 What the two tools run today, plus what the decided items add:
 
@@ -125,7 +135,7 @@ What the two tools run today, plus what the decided items add:
 | `containercli.Client` (engine and compose tokens) | `Info` (error carries the platform hint), `List`, `Inspect` (decoded), `ComposeUp`, `ComposeDown` (with `-p`, gdu 9), `Start`, `Stop`, `Restart`, `Logs`, `Exec` (returns the child's exit code), `Upload` |
 | `podman.Client` | `Version` (read once per run), `CreateSecret` (labels; the client picks replace or the fallback), `RemoveSecrets`, `SecretMatches` (the value never printed), `SecretLabels` and `SecretIDs` (gdu 10, 16), `IDMap` |
 | `systemd.Client` (user mode and session env) | `DaemonReload`, `Start`, `Stop`, `Restart`, `State` (is-active), `LoadState` (gdu 9), `NRestarts`, `Linger`, `EnableLinger` |
-| `kube.Client` | `CurrentContext` (gdu 11), `Apply`, `Delete` (timeout, gdu 12), `NamespaceState`, `DeleteNamespace` (timeout), `Scale`, `RolloutRestart`, `RolloutStatus`, `DeletePod`, `Get`, `ListLabelled` (gdu 18), `Logs`, `Exec`, `Upload` |
+| `kube.Client` | `CurrentContext` and `WhoAmI` (gdu 11), `Apply`, `Delete` (timeout, gdu 12), `NamespaceState`, `DeleteNamespace` (timeout), `Scale`, `RolloutRestart`, `RolloutStatus`, `DeletePod`, `Get`, `ListLabelled` (gdu 18), `Logs`, `Exec`, `Upload` |
 | `kube/rbac` | `Run`: one probe through a `kube.Client`, returning `*RefusedError` |
 | `kube/nsgate` | `Read`: the namespace listing through a `kube.Client`; `Occupants` stays pure |
 
@@ -162,7 +172,7 @@ The executor runs and classifies. The tool decides that a refusal is a warning (
 | gdu 3 | Stands: the module gets no pipeline, and each tool runs the order itself. |
 | gdu 9 | `ComposeDown` with `-p` and `systemd.Client.LoadState` are executors. The sequence and the post-check stay in each tool. |
 | gdu 10 | `podman.Client.SecretIDs` and the decoded `Config.Secrets` IDs are read by executors. The compare is a pure function. Each tool chains them. |
-| gdu 11 | `kube.Client.CurrentContext` reads the context. Each tool resolves it once and puts `--context` into the client's `Base`. |
+| gdu 11 | `kube.Client.CurrentContext` reads the context. Each tool resolves it once and puts `--context` into the client's `Base`. With no context anywhere, `kube.Client.WhoAmI` reports the identity the run acts as. |
 | gdu 12 | The delete executors take the timeout. |
 | gdu 16, 18 | The shape decided on 2026-11-14 stands: builders, parsers and one pure compare function, which each tool runs. The listing and the deletes also get executors. |
 | gdu 1 | The namespace create, the label on secrets and the labelled listing use executors. The lib annotation is question 5. |
@@ -339,3 +349,79 @@ docker, podman and Kubernetes.
 
 After step 2 a new tool writes its config, its application's content and its own sequence of
 operations, the last guided by step 3. Open points 7 to 12 decide these steps.
+
+## 10. Rulings after the surface review
+
+The owner's rulings of 2026-11-15 on
+[../review/2026-11-15-surface-review.md](../review/2026-11-15-surface-review.md), section 2.
+Where this section differs from sections 3 to 8, this section holds.
+
+1. **Output.** A client holds two writers the tool supplies: its real stdout and stderr for
+   direct, live output, a buffer, or nothing. The tool may give one call other writers
+   (`kc.With(...)`). A method that returns an answer hands its stdout back as that answer,
+   unmodified, and does not also write it to the tool's writer; its stderr goes there.
+   A method that only acts sends both streams to the writers. No error text embeds
+   captured stdout. This replaces the callback hook of 3.2 and the sentence that the tool
+   sees every byte.
+2. **Generic run.** Each client has `Run` (output to the writers) and `Output` (stdout
+   returned) for an argument list the tool built. The command gets the client's base
+   tokens, pinned context, session environment, writers, result and typed errors; the
+   module decides nothing about the command itself.
+3. **Set-up.** A constructor per client takes the runner, the tool's `execguard` rules, the
+   command tokens, the approvals and the writers, runs the guard once and fails at set-up.
+   The tokens cannot be changed afterwards. This replaces the struct literal of 3.1.
+4. **Errors.** One set for every client, defined once in `runner`: refused, not found,
+   unanswered, timed out, unsupported, no context, partial listing. The error carries the
+   command's stderr as a field and keeps its cause; the result comes back on failure too.
+5. **Exec.** Three methods: `Exec` (output to the writers), `ExecOutput` (stdout returned,
+   optional stdin bytes) and `Attach` (hands over the terminal). The child's exit code is in
+   the result in all three. A non-zero exit is an error for `Exec` and `ExecOutput`; an
+   attached session that ran is a success whose code the tool returns. A pod target and a
+   container target share one small interface.
+6. **One-tool operations.** Those with an answer, a secret or a check move into the module:
+   image inspect (decoded, with not found), stats and top from solmq-conn-util; registry
+   login (password on stdin), a Secret value read, compose version, server version,
+   `podman unshare`, copy in and out and `systemctl show` from solace-util. Image pull,
+   describe, set env, `systemctl status` and `cat`, and every in-broker command stay with
+   their tool over the generic run. Section 4's line that image inspect is tool-built is
+   replaced.
+7. **Host facts.** The module holds one implementation of each, written in Go: the subid
+   files, the runtime-directory test, the account name. No `sh`, `test` or `id` child
+   process: one correct way to read each.
+8. **Release order.** gdu 2 and gdu 19 ship inside the breaking tag.
+9. **One container description.** The compose, quadlet and Kubernetes renderers share one
+   set of types (identity and labels, run-as, mount, port, environment entry, health check,
+   timezone); each renderer checks its own sink's grammar. A forgotten field never means
+   writable, root or host, apart from run-as as ruled below.
+   - Extras slot: any key passes unless the module writes it itself or it is a
+     privilege-widening key (a deny list). The deny list is complete for each sink, and
+     `artifacttest` forbids the same keys.
+   - Root filesystem: the field has no default and the tool must choose. Read-only writes
+     the line; writable writes nothing, so gdu 6's decision holds.
+   - Ports together with host or none networking: the renderer leaves the ports out and its
+     doc says so.
+   - Restart: an empty field writes `always`.
+   - Run-as: numeric uid and gid. An empty field means the image's own user.
+   - Quoting: every text value a tool supplies is written quoted. Booleans are bare, and so
+     are the numbers a sink requires as numbers (Kubernetes refuses a quoted integer).
+10. **The lib annotation.** The renderer writes it from a variable in the module that each
+    tool's `build` task stamps at link time (`-ldflags -X`) with the version in its
+    `go.mod`. Unstamped, as in every test run, it reads `devel`, so goldens stay stable.
+    The init-devops skeleton gains the flag. This replaces "reads its own version" in 8.2
+    and 8.4.
+11. **The env file (gdu 19).** camelCase keys in both tools: solmq-conn-util renames its
+    kebab-case keys. Both layouts flatten: the instance is `<platform>.name` on all three
+    platforms and the namespace is `kubernetes.namespace`. The container name is a DNS
+    label of at most 63 characters in both tools.
+12. **No preview.** A mode that prints the commands a deploy would run is not a
+    requirement. `runner.Echo` stays for tests and debugging, and rule 6 of 3.3 is dropped.
+    `generate` stays as it is.
+13. **Corrections** to recorded points: gdu 13 changes solmq-conn-util too; the compose file
+    states its project network (gdu 6), against gdu 1's "no top-level network"; Kubernetes
+    gets no `hostNetwork` line; names are DNS labels, not up to 100 characters;
+    `podman.Client.Version` leaves the catalogue; an empty answer is not read as "unknown"
+    by `ParseNamespace` or `systemd.Stopped`, which the catalogue step fixes per method.
+
+Still to settle: the detail questions in
+[../review/2026-11-15-surface-review-questions.md](../review/2026-11-15-surface-review-questions.md),
+which the owner reviews, and the consolidation work of the review's section 6.
