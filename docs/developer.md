@@ -22,7 +22,9 @@ time, both tools in the same step.
 
 - No package imports a type or config from either tool. Each tool adapts to the
   shared API.
-- A package exists only when both tools use it, or will in the step that lifts it.
+- Common artifacts and operations live in the module; customisation and
+  orchestration stay in the tools (decided 2026-11-15; it replaces the rule that a
+  package needs both tools as users).
 - The standard library comes first. A new dependency is pinned exactly, and the
   change that adds it says why.
 - Packages are ordered leaf first, and the import graph has no cycles.
@@ -63,6 +65,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B5 | `podman`, `systemd`, `rootless` | A `internal/runner` podman version, secret and systemctl functions, `ResolveQuadletScope`, and the subid check in `cmd/solmq-conn-util/runas.go`; B `internal/container` `euid.go`, the session, linger and id-mapping code in `rootless.go`, the core-limit and limit parsing in `limits.go`, and the secret and systemctl calls in `manager.go` and `inspect.go`, plus `xdgConfigHome` in `internal/config/load.go`. A's mount-readability checks and B's nr_open, nofile, user-manager and data-dir checks stay in the tools |
 | B6 | `containercli`, `containercli/inspect`, `watch` | A `internal/runner` `Docker`, `DockerLifecycle`, `Preflight`'s engine branch, `EngineList`, `EngineInspectJSON`, `ExecArgv`, `InstallScript` and `LogsArgv`, the decoding and name filter in `internal/statusreport/parse.go`, and the watch loop in `cmd/solmq-conn-util/status.go`; B `internal/container` `preflight.go`, the docker deploy, delete, listing, lifecycle and logs paths in `manager.go`, `transport.go`'s exec and upload, `inspect.go`, and `internal/cli/watch.go`. A's status model, image, stats and status-script code and B's `cp` transport, registry login and cert-digest comparison stay in the tools |
 | B7 | `kube`, `kube/rbac`, `kube/nsgate` | A `internal/runner/runner.go` `Kubernetes`, `KubernetesLifecycle`, `Preflight`'s can-i branch and `canIDenied`, the get and list builders and the kubernetes branches of `ExecArgv` and `LogsArgv`, plus `cmd/solmq-conn-util/namespace.go` and `NamespaceManifest`; B `internal/k8s` `cluster.go` apply and delete, `prep.go` namespace read, create and delete, `ops.go` scale, rollout and logs, `transport.go` exec and upload, `preflight.go` and `namespace.go`. A's status parsers, `top` and secret probes and B's operator, CR, `cp` and delete-pod restart code stay in the tools |
+| R1 | `containerart/workload` | new; rules from the 2026-11-15 surface review answers. Value types and checks only: image, run-as, port, restart and network words, container name, host name, time zone, health, ulimit, memory, CPU list, compose variable name, inline text and mount source, each returning a `*FieldError` that never echoes free text. It imports only the standard library, `execguard` and `envref`, so `kube.ValidLabel` can delegate to `ValidDNSLabel` later. No renderer, `Spec` or tool change |
 
 The `output` package waits until the output-model decision is made, because only
 B uses it until then. Each tool keeps its own version printing.

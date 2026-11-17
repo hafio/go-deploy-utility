@@ -9,8 +9,9 @@ no image, no binaries; consumers fetch the tag.
 - Shared code imports no tool type or config, has no globals, registers no flags
   and never calls `os.Exit`. Builders and parsers return `runner.Cmd` values or
   data and never execute. Full rules: docs/developer.md "Rules for shared code".
-- A package needs two consumers. Standard library first; any dependency is
-  pinned exactly with its reason in the change.
+- Common artifacts and operations live in the module; customisation and
+  orchestration stay in the tools (2026-11-15). Standard library first; any
+  dependency is pinned exactly with its reason in the change.
 - Least privilege: every command runs with the lowest permission that does the
   job, and a step that needs more only for convenience warns when refused and
   never blocks the operation (docs/developer.md "Rules for shared code").

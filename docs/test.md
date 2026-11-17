@@ -21,7 +21,7 @@ both tools ([consuming.md](consuming.md)).
 
 ## Summary
 
-28 test files, 326 test functions. Two are not tests, and both are os/exec
+36 test files, 360 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -47,6 +47,7 @@ helper-process shims that the tests re-execute as a child:
 | containerart/compose | 1 | 8 |
 | containerart/quadlet | 1 | 7 |
 | containerart/artifacttest | 1 | 11 |
+| containerart/workload | 8 | 34 |
 | podman | 1 | 14 |
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
@@ -57,7 +58,7 @@ helper-process shims that the tests re-execute as a child:
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
 | internal/build | 1 | 4 |
-| **Total** | **28** | **326** |
+| **Total** | **36** | **360** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -365,6 +366,87 @@ and B `TestLoadSecretRefErrors`.
 | `TestAssertReportsWithTheName` | Each Assert fails once, naming and showing the artifact | new |
 | `TestAssertPassesQuietly` | The clean shapes report nothing | new |
 
+### containerart/workload
+
+Every refused value in these tests is built around the marker `hunter2`, and each
+refusal row asserts the error text repeats neither the marker nor the whole input
+(S8). The exceptions are ports, run-as ids and retries, where an out-of-range
+number is echoed on purpose and the tests pin that.
+
+#### workload_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestFieldErrorText` | `Error()` reads `field: rule`, and `field "value": rule` when a value is set | new |
+| `TestFieldErrorAt` | `At` renames on a copy, leaves the receiver alone and keeps nil nil | new |
+| `TestSinkString` | The names the messages use, and an unknown sink | new |
+| `TestInvalidSinkIsRefused` | The zero sink, an unknown one and a negative one fail every check that takes a sink | new |
+| `TestCheckText` | Control, invisible and invalid UTF-8 refused with an offset and no text | new |
+| `TestCheckInlineText` | CR, U+0085, U+2028, U+2029, controls, DEL, C1, U+FEFF and invalid UTF-8 refused; newline, tab and U+FFFD pass; the offset is named | new |
+
+#### image_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestParseImage` | Every accepted form splits into registry, repository, tag and digest and writes back as it came, a 128-character tag included | new |
+| `TestParseImageRefuses` | No tag or digest, a host in the repository, bad grammar in each part, a 129-character tag; the reference is never echoed | new |
+
+#### runas_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestParseRunAs` | `uid:gid` including `0:0` and the largest ids; the empty string is not stated | new |
+| `TestParseRunAsRefuses` | A bare uid, names, signs, leading zeros, `default`, `image`; an out-of-range number is the only value echoed | new |
+| `TestRunAsIDs` | Numbers in range are stated, one above 2147483647 is refused | new |
+| `TestRunAsRootIsStatedNotEmpty` | A stated `0:0` differs from the zero value (S3) | new |
+
+#### port_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestParsePort` | Bare port and range mean `N:N`, protocols, IPv4 and bracketed IPv6 bind addresses, ports 1 and 65535, a host range with one container port; `String` writes both sides | new |
+| `TestParsePortRefuses` | Port 0, 65536, an unequal range size, a container range with one host port, backwards ranges, unbracketed IPv6, bad protocols, signs and leading zeros | new |
+| `TestParsePortEchoesOnlyNumbers` | 65536 and 0 are echoed as numbers; text is not | new |
+
+#### words_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestValidRestart` | The words of each sink, `on-failure:N`, the empty word, and Kubernetes taking only `always` | new |
+| `TestValidNetwork` | The words of each sink, the empty word, and Kubernetes refusing every word | new |
+| `TestWordListsAreFresh` | The word lists are built per call and cannot be changed through a returned slice | new |
+
+#### names_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestValidDNSLabel` | The label grammar at 63 and 64 characters | new |
+| `TestCheckName` | The container name is a DNS label and is not echoed | new |
+| `TestValidHostName` | RFC 1123 at the 63 and 253 character limits, underscores and bad labels refused | new |
+| `TestValidTimezone` | IANA names, 14 and 15 character parts, POSIX rule strings refused | new |
+| `TestCheckComposeVar` | The six names and three prefixes refused in any case and named; an invalid name is not echoed | new |
+| `TestCheckMountSource` | Absolute paths per sink, `C:\x` accepted and `C:\x:y` refused on compose, quadlet's grammar, Kubernetes refused | new |
+
+#### health_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestParseSeconds` | `1m30s` is 90 and `1.5s` is refused; milliseconds, bare numbers and text refused without echo | new |
+| `TestHealthCheck` | Each time, retries and token rule per sink, with the field named | new |
+| `TestHealthRetriesEchoesTheNumber` | A refused retries count is echoed as a number | new |
+| `TestHealthQuadletRefusesShellCharacters` | Every character of Q6's list and whitespace refuse on quadlet and pass elsewhere | new |
+
+#### limits_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestUlimitNames` | The 16 names, as a fresh slice | new |
+| `TestParseLimit` | A number, -1, one value for both, soft equal to or below hard; `nice`, `rtprio` and `rttime` refused | new |
+| `TestParseLimitRefuses` | Bad shape, unknown names, signs, fractions, `soft > hard` and a soft -1 under a finite hard; only a listed name is echoed | new |
+| `TestUlimitCheck` | Kubernetes refused, and a hand-built value is held to the parsed rules | new |
+| `TestValidMemoryAndShmSize` | A number with an optional unit in either case; Kubernetes refused with a message naming E12 | new |
+| `TestValidCPUSet` | Lists and ranges; backwards ranges, empty items and spaces refused | new |
+
 ### podman, podman_test.go
 
 | Test | What it covers | Source |
@@ -543,8 +625,8 @@ the other check.
 
 ## Coverage
 
-The last recorded total is 99.7%, from B7 (2026-11-05; B6 and B5 were 99.6%,
-B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
+The last recorded total is 99.8%, from R1 (2026-11-18; B7 was 99.7%, B6 and B5
+99.6%, B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
 `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change. The total is measured on Linux, so a file
 built only on Windows (`watch/vt_windows.go`) is outside it.

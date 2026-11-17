@@ -1094,6 +1094,11 @@ Decided 2026-11-15, after the surface review:
   [review/2026-11-15-surface-review-findings.md](review/2026-11-15-surface-review-findings.md);
   its open rows are in
   [review/2026-11-15-surface-review-questions.md](review/2026-11-15-surface-review-questions.md).
+- 2026-11-17 and 2026-11-18: the E entries are answered except E4, E12 to E15 and E25
+  (summary in section 11 of the 2026-11-15 design note). The owner reopened the flatten of
+  ruling 11 and reviews [review/2026-11-17-env-layout.md](review/2026-11-17-env-layout.md).
+  E24 replaces the free-form `command` keys with structured keys (`cli`, `context`,
+  `contextFile`, `compose`), which also changes item 11's context source.
 
 ### Scope
 

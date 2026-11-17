@@ -208,8 +208,10 @@ The plan review raised these and nothing decided since contradicts them.
 ## Still open
 
 - The detail questions of the surface review, in
-  [2026-11-15-surface-review-questions.md](2026-11-15-surface-review-questions.md), which
-  the owner reviews. Its thirteen rulings were made on 2026-11-15 and are section 10 of
+  [2026-11-15-surface-review-questions.md](2026-11-15-surface-review-questions.md): 147 of
+  154 answered on 2026-11-17 and 2026-11-18 (summary in section 11 of the design note). Open:
+  E4, E12 to E15, E25 and C2, after the owner reviews
+  [2026-11-17-env-layout.md](2026-11-17-env-layout.md). Its thirteen rulings were made on 2026-11-15 and are section 10 of
   [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
 - The consolidation work of [2026-11-15-surface-review.md](2026-11-15-surface-review.md),
   section 6, before the breaking tag is planned: one catalogue, one container description

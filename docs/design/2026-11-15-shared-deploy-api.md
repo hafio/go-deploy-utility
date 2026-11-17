@@ -425,3 +425,101 @@ Where this section differs from sections 3 to 8, this section holds.
 Still to settle: the detail questions in
 [../review/2026-11-15-surface-review-questions.md](../review/2026-11-15-surface-review-questions.md),
 which the owner reviews, and the consolidation work of the review's section 6.
+
+## 11. Answers to the detail questions
+
+The owner's answers, asked in batches from 2026-11-17. The full text of each is under its
+"Answer:" line in
+[../review/2026-11-15-surface-review-questions.md](../review/2026-11-15-surface-review-questions.md).
+Where this section differs from sections 3 to 8, this section holds; section 10 still holds
+over both.
+
+- **S1 Extras.** A blacklist that denies everything known to be wrong or harmful, as far as
+  possible: the full lists of the entry plus the additions in its answer, among them
+  Kubernetes `initContainers` and `containers`, probe and `lifecycle` keys, the service
+  account keys, compose `provider` and `develop`, quadlet `LogOpt` and
+  `HealthLogDestination`, and reserved label and annotation prefixes. Each list names the
+  engine versions it was checked against.
+- **S2 Own fields.** Host name, memory limit, CPU list, shared-memory size and typed ulimits
+  (the 16 Linux names; `rtprio`, `rttime`, `nice` refused), and on compose A's entrypoint,
+  command, configs, tmpfs and tool labels. One ulimits field writes compose `ulimits:`,
+  quadlet `Ulimit=` and the `[Service]` `Limit*=` lines (Q1). Refused on Kubernetes. B
+  passes no extras; `PodmanArgs` stays refused.
+- **Q1 `[Service]` and `[Unit]`.** No extras there; the limit lines come from S2.
+- **S3 Root.** The run-as field tells "stated" from "empty". A stated `0:0` writes the root
+  lines without `runAsNonRoot`; empty writes nothing and means the image's user.
+- **S9 Secret files.** No mode or owner on compose and quadlet. Kubernetes writes
+  `defaultMode: 0400` and refuses a mode with a bit for "other".
+- **S4 to S8, S12** as recommended: the `solution` and `developed-by` labels are optional
+  fields; every data key is quoted; health times are whole seconds and retries at least 1;
+  an image needs a tag or digest; a render error never echoes a free-text value; host
+  names follow RFC 1123.
+- **S10 Checks.** M exports a core set of checks, one per rule it renders by, and the
+  renderers call the same ones. Tools call them at load and may add their own on top.
+- **S11 generate output.** One write in M for every `generate` output: the mode follows the
+  umask like a shell redirect, a symbolic link at the path is refused, and the file is
+  written to a temp file and renamed. The overwrite question stays in the tool.
+- **S13 Time zone.** An IANA time zone database name only; POSIX rule strings are refused.
+- **E1 camelCase in A.** Only A's own keys are renamed. Keys passed on to the application,
+  the connector's property names in `solace:` and `mq:` among them, stay as written.
+- **E2 Old keys.** No detectors: an old key is an unknown key. Needs A's strict decode
+  (CR-0046) in or before the breaking tag.
+- **E3 Image keys.** `image.registry`, `image.repository`, `image.tag` in both tools.
+- **E6 Restart.** Default `always` in both tools on every platform, A's docker default
+  included; B gains the two keys; the word lists move into M.
+- **E5 Run-as.** Absent is the tool's stated non-zero default; the word `default` gives the
+  image's own user (M writes no user line); otherwise numeric `uid:gid` only. B reads a
+  numeric image user for its chown.
+- **E8 Kubernetes Secrets.** `kubernetes.secrets.credentials` and `.imagePull`, each
+  `create: true` or `existing: NAME`, in both tools.
+- **E7 Ports.** A bare port means `N:N` in both tools; M always writes both sides.
+- **E9 to E11 Secrets.** Every Secret has `create` and `existing` keys, no hidden logic: B's
+  TLS Secret is `kubernetes.secrets.tls`. `existing` with `semp.adminPass` is refused, and so
+  is a password or cert file with no block. B's operator `regcred` stays as today for now.
+- **Secrets reach.** A's TLS stores Secret and B's additional-users Secret also get
+  `create` and `existing`; B's operator `regcred` does not.
+- **C1 to C12 Compose**, all as recommended except C2 (open with E4): one key order; no
+  labels on the project network; `read_only` written as stated, with a smoke row before A
+  turns it on; no secret or config target under a mount; no duplicate or child-read
+  variable names (`PATH`, `LD_*`, `DOCKER_*`, `COMPOSE_*` ...); line-break and control
+  characters refused in inline text; one drive-letter root allowed in a bind source; `name:`
+  always written; inline text byte for byte; one service per file; no named volumes or
+  extra networks.
+- **Q2 to Q11 Quadlet**, all as recommended: the on-disk compare stays beside the digest
+  label; one line order; one write form per key (the bare keys are exceptions to ruling 9);
+  the installed unit is 0600; a podman health command refuses shell characters; a mount
+  source is an absolute path with no `:`, `$`, quote or backslash; relabel is none, `z` or
+  `Z`, forgotten none; no password matching by name; a one-line header naming the tool;
+  `WantedBy` follows rootful or rootless.
+- **K1 to K18 Kubernetes**, as recommended except: K4 a CRD is never deleted (B drops
+  `--delete-crd`; the CRD is applied with the operator); K10 `regcred` is unlabelled and
+  handled by name, like the bundle; K18 nothing is built ahead of need, except that K6
+  types every workload kind (Deployment, StatefulSet, ReplicaSet, DaemonSet, Job, CronJob,
+  Pod) with the hardening lines built in and `Custom` refuses them; K8 B's additional users
+  keep `extraEnvVarsSecret` as the one exception the operator's CRD forces. Also typed
+  now: Ingress, NetworkPolicy, PodDisruptionBudget, HorizontalPodAutoscaler,
+  ServiceAccount, Role, RoleBinding, ResourceQuota, LimitRange, PriorityClass,
+  StorageClass; cluster roles refused. K16 (2026-11-18): a deploy refuses an object over
+  the size limit and `generate` warns.
+- **E19 to E24** (2026-11-18): B's `quadletDir` and both `baseDir` keys dropped; a
+  read-only root key in both tools (A true, B false, M requires a value); Kubernetes
+  identity in the pod and container fields of B's convention, in both tools; every image
+  key a full registry, repository and tag block; free-form command keys replaced by
+  structured keys on all three platforms (design next; reshapes E16, E17, gdu 11).
+- **E16 to E18** (2026-11-18): E16 and E17 are superseded by E24's structured keys
+  (`docker.compose: plugin | standalone`; `cli` words per platform). E18: deploy pulls the
+  image first and M names the cause of a failed pull (login, wrong image, unreachable); on
+  a login failure the tool tells the operator to log in and never logs in itself. This
+  takes registry login out of ruling 6's list.
+- **N1 to N75** (2026-11-18): every recommendation taken; N9 and N10 reshaped by E24 (no
+  `--allow-command`; M exports only the no-prompt flag pair).
+- **Still open** (2026-11-18): E4, E12 to E15, E25 and C2 wait for the owner's review of the
+  flattened layout.
+- **Consolidation drafts** (2026-11-17, Sonnet agents, open points marked):
+  [2026-11-17-container-description.md](2026-11-17-container-description.md) and
+  [2026-11-17-catalogue.md](2026-11-17-catalogue.md).
+- **First build step**: [2026-11-17-plan-r1-workload-checks.md](2026-11-17-plan-r1-workload-checks.md),
+  approved 2026-11-17.
+- **E4 and the flatten of ruling 11** are reopened: the owner reviews the flattened layout,
+  [../review/2026-11-17-env-layout.md](../review/2026-11-17-env-layout.md), before key
+  placement is decided.
