@@ -980,7 +980,9 @@ and P-points that the file does not ask.
 - open K16: M exports the size constant and a plain check; the tool decides when to call.
 - open K17: NFS only for volumes; no catch-all source.
 - open K18: build the HTTP probe, `args` and the service types; no RBAC kinds until a tool
-  authors one.
+  authors one. Owner: nothing ahead of need, but the Service types are built now
+  (2026-11-18): M checks the word and requires one, the tools set the default (design note
+  section 11).
 - open N11-N15: the character checks are `CheckText` over `execguard.IsControl` and
   `IsInvisible`; `IsControl` takes U+0085 (N13); `CheckMountSource` stands for N14's host-path
   check; `envref.ValidName` keeps its name (N15).

@@ -513,8 +513,42 @@ over both.
   takes registry login out of ruling 6's list.
 - **N1 to N75** (2026-11-18): every recommendation taken; N9 and N10 reshaped by E24 (no
   `--allow-command`; M exports only the no-prompt flag pair).
-- **Still open** (2026-11-18): E4, E12 to E15, E25 and C2 wait for the owner's review of the
-  flattened layout.
+- **Flatten review** (2026-11-18), on
+  [../review/2026-11-17-env-layout.md](../review/2026-11-17-env-layout.md):
+  - `image.name` replaces `image.repository` (E3 revised); `image.registry` stays.
+  - `<platform>.name` stays one container name; HA brokers run on separate hosts. A new
+    `redundancy.sameHost: true | false` (B) makes the names `<name>-primary`, `-backup` and
+    `-monitor` for three brokers on one host.
+  - Identity: the word `default` in both tools tells M to write none; unset means the tool's
+    default (A `1000:0`).
+  - A remote engine is detectable on docker (the selected context's endpoint is not
+    `unix://` or `npipe://`); a bind-mount source is then refused, and the docs say so.
+    Podman is local only (E24); Kubernetes writes no host path.
+  - `network.mode` and `network.ports` stay as B's block in both tools (E4, E7).
+  - `kubernetes.service.ports` (E15). Memory under `resources` on every platform, CPU on
+    Kubernetes in A only (E12).
+  - B's per-role placement and A's single Deployment are an inherent difference.
+  - The time zone key is the top-level `timezone` in both tools (written as `TZ`).
+  - Strict decoding is a tool convention, not module code: each tool accepts only the keys
+    of its own env.yaml shape, except blocks passed on verbatim (A's connector properties,
+    B's custom-resource pass-through). The guide states it for a third tool.
+  - C2: absent `network.mode` is the deploy's own network (docker project network, podman
+    `private`); a written `bridge` is docker's shared bridge. E14: one `spread` key, A
+    default `none`, B `preferred` with a new `none`. B on Kubernetes states 1000001 and
+    1000002 when the identity is unset and refuses a stated 0.
+  - E13: each tool keeps its placement shapes (A Kubernetes' own, B its strings), since they
+    deploy different kinds.
+  - E25: the list of inherent and one-sided differences is accepted for the parity body.
+- **Service types** (2026-11-18), revising K18 and the stated ClusterIP default: a new
+  `kubernetes.service.type` in both tools. M owns the word list (ClusterIP, NodePort,
+  LoadBalancer, exact case; ExternalName refused), checks it, and its Service object requires
+  a word: M writes no default. Each tool sets its own. B defaults to LoadBalancer, written
+  into the custom resource as today, accepts all three, and refuses `service.loadBalancer`
+  unless the type is LoadBalancer. A: default to confirm (ClusterIP recommended). A fixed
+  node port is not offered: the cluster picks one.
+- **Still open** (2026-11-18): one rule for the `create` defaults of every Secret
+  ([../review/2026-11-18-secrets-assessment.md](../review/2026-11-18-secrets-assessment.md));
+  A's default Service type (ClusterIP recommended).
 - **Consolidation drafts** (2026-11-17, Sonnet agents, open points marked):
   [2026-11-17-container-description.md](2026-11-17-container-description.md) and
   [2026-11-17-catalogue.md](2026-11-17-catalogue.md).

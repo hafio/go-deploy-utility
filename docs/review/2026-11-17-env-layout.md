@@ -5,7 +5,11 @@ top-level image block, the env.yaml key tree as it is today (read from the yaml 
 structs) and as it would be after the decided rules (ruling 11 flatten, E1 camelCase, E3, E5,
 E6, E7 grammar, E8, E9, E11). Placements still open in the questions file are shown with the
 proposal and marked "# open: E<n>". The owner reopened the flatten itself (2026-11-17): every
-placement below is up for review, decided or not. A = solmq-conn-util, B = solace-util. Keys that exist only to refuse a removed
+placement below is up for review, decided or not. Updated 2026-11-18 with E16 to E24 and the
+Secrets reach: the free-form `command` keys give way to the structured `cli` keys (E24),
+`quadletDir` and `baseDir` go (E19, E20), both tools get `readOnlyRoot` (E21), Kubernetes
+identity takes B's pod and container fields in both tools (E22), and every image key is a
+full block (E23). A = solmq-conn-util, B = solace-util. Keys that exist only to refuse a removed
 key by name (A: timezone, secrets, stores, mount-path, quadlet, mode, image under a platform;
 B: composeFile, runtime, rootless, shmSize, ulimits.nofile/memlock) are left out of the trees;
 E2 drops all by-name refusals. Rule applied to the trees: a key in the Flattened tree without
@@ -33,9 +37,9 @@ Flattened
 ```yaml
 image:
   registry: ghcr.io        # E3: host[:port]; empty = Docker Hub
-  repository: solace/connector  # E3: path only, never a host
+  name: solace/connector   # E3, revised 2026-11-18: path only, never a host
   tag: 1.2.3               # unchanged (a digest stays A only)
-  user: u                  # unchanged
+  user: u                  # unchanged; the Kubernetes pull Secret only (E18: no login)
   userEnv: REG_USER        # E1: Env suffix
   pass: p                  # unchanged
   passEnv: REG_PASS        # E1: Env suffix
@@ -61,16 +65,18 @@ Flattened
 
 ```yaml
 docker:
-  command: docker          # unchanged
-  compose: docker compose  # open: E16 (new; default "<command> compose"; string or list)
+  cli: docker              # E24 (was command): docker | nerdctl, resolved on PATH
+  compose: plugin          # E24 (new): plugin (<cli> compose) | standalone (docker-compose)
+  context: remote1         # E24 (new, optional): --context; absent = the CLI's current
   name: connector          # unchanged (ruling 11: <platform>.name; DNS label <= 63)
   projectName: solace-connectors  # ruling 11 + E1: compose project
   restart: always          # E6: default now always (was unless-stopped)
-  network: bridge          # open: E4 (new; bridge|host|none; absent = project network)
-  ports: [8090, "9000:9000"]  # E7: bare N = N:N, handled in M (unchanged for A)
-  resources:               # open: E12 (new on docker for A)
-    memory: 2g             # open: E12
-  readOnlyRoot: true       # open: E21 (new; default true)
+  network:                 # E4 (new for A): B's block, kept
+    mode: bridge           # bridge|host|none; absent: open C2
+    ports: [8090, "9000:9000"]  # E7 (was docker.ports): bare N = N:N, handled in M
+  resources:               # E12 (new on docker for A)
+    memory: 2g             # E12
+  readOnlyRoot: true       # E21 (new): A default true; M requires a value
   libs:
     dir: ./libs            # unchanged
   runAs: "1000:0"          # E1 + E5: absent = 1000:0; word default = image's own user
@@ -97,15 +103,16 @@ Flattened
 
 ```yaml
 podman:
-  command: podman          # unchanged
-  # base-dir               # open: E20 (dropped)
+  # command                # E24: gone; podman is local only, the program is podman
+  # base-dir               # E20: dropped
   name: connector          # unchanged
-  network: private         # open: E4 (new; private|bridge|pasta|slirp4netns|host|none)
-  ports: [8090]            # E7: bare N = N:N, handled in M (unchanged for A)
+  network:                 # E4 (new for A): B's block, kept
+    mode: private          # private|bridge|pasta|slirp4netns|host|none; absent: open C2
+    ports: [8090]          # E7 (was podman.ports): bare N = N:N, handled in M
   restart: always          # unchanged
-  resources:               # open: E12 (new on podman for A)
-    memory: 2g             # open: E12
-  readOnlyRoot: true       # open: E21 (new; default true)
+  resources:               # E12 (new on podman for A)
+    memory: 2g             # E12
+  readOnlyRoot: true       # E21 (new): A default true; M requires a value
   libs:
     dir: ./libs            # unchanged
   runAs: "1000:0"          # E1 + E5: absent = 1000:0; word default = image's own user
@@ -149,29 +156,46 @@ Flattened
 
 ```yaml
 kubernetes:
-  command: kubectl         # unchanged
+  cli: kubectl             # E24 (was command): kubectl | oc, resolved on PATH
+  contextFile: ~/.kube/prod  # E24 (new, optional): --kubeconfig; leading ~ expands (gdu 2)
+  context: prod            # E24 (new, optional): --context; absent = the session's
+                           # current context, pinned for the run (gdu 11)
   name: connector          # ruling 11 (was deployment.name)
   namespace: solace        # ruling 11 (was deployment.namespace)
   replicas: 1              # ruling 11 (was deployment.replicas)
-  resources:               # ruling 11 dissolve; open: E12 for the name
-    cpu: 500m              # open: E12
-    memory: 512Mi          # open: E12
-  placement:               # open: E13 / E14
-    nodeSelector: {zone: a}    # open: E13 (was deployment.node-selector)
-    tolerations: []        # open: E13 (was deployment.tolerations; entries unchanged)
-    affinity: {}           # open: E13 (was deployment.affinity)
-    spread: none           # open: E14 (was deployment.spread; default none)
-  service:                 # open: E15 (A keeps both keys)
+  resources:               # ruling 11 dissolve; E12 for the name
+    cpu: 500m              # E12
+    memory: 512Mi          # E12
+  placement:               # E13: each tool its own shape; E14: spread
+    nodeSelector: {zone: a}    # E13: A's Kubernetes shape kept (was deployment.node-selector)
+    tolerations: []        # E13: Kubernetes entries kept (was deployment.tolerations)
+    affinity: {}           # E13: Kubernetes block kept (was deployment.affinity)
+    spread: none           # E14 (was deployment.spread; default none)
+  service:                 # E15: A keeps enabled and port
     enabled: false         # unchanged
+    type: ClusterIP        # Service types (new): ClusterIP|NodePort|LoadBalancer;
+                           # A default ClusterIP (recommended, to confirm)
     port: "80:8090"        # unchanged
-  readOnlyRoot: true       # open: E21 (new; default true)
-  libs:                    # unchanged: 9 keys (pvc.create.storage, nfs.server, nfs.path, ...)
+  readOnlyRoot: true       # E21 (new): A default true; M requires a value
+  libs:                    # unchanged but for download.image (pvc.create.storage, nfs, ...)
     pvc: {...}
-    download: {...}
+    download:
+      urls: []
+      pvc: ""
+      image:               # E23 (was the string busybox:1.37): the full image block
+        registry: ""       # empty = Docker Hub
+        name: busybox
+        tag: "1.37"
   secrets:
     credentials: {create: true}    # unchanged ({existing: NAME} alternative)
     imagePull: {create: true}      # E8 + E1 (was image-pull; {existing: NAME} replaces name:)
-  runAs: "1000:0"          # E1 + E5
+    stores: {create: true}         # Secrets reach (new): or {existing: NAME}; was implicit
+  securityContext:         # E22 (was run-as "1000:0"): pod fields, as in B and Kubernetes
+    runAsUser: 1000
+    fsGroup: 0
+  containerSecurity:       # E22: container fields
+    runAsUser: 1000
+    runAsGroup: 0
 ```
 
 ## 2. Tool B: solace-util
@@ -195,9 +219,9 @@ Flattened
 ```yaml
 image:
   registry: registry.example.com # unchanged (host[:port])
-  repository: solace-pubsub-standard  # E3 (was repo)
+  name: solace-pubsub-standard  # E3 (was repo; image.name, revised 2026-11-18)
   tag: "10.26.0.8755"      # unchanged
-  user: repo-user          # unchanged
+  user: repo-user          # unchanged; pull Secrets only (E18: no login on docker/podman)
   userEnv: SOLACE_REG_USER # new: every credential pair is <key> and <key>Env
   pass: CHANGE-ME          # unchanged
   passEnv: SOLACE_REG_PASS # unchanged
@@ -231,16 +255,21 @@ Flattened
 
 ```yaml
 docker:
-  command: docker          # unchanged
-  compose: docker compose  # unchanged
+  cli: docker              # E24 (was command): docker | nerdctl, resolved on PATH
+  compose: plugin          # E24 (was a command string): plugin | standalone
+  context: remote1         # E24 (new, optional): --context; absent = the CLI's current
   projectName: solace-event-brokers  # new (ruling 11 / gdu 9); default solace-event-brokers
-  name: solace             # ruling 11 (was container.name); DNS label <= 63
+  name: solace             # ruling 11 (was container.name); DNS label <= 63; one name for
+                           # every role (separate hosts); redundancy.sameHost: true (new)
+                           # makes <name>-primary, -backup, -monitor on one host
   restart: always          # E6 (new; default always)
   runAs: "1000001:0"       # E5 (was container.runUser); absent = default; word default allowed
-  network: bridge          # open: E4 (was network.mode; scalar; no filled-in default)
-  ports: ["8080:8080"]     # was network.ports; E7: bare 8080 now also accepted
+  readOnlyRoot: false      # E21 (new): B default false; M requires a value
+  network:                 # E4: unchanged
+    mode: bridge           # absent: open C2 (B fills in bridge today)
+    ports: ["8080:8080"]   # E7: a bare 8080 is now accepted too
   resources:
-    memory: 3410m          # open: E12 (was container.mem)
+    memory: 3410m          # E12 (was container.mem)
   cpuset: "0-1"            # ruling 11 (was container.cpuset)
   monitorCpuset: "0"       # ruling 11 (was container.monitorCpuset)
   dataDir: /opt/solace/data  # ruling 11 (was container.dataDir)
@@ -278,17 +307,19 @@ Flattened
 
 ```yaml
 podman:
-  command: podman          # unchanged
+  # command                # E24: gone; podman is local only, the program is podman
   rootful: false           # unchanged
-  quadletDir: /etc/containers/systemd  # open: E19 (B keeps; A has no such key)
-  # baseDir                # open: E20 (dropped; B stops deleting the legacy file)
+  # quadletDir             # E19: dropped; the unit directory is always the default one
+  # baseDir                # E20: dropped; B stops deleting the legacy file
   name: solace             # ruling 11 (was container.name)
   restart: always          # E6 (new; default always)
   runAs: "1000:0"          # E5 (was container.runUser); default 1000:0 / 1000001:0 rootful
-  network: private         # open: E4 (was network.mode; podman words)
-  ports: ["8080:8080"]     # was network.ports; E7: bare 8080 now also accepted
+  readOnlyRoot: false      # E21 (new): B default false; M requires a value
+  network:                 # E4: unchanged; podman words (todo 6)
+    mode: private          # absent: open C2
+    ports: ["8080:8080"]   # E7: a bare 8080 is now accepted too
   resources:
-    memory: 3410m          # open: E12 (was container.mem)
+    memory: 3410m          # E12 (was container.mem)
   cpuset: "0-1"            # ruling 11
   monitorCpuset: "0"       # ruling 11
   dataDir: /opt/solace/data  # ruling 11
@@ -348,42 +379,53 @@ Flattened
 
 ```yaml
 kubernetes:
-  command: kubectl         # unchanged
+  cli: kubectl             # E24 (was command): kubectl | oc, resolved on PATH
+  contextFile: ~/.kube/prod  # E24 (new, optional): --kubeconfig
+  context: prod            # E24 (new, optional): --context; absent = pinned current (gdu 11)
   name: solace             # unchanged
   namespace: solace        # unchanged
   secrets:                 # E8
     credentials: {create: true}     # was adminSecret; or {existing: NAME}; E11: no mixes
     imagePull: {existing: regcred2} # was imagePullSecret; or {create: true}
     tls: {create: true}             # E9 (was tlsServerSecret); or {existing: NAME}
+    additionalUsers: {create: true} # Secrets reach (new): or {existing: NAME}; was implicit
+                                    # K8: still named in the CR's extraEnvVarsSecret
   imagePullPolicy: Always  # unchanged
   updateStrategy: automatedRolling  # unchanged
   serviceAccount: sa       # unchanged
   storage: {...}           # unchanged: 4 keys
-  resources:               # open: E12 (was msgNode)
-    cpu: "2"               # open: E12 (was msgNode.cpu)
-    memory: 3410Mi         # open: E12 (was msgNode.mem; bare "m" suffix refused)
-  operator:                # 6 keys; open: E12 for cpu/mem, E23 for image rule
-    image: solace/pubsubplus-eventbroker-operator:1.4.2  # E23 open: full reference
+  resources:               # E12 (was msgNode)
+    cpu: "2"               # E12 (was msgNode.cpu)
+    memory: 3410Mi         # E12 (was msgNode.mem; bare "m" suffix refused)
+  operator:                # 6 keys; E12 for cpu/mem
+    image:                 # E23 (was a string with image.registry prefixed): full block
+      registry: ""         # empty = Docker Hub; no hidden prefix
+      name: solace/pubsubplus-eventbroker-operator
+      tag: "1.4.2"
     namespace: solace-operator
     watchNamespaces: ""
     watchBrokerNs: true
-    resources: {cpu: 200m, memory: 256Mi}   # open: E12 (was operator.cpu, operator.mem)
-  securityContext: {...}   # unchanged (E22 open: keep B's four fields)
-  containerSecurity: {...} # unchanged (E22 open)
+    resources: {cpu: 200m, memory: 256Mi}   # E12 (was operator.cpu, operator.mem)
+  securityContext: {...}   # E22: unchanged; A aligns to these pod fields
+  containerSecurity: {...} # E22: unchanged; A aligns to these container fields
   podAnnotations: {a: b}   # unchanged
   podLabels: {a: b}        # unchanged
-  placement:               # open: E13 / E14
-    primary:               # open: E13 (per role; also backup, monitor)
-      nodeSelector: {zone: a}       # was labelsPrimary (list of "k: v" -> mapping)
-      tolerations: []      # was tolerationsPrimary (strings -> Kubernetes entries)
-    affinity: {...}        # open: E13 (was nodeAffinity/podAffinity/podAntiAffinity; one block)
-    spread: preferred      # open: E14 (new; none|preferred|required; B default preferred)
-    antiAffinityNamespaces: [solace]  # open: E14 (stays, broker-only)
-    antiAffinityWeight: 100           # open: E14 (stays, broker-only)
-  service:                 # open: E15 (one block)
-    ports: [{name: semp, containerPort: 8080, servicePort: 80, protocol: TCP}]  # open: E15
-    loadBalancer: {ip: 10.0.0.5, ipPool: pool1}  # open: E15 (was kubernetes.loadBalancer)
-    annotations: {k: v}    # open: E15 (list of strings -> mapping)
+  placement:               # E13: each tool its own shape; E14: spread
+    labelsPrimary: ["zone: a"]        # E13: unchanged; also labelsBackup, labelsMonitor
+    tolerationsPrimary: ["k=v:NoSchedule"]  # E13: unchanged; also Backup, Monitor
+    nodeAffinity: {...}    # E13: unchanged, B's own words
+    podAffinity: [...]     # E13: unchanged
+    podAntiAffinity: [...] # E13: unchanged; refused unless spread is none (E14)
+    spread: preferred      # E14 (new; none|preferred|required; B default preferred)
+    antiAffinityNamespaces: [solace]  # E14 (stays, broker-only)
+    antiAffinityWeight: 100           # E14 (stays, broker-only)
+  service:                 # E15 (one block)
+    type: LoadBalancer     # Service types (new): LoadBalancer|ClusterIP|NodePort;
+                           # B default LoadBalancer, written into the CR as today
+    ports: [{name: semp, containerPort: 8080, servicePort: 80, protocol: TCP}]  # E15
+    loadBalancer: {ip: 10.0.0.5, ipPool: pool1}  # E15 (was kubernetes.loadBalancer);
+                           # refused unless type is LoadBalancer
+    annotations: {k: v}    # E15 (list of strings -> mapping)
 ```
 
 ## 3. Moves
@@ -394,27 +436,31 @@ moves table and not counted as moves.
 | tool | today | flattened | decided by |
 | --- | --- | --- | --- |
 | A | image.repo | image.registry | E3 |
-| A | image.name | image.repository | E3 |
 | A | image.user-env | image.userEnv | E1 |
 | A | image.pass-env | image.passEnv | E1 |
 | A | docker.project-name | docker.projectName | ruling 11, E1 |
 | A | docker.run-as | docker.runAs (word image -> default) | E1, E5 |
 | A | podman.run-as | podman.runAs (word image -> default) | E1, E5 |
-| A | kubernetes.run-as | kubernetes.runAs | E1, E5 |
+| A | kubernetes.run-as | kubernetes.securityContext.{runAsUser,fsGroup}, containerSecurity.{runAsUser,runAsGroup} | E22 |
 | A | docker.restart default unless-stopped | default always | E6 |
-| A | podman.base-dir | dropped | open E20 |
+| A | podman.base-dir | dropped | E20 |
+| A | docker.ports, podman.ports | docker.network.ports, podman.network.ports | E4, E7 |
+| A | docker.command | docker.cli, with new docker.compose and docker.context | E24 |
+| A | podman.command | dropped (podman is local only) | E24 |
+| A | kubernetes.command | kubernetes.cli, with new kubernetes.contextFile and kubernetes.context | E24 |
+| A | kubernetes.libs.download.image (string) | kubernetes.libs.download.image.{registry,name,tag} | E23 |
 | A | kubernetes.deployment.name | kubernetes.name | ruling 11 |
 | A | kubernetes.deployment.namespace | kubernetes.namespace | ruling 11 |
 | A | kubernetes.deployment.replicas | kubernetes.replicas | ruling 11 |
-| A | kubernetes.deployment.resources.cpu | kubernetes.resources.cpu | ruling 11 (open E12) |
-| A | kubernetes.deployment.resources.memory | kubernetes.resources.memory | ruling 11 (open E12) |
-| A | kubernetes.deployment.node-selector | kubernetes.placement.nodeSelector | open E13 |
-| A | kubernetes.deployment.tolerations | kubernetes.placement.tolerations | open E13 |
-| A | kubernetes.deployment.affinity | kubernetes.placement.affinity | open E13 |
-| A | kubernetes.deployment.spread | kubernetes.placement.spread | open E14 |
+| A | kubernetes.deployment.resources.cpu | kubernetes.resources.cpu | ruling 11 (E12) |
+| A | kubernetes.deployment.resources.memory | kubernetes.resources.memory | ruling 11 (E12) |
+| A | kubernetes.deployment.node-selector | kubernetes.placement.nodeSelector | ruling 11 (E13: shape kept) |
+| A | kubernetes.deployment.tolerations | kubernetes.placement.tolerations | ruling 11 (E13: shape kept) |
+| A | kubernetes.deployment.affinity | kubernetes.placement.affinity | ruling 11 (E13: shape kept) |
+| A | kubernetes.deployment.spread | kubernetes.placement.spread | ruling 11, E14 |
 | A | kubernetes.secrets.image-pull | kubernetes.secrets.imagePull | E8, E1 |
 | A | kubernetes.secrets.image-pull.name | kubernetes.secrets.imagePull.existing | E8 |
-| B | image.repo | image.repository | E3 |
+| B | image.repo | image.name | E3 (revised 2026-11-18) |
 | B | docker.container.name | docker.name | ruling 11 |
 | B | podman.container.name | podman.name | ruling 11 |
 | B | docker.container.runUser | docker.runAs | E5, ruling 11 |
@@ -429,33 +475,36 @@ moves table and not counted as moves.
 | B | podman.container.ulimits.core | podman.ulimits.core | ruling 11 |
 | B | docker.container.healthCheck.* (6) | docker.healthCheck.* | ruling 11 |
 | B | podman.container.healthCheck.* (6) | podman.healthCheck.* | ruling 11 |
-| B | docker.container.mem | docker.resources.memory | open E12 |
-| B | podman.container.mem | podman.resources.memory | open E12 |
-| B | docker.network.mode | docker.network | open E4 |
-| B | podman.network.mode | podman.network | open E4 |
-| B | docker.network.ports | docker.ports | open E7 |
-| B | podman.network.ports | podman.ports | open E7 |
-| B | podman.baseDir | dropped | open E20 |
+| B | docker.container.mem | docker.resources.memory | E12 |
+| B | podman.container.mem | podman.resources.memory | E12 |
+| B | podman.baseDir | dropped | E20 |
+| B | podman.quadletDir | dropped | E19 |
+| B | docker.command | docker.cli, with new docker.context | E24 |
+| B | docker.compose (a command string) | docker.compose: plugin or standalone | E24 |
+| B | podman.command | dropped (podman is local only) | E24 |
+| B | kubernetes.command | kubernetes.cli, with new kubernetes.contextFile and kubernetes.context | E24 |
 | B | kubernetes.adminSecret | kubernetes.secrets.credentials | E8 |
 | B | kubernetes.imagePullSecret | kubernetes.secrets.imagePull | E8 |
 | B | kubernetes.tlsServerSecret | kubernetes.secrets.tls | E9 |
-| B | kubernetes.msgNode.cpu | kubernetes.resources.cpu | open E12 |
-| B | kubernetes.msgNode.mem | kubernetes.resources.memory | open E12 |
-| B | kubernetes.operator.cpu | kubernetes.operator.resources.cpu | open E12 |
-| B | kubernetes.operator.mem | kubernetes.operator.resources.memory | open E12 |
-| B | placement.labels{Primary,Backup,Monitor} | placement.<role>.nodeSelector | open E13 |
-| B | placement.tolerations{Primary,Backup,Monitor} | placement.<role>.tolerations | open E13 |
-| B | placement.nodeAffinity / podAffinity / podAntiAffinity | placement.affinity | open E13 |
-| B | kubernetes.ports | kubernetes.service.ports | open E15 |
-| B | kubernetes.loadBalancer.ip | kubernetes.service.loadBalancer.ip | open E15 |
-| B | kubernetes.loadBalancer.ipPool | kubernetes.service.loadBalancer.ipPool | open E15 |
-| B | kubernetes.loadBalancer.annotations | kubernetes.service.annotations | open E15 |
-| B | kubernetes.operator.image prefix rule | full reference, no prefix | open E23 |
+| B | kubernetes.msgNode.cpu | kubernetes.resources.cpu | E12 |
+| B | kubernetes.msgNode.mem | kubernetes.resources.memory | E12 |
+| B | kubernetes.operator.cpu | kubernetes.operator.resources.cpu | E12 |
+| B | kubernetes.operator.mem | kubernetes.operator.resources.memory | E12 |
+| B | kubernetes.ports | kubernetes.service.ports | E15 |
+| B | kubernetes.loadBalancer.ip | kubernetes.service.loadBalancer.ip | E15 |
+| B | kubernetes.loadBalancer.ipPool | kubernetes.service.loadBalancer.ipPool | E15 |
+| B | kubernetes.loadBalancer.annotations | kubernetes.service.annotations | E15 |
+| B | kubernetes.operator.image (string, registry prefixed) | kubernetes.operator.image.{registry,name,tag} | E23 |
 
-New keys (not moves): A: docker.network and podman.network (open E4), docker.compose (open
-E16), readOnlyRoot on three platforms (open E21), docker|podman.resources.memory (open E12).
-B: docker.projectName (ruling 11), docker.restart and podman.restart (E6), image.userEnv (no
-decision needed), kubernetes.placement.spread (open E14).
+New keys (not moves): A: docker.network.mode and podman.network.mode (E4), docker.compose and
+docker.context (E24), kubernetes.contextFile and kubernetes.context (E24), readOnlyRoot on
+three platforms (E21), kubernetes.secrets.stores (Secrets reach), kubernetes.service.type
+(Service types),
+docker|podman.resources.memory (E12). B: docker.projectName (ruling 11), docker.restart
+and podman.restart (E6), docker.context, kubernetes.contextFile and kubernetes.context (E24),
+readOnlyRoot on docker and podman (E21), kubernetes.secrets.additionalUsers (Secrets reach),
+image.userEnv (no decision needed), kubernetes.placement.spread (E14),
+kubernetes.service.type (Service types).
 
 Other A keys renamed by E1 outside the platform sections (listed for completeness, not
 counted): java-options, leader-election (and its conn-ref), solace-defaults, mq-defaults,
@@ -464,38 +513,41 @@ and mq:) client-username-env, client-password-env, key-alias, user-env, password
 workflows.file_pattern -> filePattern. This list is from the yaml tags; E1 says the exact list
 is fixed at build.
 
-## 4. Questions the flatten raises
+## 4. The owner's answers (2026-11-18)
 
-- Name clash: B docker.name and podman.name are the container name, but HA runs three
-  containers (primary, backup, monitor) and redundancy.<role>.name is the host name. Does
-  <platform>.name stay one stem the roles derive from, as docker.container.name is today?
-- E5 says <platform>.runAs in both tools, but B has no single run-as on kubernetes (four
-  fields: securityContext.runAsUser/fsGroup, containerSecurity.runAsUser/runAsGroup, kept per
-  E22 open). So kubernetes.runAs exists in A only; confirm that is intended, or E22 changes it.
-- E7 puts <platform>.ports in the section. On kubernetes B's kubernetes.ports (Service ports)
-  would land on the same name with a different meaning (container publication vs Service
-  port). E15 proposes kubernetes.service.ports; the two open answers must agree.
-- E4/E7 together: B's network.mode moves to a scalar network while its ports move out of the
-  network block. B's check "ports with host or none networking" (kept, ruling 9) then reads two
-  sibling keys instead of one block.
-- B's per-role keys (placement.primary/backup/monitor, E13) have no A counterpart (A has one
-  Deployment, no roles). Layout would be placement.nodeSelector in A and
-  placement.primary.nodeSelector in B. Same key names, different depth.
-- B's spread default is preferred, A's none (E14); the same key name on one path carries two
-  defaults. Also antiAffinityNamespaces/Weight sit under placement but only apply to B.
-- E12: B's kubernetes.resources.cpu would be fixed by the scaling tier (no cpu count key), so
-  the key exists in the section but is not freely settable in B; A's cpu is free. E12 says
-  "memory (and cpu on kubernetes, A only)". Confirm B's msgNode.cpu is dropped, not renamed.
-- E12 and A: A has no docker/podman memory key today, so docker.resources.memory is new in A,
-  not a move. Confirm A should gain it, or whether resources stays kubernetes-only for A.
-- E8 and A: kubernetes.secrets.imagePull for A becomes {create: true} or {existing: NAME}; A's
-  old image-pull.name is a Secret the operator manages (maps to existing). The old
-  create: false default is now the absence of the block. Confirm absent means no pull Secret.
-- E8 and B: custom names for a Secret the tool builds go (derived name only), including the
-  name tlsServerSecret gave a built TLS Secret.
-- B's docker.compose (open E16 for A) stays flat in B, but docker.command and docker.compose
-  both accept a string or a list; E17 (open) restricts programs per key, B only.
-- Retired by-name keys (A: base-dir, timezone, secrets, stores, mount-path, quadlet, mode;
-  B: composeFile, runtime, rootless, shmSize, ulimits.nofile/memlock) are decode-only today.
-  E2 drops all refusals, so under strict decoding they become plain unknown keys; A needs strict
-  decode (CR-0046) first, otherwise an old key vanishes silently.
+- Name: `<platform>.name` stays one container name, since HA brokers run on separate hosts.
+  New key `redundancy.sameHost: true | false` (B): true makes the names `<name>-primary`,
+  `<name>-backup` and `<name>-monitor` for three brokers on one host.
+- Identity: the word `default` in both tools, on every platform, tells M to write none.
+  Unset means the tool's default: A `1000:0` (Kubernetes: user 1000, group 0, fsGroup 0).
+  B's Kubernetes default: open.
+- Remote engine: detectable on docker, since the selected context's endpoint is not
+  `unix://` or `npipe://`. A bind-mount source (A's `libs.dir`, B's `dataDir`) is then
+  refused, and the docs say so. Podman is local only (E24); Kubernetes writes no host path.
+- Kubernetes Service ports: `kubernetes.service.ports` (E15).
+- Network: keep B's block, `network.mode` and `network.ports`, in both tools (E4, E7).
+- Per-role placement: B's roles and A's single Deployment are an inherent difference.
+- E12: memory under `resources` on every platform, A gaining it on docker and podman; CPU on
+  Kubernetes in A only; B's `msgNode.cpu` dropped.
+- E8 and B: no custom name for a Secret a tool builds. Yes.
+- E24: ok.
+- Time zone: the top-level `timezone` key, in both tools today, written into the container
+  as `TZ`. The platform-level `timezone` keys A retired stay gone.
+- Unknown keys: each tool accepts only the keys of its own env.yaml shape (strict decoding).
+  This is a tool convention, not module code (M has no YAML library). Exceptions: blocks
+  passed on verbatim (A's connector properties in `solace:` and `mq:`, B's custom-resource
+  pass-through). The guide states it for a third tool; A needs CR-0046.
+
+- C2: an absent `network.mode` is the deploy's own network (docker project network, podman
+  `private`); a written `bridge` is docker's shared bridge.
+- E14: one `kubernetes.placement.spread` key, A default `none`, B `preferred`, B gaining `none`.
+- E13: each tool keeps today's placement shapes; A and B deploy different kinds.
+- B on Kubernetes states user 1000001, group and fsGroup 1000002 when unset, and refuses 0.
+- Service types: a new `kubernetes.service.type` in both tools. M owns the words (ClusterIP,
+  NodePort, LoadBalancer, exact case) and checks them; the tools own the default. B: default
+  LoadBalancer, accepts all three. A: see "Still open".
+
+## 5. Still open
+
+- One rule for the `create` defaults of every Secret.
+- A's default Service type. Recommended: ClusterIP.

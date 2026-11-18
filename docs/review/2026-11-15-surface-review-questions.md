@@ -592,6 +592,9 @@ them. Key names are written in camelCase, as ruling 11 requires.
   must split into registry and repository. B's pull-Secret golden changes when the registry
   is empty (empty key becomes Docker Hub's).
 - **Answer:** ok (2026-11-17): `image.registry`, `image.repository`, `image.tag` in both.
+  Revised by the owner (2026-11-18): the path key is `image.name`, not `image.repository`, to
+  prevent confusion; `image.registry` and `image.tag` stay. The same block serves every image
+  key (E23). M's Go type keeps the OCI word (`workload.Image.Repository`).
 
 ### E4. The network key
 
@@ -610,7 +613,9 @@ them. Key names are written in camelCase, as ruling 11 requires.
   with `mode: bridge` would still load and mean something else.
 - **Changes for:** B env files (`network.mode: host` becomes `network: host`). Golden files
   of both tools gain the explicit network line.
-- **Answer:**
+- **Answer:** Owner (2026-11-18), after the flatten review: keep B's block, `network.mode` and
+  `network.ports`, in both tools; A's ports move under it. The words stay todo 6's. What an
+  absent `mode` and a written `bridge` mean is C2.
 
 ### E5. Run-as in the env file: the key, the word `image`, and a bare uid
 
@@ -647,6 +652,11 @@ them. Key names are written in camelCase, as ruling 11 requires.
   the image's user (image inspect, ruling 6) for its data-directory chown and refuses when
   that user is not numeric. Samples and examples state a uid:gid. The key's place follows
   the flatten review (E4).
+  Follow-up (2026-11-18): the word is `default` in both tools and on every platform,
+  Kubernetes included; it tells M to write no identity. Unset in env.yaml means the tool's
+  default: A `1000:0`. B on Kubernetes states the operator's own defaults when unset (user
+  1000001, group and fsGroup 1000002) and refuses a stated 0, which the CRD reads as "the
+  operator's default" (owner, 2026-11-18).
 
 ### E6. Restart keys for B, and the two defaults
 
@@ -687,6 +697,7 @@ them. Key names are written in camelCase, as ruling 11 requires.
   B's grammar: `[ip:]host:container[/tcp|/udp]`, ranges allowed; with a bind address both
   sides are written. A keeps the bare form; B gains it. The key's place follows the flatten
   review (E4).
+  Placement (2026-11-18): `<platform>.network.ports` (E4).
 
 ### E8. Naming a Secret the tool builds or one someone else made
 
@@ -780,7 +791,9 @@ them. Key names are written in camelCase, as ruling 11 requires.
   learn.
 - **Changes for:** B env files (`container.mem` and `msgNode.mem` are renamed). A: key moves
   from `deployment.resources`.
-- **Answer:**
+- **Answer:** ok (2026-11-18): `<platform>.resources.memory` in both tools, A gaining it on docker
+  and podman; `kubernetes.resources.cpu` in A only; B's `msgNode.cpu` is dropped, not renamed (the
+  scaling tier fixes B's CPU); a Kubernetes memory with a bare `m` suffix is refused.
 
 ### E13. Placement keys on Kubernetes
 
@@ -799,7 +812,10 @@ them. Key names are written in camelCase, as ruling 11 requires.
   B's files, but `tolerationSeconds` cannot be written and the strings are not checked field
   by field.
 - **Changes for:** B env files that set placement. A: the keys move out of `deployment`.
-- **Answer:**
+- **Answer:** Owner (2026-11-18): keep today's shapes. A and B deploy different kinds (A its own
+  Deployment, B the operator's custom resource), so each handles placement its own way. B
+  keeps `labelsPrimary`, `tolerationsPrimary` and its affinity words; A keeps Kubernetes'
+  shapes. Recorded as an inherent difference; only the flatten of ruling 11 moves the keys.
 
 ### E14. Spread and B's always-on anti-affinity
 
@@ -817,7 +833,9 @@ them. Key names are written in camelCase, as ruling 11 requires.
   built-in one. Nothing breaks, but A and B differ.
 - **Changes for:** B operators who write their own `podAntiAffinity`: they must add
   `spread: none`. Others: nobody.
-- **Answer:**
+- **Answer:** ok (2026-11-18): `kubernetes.placement.spread` in both, A default `none`, B
+  default `preferred`; B gains `none` as an off value; `antiAffinityNamespaces` and
+  `antiAffinityWeight` stay B-only.
 
 ### E15. The Service block on Kubernetes
 
@@ -834,7 +852,8 @@ them. Key names are written in camelCase, as ruling 11 requires.
 - **Other choice:** Keep B's string entries and fix only the order. Smaller, but a string
   cannot carry a protocol cleanly and the order trap stays in the text.
 - **Changes for:** B env files that set ports, annotations or the load balancer.
-- **Answer:**
+- **Answer:** Owner (2026-11-18): one `kubernetes.service` block in both, with `service.ports` (so
+  no clash with the container ports of E4 and E7). Otherwise as recommended.
 
 ### E16. A gains `docker.compose`; command keys take a list
 
@@ -963,6 +982,8 @@ them. Key names are written in camelCase, as ruling 11 requires.
   pod and container fields instead of one `runAs`. Exact key names at the flatten review.
   Still to settle there: B reads 0 or unset as the operator's default, while M's run-as
   reads a stated 0 as root (S3).
+  Follow-up (2026-11-18): an unset field means the tool's default (A: user 1000, group and
+  fsGroup 0); the word `default` leaves the identity to the image or operator.
 
 ### E23. The rule for a second image, B's operator image
 
@@ -1017,7 +1038,16 @@ them. Key names are written in camelCase, as ruling 11 requires.
 - **Other choice:** Align the one-sided keys now by adding them to A. More keys in A before
   any connector needs them.
 - **Changes for:** The parity body only.
-- **Answer:**
+- **Answer:** Accepted (2026-11-18), with the list updated for the answers of that day.
+  Inherent: a digest in the image tag (A); JVM options, actuator port and syslog (A); TLS
+  material and application credentials; the HA model, `redundancy.sameHost`, the scaling
+  tier and replication access (B); libs against data directory; cpuset and process limits
+  (B); the health check; replicas (A); storage and update strategy (B); operator keys (B);
+  placement shapes (E13); spread defaults and B's `antiAffinityNamespaces` and
+  `antiAffinityWeight` (E14); the read-only root default (E21); identity defaults (E5, E22).
+  One-sided, added to A only on need: `imagePullPolicy`, `podAnnotations`, `podLabels`,
+  `serviceAccount`. No longer differences: the restart default, the image keys, the second
+  image's rule, the pod identity fields, the command keys, the network block.
 
 #### Settled by the rulings
 
@@ -1154,7 +1184,10 @@ also covers quadlet or Kubernetes is in the shared part (S1 to S13).
   so one more line in the upgrade note is cheap.
 - **Changes for:** solace-util env files that write `network.mode: bridge` by hand, its
   sample file and its docs. Its golden files gain the network lines.
-- **Answer:**
+- **Answer:** ok (2026-11-18), with `network.mode` kept (E4): absent writes the deploy's own
+  project network on docker (B stops filling in `bridge`) and `Network=private` on podman; a
+  written `bridge` means docker's shared bridge, as docker means it, and B's sample and docs
+  say so.
 
 ### C3. Read-only root and how compose hands over secrets
 
@@ -2063,6 +2096,8 @@ covers compose or quadlet is in the shared part (S1 to S13).
   line.
 - **Answer:** Owner (2026-11-17): build nothing ahead of need. No HTTP probe, `args` or
   Service type and no RBAC kinds until a tool needs one. The CRD is never modelled.
+  Revised 2026-11-18: the Service types are built now. M checks ClusterIP, NodePort and
+  LoadBalancer and requires one; the tools set the default (B LoadBalancer).
 
 #### Settled by the rulings
 
@@ -2107,7 +2142,8 @@ covers compose or quadlet is in the shared part (S1 to S13).
 - A tool that holds numbers as text (B: `runAsUser`, `fsGroup`, `runAsGroup`,
   `containerPort`, `servicePort`) must pass them as numbers, or the operator's schema
   refuses them (K5).
-- M states these defaults, as they are hardening and not product: Service type ClusterIP,
+- M states these defaults, as they are hardening and not product: Service type ClusterIP
+  (revised 2026-11-18: M requires a type and the tool sets the default),
   `automountServiceAccountToken: false`, read-only on every mount, `defaultMode: 0400`, the
   volume reclaim policy Retain, the toleration operator. A already writes most of them.
   Replicas, ids, sizes and images are never defaulted by M.
