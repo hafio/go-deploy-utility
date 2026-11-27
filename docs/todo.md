@@ -28,7 +28,8 @@ beside the decisions on this module's own review. Three of them apply to every i
 - Order of work: a patch tag first, which holds no item of this file. Then one breaking tag
   for items 1, 2, 4 to 14, 16, 18 and 19. Items 2 and 19 moved into it on 2026-11-15, since
   the renderers and clients take each tool's config and should map it once. Items 3 and 15
-  follow as rules both tools align on. Item 17 moved to solace-util.
+  follow as rules both tools align on. Item 17 moved to solace-util. Item 20 is fixed in each
+  tool's adoption step.
 - The surface review of 2026-11-15
   ([review/2026-11-15-surface-review.md](review/2026-11-15-surface-review.md)) and the
   owner's rulings on it (the design note, section 10) change several items below; each
@@ -1099,6 +1100,11 @@ Decided 2026-11-15, after the surface review:
   ruling 11 and reviews [review/2026-11-17-env-layout.md](review/2026-11-17-env-layout.md).
   E24 replaces the free-form `command` keys with structured keys (`cli`, `context`,
   `contextFile`, `compose`), which also changes item 11's context source.
+- 2026-11-18 and 2026-11-27: every key is decided. The record is
+  [review/2026-11-17-env-layout.md](review/2026-11-17-env-layout.md) (the flattened trees,
+  the moves table and section 4), with Secrets derived
+  ([review/2026-11-18-secrets-assessment.md](review/2026-11-18-secrets-assessment.md),
+  section 6), `kubernetes.service.type` and `imagePullPolicy` on every platform.
 
 ### Scope
 
@@ -1109,7 +1115,33 @@ Decided 2026-11-15, after the surface review:
 
 ### Undecided
 
-- Every key but the project name.
+- Nothing. What remains is building it.
+
+## 20. Tool bugs found during the surface review
+
+Raised 2026-11-18 and 2026-11-27 while the owner's questions were answered. Each is fixed in
+that tool's adoption step, not in this module.
+
+### Goal
+
+Each bug is fixed in its tool, with a test, when the tool adopts the module.
+
+### Today
+
+- solace-util accepts a lowercase port protocol: `validateK8sPorts` upper-cases the protocol
+  before checking it (`internal/config/validate.go:865`), but `parsePort` writes it as given
+  (`internal/render/render.go:1253`). The operator's CRD allows only `TCP`, `UDP` and `SCTP`,
+  so `semp=8080/tcp` passes `validate` and the custom resource is refused at apply. E15's
+  `protocol:` field takes the exact uppercase words, which fixes it.
+- solmq-conn-util's docker remove resolves the `-env` credentials
+  (`cmd/solmq-conn-util/main.go:733-736`), so a remove fails on an unset variable it does not
+  need. gdu 3: remove resolves no credential (secrets assessment, E3 and O6).
+- solace-util's podman remove leaves a secret that was dropped from the env file between
+  deploys: item 16 (secrets assessment, O6).
+
+### Undecided
+
+- Nothing.
 
 ## Inputs from the solace-util review to items 1 to 4 and 9
 

@@ -1,9 +1,14 @@
 # One catalogue (consolidation draft, 2026-11-17)
 
-Status 2026-11-18: every N entry marked "open N<n>" below is now decided as recommended.
-E24 (2026-11-18) replaces the free-form command tokens with structured keys (`cli`,
-`context`, `contextFile`, `compose`), so each constructor takes those fields, not tokens,
-and `--allow-command` is gone. Section 11 of the 2026-11-15 design note holds the answers.
+Status 2026-11-27: this draft matches section 11 of the 2026-11-15 design note as of that
+date; the design note wins on any conflict. Every N entry is answered (all taken as
+recommended except N9 and N10, which E24 reshaped). E24 replaces the free-form command
+tokens with structured keys (`cli`, `context`, `contextFile`, `compose`): each constructor
+takes those fields, not tokens, and `--allow-command` is gone. E18 takes registry login out
+of the module and puts the pull and its failure classes in (`Pull`). The Secrets decision of
+2026-11-27 adds a key check before deploy (`CheckSecretKeys`) and makes remove delete every
+derived Secret name. A fixed object-size check is in `Apply` (K16). Points the sources leave
+undecided are marked "open" in section 7.
 
 Draft for the owner. Nothing is built. Section 6 item 2 of docs/review/2026-11-15-surface-review.md.
 M = go-deploy-utility, A = solmq-conn-util, B = solace-util. Paths under A or B are relative to
@@ -13,9 +18,10 @@ that repository. Sources: design note sections 3, 10, 11; review findings 1 and 
 
 This is the one list of what each M client offers: per method its signature, the grammar of each
 argument, its typed errors, the answer it returns and the builder or parser that goes private. It
-applies the rulings of design section 10 (1 to 7, 11, 13) exactly, and takes the Recommended
-choice of every part N entry the owner has not answered yet, marked "open N<n>". Where a ruling
-and the code as it stands disagree, section 7 says so instead of choosing silently.
+applies the rulings of design section 10 (1 to 7, 11, 13) exactly, and applies the
+answer of every part N entry (all as recommended, except N9 and N10 as reshaped by E24), and the
+E18, E24, K4, K16 and Secrets answers of design section 11 where they reach a client. Where a
+ruling and the code as it stands disagree, section 7 says so instead of choosing silently.
 
 ## 2. Per client (conventions, then each client)
 
@@ -33,13 +39,13 @@ Result and errors (ruling 4, defined once in `runner`):
 
     runner.Result  {Argv []string; ExitCode int; Duration time.Duration}
                    Argv = command as run, stdin as a byte count, env values masked (N7).
-                   Describes the LAST command a method ran (open N5). Returned on failure too.
-                   ExitCode never negative once a command ran; -1 = never started (open N3).
+                   Describes the LAST command a method ran (N5). Returned on failure too.
+                   ExitCode never negative once a command ran; -1 = never started (N3).
     runner.Error   {Op string; Kind error; Stderr string; ExitCode int; Err error}
-                   Stderr = exact bytes (open N28); Error() text uses a cleaned copy and does not
+                   Stderr = exact bytes (N28); Error() text uses a cleaned copy and does not
                    repeat stderr (the writer already got it); Unwrap gives Err, so
                    errors.Is(err, context.Canceled) holds; ExitCode() lets exitcode.ChildStatus
-                   read it (open N4). No error text embeds captured stdout.
+                   read it (N4). No error text embeds captured stdout.
 
 Kind codes (the seven of ruling 4, plus two the method tables need):
 
@@ -60,14 +66,14 @@ Stream class in `answer`:
 
 Grammar codes (the gdu 4 table is still to be written; "gdu 4 grammar" marks a gap):
 
-    G-ctr   containercli.ValidName (engine grammar, [A-Za-z0-9][A-Za-z0-9_.-]*)  (open N30)
-    G-name  containercli.CheckName: DNS label, <= 63, for names the tool creates (open N30)
-    G-lbl   kube.ValidDNSLabel (renamed from ValidLabel, open N59)
+    G-ctr   containercli.ValidName (engine grammar, [A-Za-z0-9][A-Za-z0-9_.-]*)  (N30)
+    G-name  containercli.CheckName: DNS label, <= 63, for names the tool creates (N30)
+    G-lbl   kube.ValidDNSLabel (renamed from ValidLabel, N59)
     G-sub   kube.ValidDNSSubdomain (new, gdu 4; pod, Secret, StorageClass names)
-    G-free  free operand: non-empty, no leading '-', no control character (open N11, N12)
+    G-free  free operand: non-empty, no leading '-', no control character (N11, N12)
     G-env   envref.ValidName
     G-dur   time.Duration > 0, written as whole seconds; zero = the default constant
-    G-host  CheckHostPath (open N14)
+    G-host  CheckHostPath (N14)
     G-ctx   gdu 11 grammar: any string except empty, leading '-', control characters (':' and '/'
             allowed); written as --context=<name>
 
@@ -79,42 +85,48 @@ returns `(answer, runner.Result, error)` or `(runner.Result, error)`.
     package runner:
       type Setup struct {
           Runner    runner.Runner
-          Approvals execguard.Approvals
           Stdout    io.Writer   // nil = discard; a real *os.File goes direct, a buffer is piped
           Stderr    io.Writer
       }
 
     each client:
-      New(s runner.Setup, ...client inputs) (*Client, error)   // runs execguard.Check ONCE
+      New(s runner.Setup, ...client inputs) (*Client, error)   // checks the structured words ONCE
       (c *Client) With(stdout, stderr io.Writer) *Client       // copy for one call (ruling 1)
       (c *Client) Run(ctx, args []string, o RunOptions) (runner.Result, error)     // to writers
       (c *Client) Output(ctx, args []string, o RunOptions) ([]byte, runner.Result, error)
 
     RunOptions {Stdin []byte}        // no Env: only ComposeUp, ComposeDown and the session env
-                                     // set Cmd.Env (open N8)
+                                     // set Cmd.Env (N8)
 
-- The guard error from `New` is returned unwrapped and unmarked, so A can keep its exit-2 mark
-  (open N1). Tokens cannot be changed after `New`; a client value is a copy.
-- Run and Output put `args` after the client's base tokens, pinned context and session
-  environment. args: only `runner.Cmd.Check` plus no control character; the module decides
+- E24 (2026-11-18) replaces ruling 3's tokens and `execguard` rules: no command key takes a string
+  or a list. Each client takes structured words and checks them once in `New`: the `cli` word
+  from the client's own list, the compose form, the optional context and context file. The
+  program resolves on PATH by its fixed name; `docker --config` is not offered (it can load
+  plugins). `Setup.Approvals` is gone with `--allow-command` (N10).
+- A set-up error (a word outside its list, a bad context or file) is returned unwrapped and
+  unmarked, so A can keep its exit-2 mark (N1). The base inputs cannot be changed after `New`; a
+  client value is a copy.
+- Run and Output put `args` after the client's program, its context flags, pinned context and
+  session environment. args: only `runner.Cmd.Check` plus no control character; the module decides
   nothing about the command (ruling 2; open X13).
 - `With` shares the client's cached state (podman version, pinned context) through a pointer.
 
 ### 2.1.1 Method counts
 
-Method counts (operations, not counting `New` and `With`): containercli 21, podman 9, systemd 12,
-kube 26, rbac 1, nsgate 1. Total 70.
+Method counts (operations, not counting `New` and `With`): containercli 21 (Pull replaces
+Login), podman 9, systemd 12, kube 27 (CheckSecretKeys added), rbac 1, nsgate 1. Total 71.
 
 ### 2.2 containercli.Client (docker, podman, nerdctl engines and compose)
 
     New(s runner.Setup, c containercli.Config) (*Client, error)
-      Config {Engine Engine; Rules execguard.Rules; Command []string;
-              ComposeRules execguard.Rules; Compose []string; Rootless bool; Env []string}
-    Checks at set-up: execguard.Check on Command (and on Compose, whose Rules.Subword is "compose"
-    for `docker compose`: A must declare it as B does); Engine is Docker or Podman, else error;
-    Env entries are KEY=VALUE (the session env of open N38, set on every podman command).
-    Rootless feeds EngineHint. Programs the client issues: docker, nerdctl, docker-compose for
-    compose, podman (open N9; nerdctl and Engine: open X14).
+      Config {Engine Engine; CLI string; Compose string; Context string; Rootless bool;
+              Env []string}
+    Checks at set-up (E24): Engine is Docker or Podman, else error; CLI is `docker` or `nerdctl`
+    for Docker (Podman runs `podman`, no key); Compose is `plugin` (runs `<cli> compose`) or
+    `standalone` (runs `docker-compose`); Context, when set, is G-ctx and written `--context`;
+    empty uses the CLI's current context. Env entries are KEY=VALUE (the session env of N38, set
+    on every podman command). Rootless feeds EngineHint. Programs the client issues (N9): the
+    CLI word, `docker-compose` for standalone compose, `podman`. Remote engine: see open X17.
 
 #### Info
     sig      Info(ctx) (runner.Result, error)
@@ -130,7 +142,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     sig      List(ctx, o ListOptions{RunningOnly bool; Label string}) ([]Row, Result, error)
     cmd      <engine> ps --all --no-trunc [--filter status=running] [--filter label=<l>]
              --format '{{.Names}}\t{{.Image}}\t{{.Status}}'
-    args     Label: key=value, each part G-free (open N31); no name filter (names matched in Go)
+    args     Label: key=value, each part G-free (N31); no name filter (names matched in Go)
     errors   UNA (listing could not run); REF; START
     answer   ANS decoded as []Row; HasName, ByImage, ValidName stay pure; SafeNames added (N34)
     private  List, ParseList
@@ -142,9 +154,9 @@ kube 26, rbac 1, nsgate 1. Total 70.
     cmd      <engine> container inspect <names...>
     args     names: each G-ctr; none given = START error, nothing runs
     errors   NF (one name asked and missing); PART (several asked; found ones returned, error
-             names the missing ones) (open N29); UNA (undecodable); REF
+             names the missing ones) (N29); UNA (undecodable); REF
     answer   ANS decoded; the raw answer holds Config.Env, so B's raw print uses Output
-    private  inspect.Containers; inspect.Decode stays (open N26); Container.Secrets gains the ID
+    private  inspect.Containers; inspect.Decode stays (N26); Container.Secrets gains the ID
     A        internal/runner/runner.go:916 (Decode at :217); internal/statusreport/parse.go:553
     B        internal/container/inspect.go:66, 71; manager.go:931, 1380
 
@@ -176,7 +188,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     args     Project: G-name (a DNS label is a valid project name); Dir: G-host; File: non-empty,
              stdin; Env: KEY=VALUE, name G-env, value secret (masked in Result)
     errors   FAIL; START
-    answer   ACT (pull progress; piped when a writer is a buffer: smoke row, open N6)
+    answer   ACT (pull progress; piped when a writer is a buffer: smoke row, N6)
     private  ComposeUp; ComposeDigest stays (pure; its second input is the child env)
     A        internal/runner/runner.go:183 (digest cmd/solmq-conn-util/main.go:782)
     B        internal/container/manager.go:917 (digest :891)
@@ -205,7 +217,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     sig      Start(ctx, name string) (Result, error)   // Stop, Restart alike
     cmd      <engine> start|stop|restart <name>     (docker only; on podman both tools use systemd)
     args     name: G-ctr
-    errors   FAIL with stderr (engines word "not found" differently: no NF, open N29); START
+    errors   FAIL with stderr (engines word "not found" differently: no NF, N29); START
     answer   ACT
     private  Start, Stop, Restart; Remove is removed (CR-0001)
     A        internal/runner/runner.go:292, 294, 296
@@ -216,8 +228,8 @@ kube 26, rbac 1, nsgate 1. Total 70.
              Since time.Duration}) (Result, error)
     cmd      <engine> logs [-f] [--timestamps] [--tail <n>] [--since <t>] <name>
     args     name: G-ctr; Tail a count (an unset value needs a name; A's 100000 cap stays A's);
-             Since > 0, written as seconds (open N32)
-    errors   UNS (Previous on an engine: replaces NoPrevious, open N33, before any run);
+             Since > 0, written as seconds (N32)
+    errors   UNS (Previous on an engine: replaces NoPrevious, N33, before any run);
              FAIL; context.Canceled stays reachable with errors.Is
     answer   STR, stdout and stderr kept apart, no copy
     private  Logs, NoPrevious
@@ -231,11 +243,11 @@ kube 26, rbac 1, nsgate 1. Total 70.
                     argv ...string) (Result, error)
     cmd      <engine> exec [-i] [-t] <name> <argv...>      (no `--` on an engine)
     args     name: G-ctr; argv: non-empty list, tokens are the tool's; Attach: TTY needs Stdin
-             (open N57); ExecOutput stdin non-nil adds -i
+             (N57); ExecOutput stdin non-nil adds -i
     errors   Exec, ExecOutput: non-zero child exit = FAIL carrying ExitCode; START.
              Attach: START only; a session that ran is nil error and the code is in Result
     answer   Exec ACT; ExecOutput ANS; Attach STR, hands over the terminal, installs the
-             interrupt catcher and the Windows console mode for the call (open N16, N17)
+             interrupt catcher and the Windows console mode for the call (N16, N17)
     private  Exec (builder), containercli.ExecOptions shrinks to AttachOptions
     A        internal/runner/runner.go:1074 (ExecArgv); cmd/solmq-conn-util/shell.go:271
     B        internal/container/transport.go:67; manager.go:1473
@@ -263,15 +275,24 @@ kube 26, rbac 1, nsgate 1. Total 70.
     A        -
     B        internal/container/transport.go:119-136
 
-#### Login (new, ruling 6)
-    sig      Login(ctx, registry, user string, password []byte) (Result, error)
-    cmd      <engine> login --username <user> --password-stdin [<registry>]
-    args     user: G-free; registry: gdu 4 grammar (host[:port]); password on stdin, never argv
-    errors   FAIL; START
-    answer   ACT (stdin a byte count)
-    private  new builder
-    A        - (A relies on stored credentials)
-    B        internal/container/manager.go:455-479
+#### Pull (new, E18 and imagePullPolicy; replaces ruling 6's Login)
+    sig      Pull(ctx, ref, policy string) (Result, error)
+    cmd      <engine> pull <ref>; for `missing`, <engine> image inspect <ref> first
+    args     ref: gdu 4 grammar (image reference); policy: a word of the engine's list, empty =
+             the tool's default (docker: always, missing, never, daily, weekly, every_<duration>,
+             if_not_present; podman: always, missing, never, newer), checked as workload's
+             `ValidPullPolicy`
+    errors   a failed pull carries its cause, read from the engine's error: login (unauthorized
+             or denied; on Docker Hub "denied" also means a missing repository, so the message
+             names both), image (manifest or tag unknown), unreachable (registry); FAIL for any
+             other; START. No login is attempted: the tool tells the operator to run
+             `<engine> login <registry>`, so no password reaches the engine's auth file
+    answer   ACT (pull progress). always: pulls. missing: pulls only when the host lacks the
+             image. never: pulls nothing and stops if the image is absent. newer, daily, weekly,
+             every_<duration>: M pulls nothing, the engine decides (open X20)
+    private  new builder and classifier; B's login goes (E18)
+    A        internal/runner/runner.go:356 (plain image pull)
+    B        internal/container/manager.go:455-479 (login: goes)
 
 #### Run, Output
     sig      see 2.1
@@ -279,18 +300,19 @@ kube 26, rbac 1, nsgate 1. Total 70.
     args     see 2.1
     errors   FAIL carrying ExitCode; START
     answer   Run ACT; Output ANS
-    private  gdurunner.Combined, Split, Output (open N2)
-    A        internal/runner/runner.go:356 (image pull), runParsed :86
+    private  gdurunner.Combined, Split, Output (N2)
+    A        runParsed :86 (the image pull at runner.go:356 moves to Pull)
     B        internal/container/manager.go:147-153 (Manager.run), :329 (`<engine> version`: drop,
              Info answers it)
 
 ### 2.3 podman.Client
 
     New(s runner.Setup, c podman.Config) (*Client, error)
-      Config {Rules execguard.Rules; Command []string; Env []string}
-    Checks: execguard.Check on Command; Env entries KEY=VALUE. Filled from the same base, runner
-    and writers as the containercli client (guide says so). The session env reaches every podman
-    command (open N38). The version is read once, on first use of CreateSecret or SecretMatches,
+      Config {Env []string}
+    Checks: Env entries KEY=VALUE. No command key: podman is local only and the program is
+    `podman` (E24). Filled from the same base, runner and writers as the containercli client
+    (guide says so). The session env reaches every podman
+    command (N38). The version is read once, on first use of CreateSecret or SecretMatches,
     and kept behind a pointer; an unanswered read counts as below 4.7. No Version method
     (ruling 13).
 
@@ -303,7 +325,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
              labels: mandatory, keys and values checked per the label design note (gdu 1, 16)
     errors   FAIL naming the step; the message says a failed create after the rm leaves the
              secret gone until the next deploy; START
-    answer   ACT; Result = last command run (open N5). Value never in Argv
+    answer   ACT; Result = last command run (N5). Value never in Argv
     private  Version, SupportsReplace, CreateSecret
     A        internal/runner/runner.go:502, 508, 513 (version :480, main.go:957)
     B        internal/container/manager.go:612 (version :627-631)
@@ -335,7 +357,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
              <names...>      (ls cannot filter by label, so two commands)
     args     none; the tool filters on product and instance with the pure compare
     errors   PART (inspect exits non-zero when a name is gone); UNA; REF
-    answer   ANS decoded; Result = last command (open N5)
+    answer   ANS decoded; Result = last command (N5)
     private  new builders and parser
     A        -
     B        -
@@ -351,7 +373,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     B        -
 
 #### IDMap
-    sig      IDMap(ctx) (IDMaps{UID, GID string}, Result, error)      (open N42)
+    sig      IDMap(ctx) (IDMaps{UID, GID string}, Result, error)      (N42)
     cmd      podman info --format '{{range .Host.IDMappings.UIDMap}}...{{end}}...GIDMap...'
     args     none; rootless with a numeric run-as only (tool's condition)
     errors   UNA (both tools stop with "cannot read the range"); an empty answer IS an answer
@@ -379,8 +401,9 @@ kube 26, rbac 1, nsgate 1. Total 70.
 
     New(s runner.Setup, c systemd.Config) (*Client, error)
       Config {User bool; Env []string}
-    Checks: Setup (runner set), Env entries KEY=VALUE. No tokens: the programs are the module's
-    (systemctl, loginctl), so the guard has nothing to check (open X6). Env = rootless.Session.Env()
+    Checks: Setup (runner set), Env entries KEY=VALUE. No command key: the programs are the
+    module's (systemctl, loginctl), so there is no word to check (X6, settled by E24). Env =
+    rootless.Session.Env()
     passed as []string, so systemd imports no rootless. B's second client (system manager) is a
     second value, or the per-call option of Show.
 
@@ -407,7 +430,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
              1188, 1200
 
 #### State
-    sig      State(ctx, unit string) (UnitState, Result, error)         (open N46)
+    sig      State(ctx, unit string) (UnitState, Result, error)         (N46)
     cmd      systemctl [--user] is-active <unit>
     args     unit: gdu 4 grammar (unit name)
     errors   UNA when nothing was read, never a state word (ruling 13); exit code ignored on
@@ -440,7 +463,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
 
 #### Show (new, ruling 6)
     sig      Show(ctx, unit string, o ShowOptions{System bool}, props ...string)
-             (map[string]string, Result, error)                         (open N45)
+             (map[string]string, Result, error)                         (N45)
     cmd      systemctl [--user] show [<unit>] --property=<p> [--property=<p>...]
              System=true drops --user; unit "" asks the manager itself (--property=Version)
     args     unit: gdu 4 grammar (unit name) or empty; props: [A-Za-z0-9]+, at least one
@@ -473,13 +496,16 @@ kube 26, rbac 1, nsgate 1. Total 70.
 ### 2.5 kube.Client (kubectl or oc)
 
     New(s runner.Setup, c kube.Config) (*Client, error)
-      Config {Rules execguard.Rules; Command []string}
-    Checks: execguard.Check on Command (Rules.Allowed kubectl, oc). Runs no command.
+      Config {CLI string; ContextFile string; Context string}
+    Checks (E24): CLI is `kubectl` or `oc`, resolved on PATH; ContextFile, when set, is G-host
+    with a leading `~` expanded (gdu 2) and written `--kubeconfig`; Context, when set, is G-ctx
+    and written `--context`. Runs no command. A `-n` has no place to appear: the namespace is
+    each call's own argument.
     (c *Client) Pin(ctx) (*Client, error)         // ruling 11, todo item 11
-      With `--context` or `--context=` in Command: that one wins, nothing runs. Else
-      `<kubectl> config current-context`; returns a NEW client with `--context=<name>` in its
-      tokens. No context (kubectl in a pod): returns the unpinned receiver and a NOC error, which
-      the tool treats as "continue" after WhoAmI (open X5). B's mate channel calls New and Pin
+      With Config.Context set: that one wins, nothing runs. Else (empty = the session's current
+      context) `<kubectl> config current-context`; returns a NEW client with `--context=<name>`
+      in its base inputs. No context (kubectl in a pod): returns the unpinned receiver and a NOC
+      error, which the tool treats as "continue" after WhoAmI (open X5). B's mate channel calls New and Pin
       once per site.
 
 #### Pin (CurrentContext)
@@ -507,16 +533,19 @@ kube 26, rbac 1, nsgate 1. Total 70.
              Delete(ctx, manifest []byte, timeout time.Duration) (Result, error)
     cmd      <kubectl> apply -f -   |   <kubectl> delete -f - --ignore-not-found --timeout=<t>
     args     manifest: non-empty, stdin only, never argv; timeout G-dur (default constant beside
-             RolloutTimeout; the owner times a real broker remove first, gdu 12)
-    errors   REF; FAIL; Delete also TO (accepted and continuing in the cluster)
+             RolloutTimeout; the owner times a real broker remove first, gdu 12). Apply checks
+             each document of the stream against the object size limit (K16)
+    errors   REF; FAIL; START (Apply: a document over the size limit, naming the object and its
+             size; Delete does not check); Delete also TO (accepted and continuing in the cluster)
     answer   ACT (A scans an apply's own output with With(buf, w))
-    private  Apply, Delete
+    private  Apply, Delete. The size constant and a plain check are exported too, for
+             `generate`, which only warns (K16; names are working names)
     A        internal/runner/runner.go:144 (Apply), :146 (Delete)
     B        internal/k8s/cluster.go:190 (Apply), :196 (Delete)
 
 #### NamespaceState, NamespaceLabels
-    sig      NamespaceState(ctx, ns string) (NamespaceState, Result, error)        (open N50)
-             NamespaceLabels(ctx, ns string) (map[string]string, Result, error)    (open N53)
+    sig      NamespaceState(ctx, ns string) (NamespaceState, Result, error)        (N50)
+             NamespaceLabels(ctx, ns string) (map[string]string, Result, error)    (N53)
     cmd      <kubectl> get namespace <ns> --ignore-not-found -o name
              <kubectl> get namespace <ns> -o <template printing the labels only>
     args     ns: G-lbl
@@ -531,7 +560,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
 #### DeleteNamespace
     sig      DeleteNamespace(ctx, ns string, timeout time.Duration) (Result, error)
     cmd      <kubectl> delete namespace <ns> --ignore-not-found --timeout=<t>
-    args     ns: G-lbl, and not a protected name (kube.Protected, open N52); timeout G-dur
+    args     ns: G-lbl, and not a protected name (kube.Protected, N52); timeout G-dur
     errors   TO; REF; FAIL; START (protected or bad ns: not a cluster refusal, open X4)
     answer   ACT
     private  DeleteNamespace; nsgate.Protected moves to kube
@@ -546,6 +575,9 @@ kube 26, rbac 1, nsgate 1. Total 70.
              names: each G-sub; ns: G-lbl, empty for a cluster-scoped kind (the PV); timeout G-dur
     errors   TO; REF; FAIL; START. The loop and the policy stay in the tool
     answer   ACT
+    note     Remove deletes every derived Secret name through this call with --ignore-not-found,
+             needing no material (Secrets decision, 2026-11-27); `regcred` is deleted by name
+             (K10). A CRD kind: see open X18
     private  none (new)
     A        - (gdu 18 adds it)
     B        internal/k8s/ops.go:138 (pod), prep.go:283 (secret), deploy.go:215 (pvc)
@@ -601,7 +633,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     cmd      <kubectl> logs <target> [-n <ns>] [-c <c>] [-p] [-f] [--timestamps] [--tail <n>]
              [--since <t>]
     args     target: G-free (pod/<x>, deployment/<x>); Namespace G-lbl; Container G-lbl;
-             Tail and Since as the engine Logs (open N32)
+             Tail and Since as the engine Logs (N32)
     errors   FAIL; context.Canceled reachable
     answer   STR
     private  Logs
@@ -638,7 +670,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     A        internal/runner/runner.go:1175 (Upload, mkdir true, -c connector)
     B        internal/k8s/transport.go:92 (Upload), :100-117 (Copy); matechannel.go:69
 
-#### SecretKeys (new, open N56)
+#### SecretKeys (new, N56)
     sig      SecretKeys(ctx, ns, name string) ([]string, Result, error)
     cmd      <kubectl> get secret <name> [-n <ns>] -o <template printing the data key names only>
     args     ns: G-lbl; name: G-sub
@@ -648,6 +680,21 @@ kube 26, rbac 1, nsgate 1. Total 70.
     A        cmd/solmq-conn-util/secretprobe.go:36 (via internal/runner/runner.go:859);
              status.go:582 (existence only: use Get with -o name, not this)
     B        -
+
+#### CheckSecretKeys (new, Secrets decision 2026-11-27; working name)
+    sig      CheckSecretKeys(ctx, ns, name string, want ...string) (Result, error)
+    cmd      as SecretKeys (a wrapper: the comparison is a pure function)
+    args     ns: G-lbl; name: G-sub; want: the key names the tool reads, each [-._A-Za-z0-9]+
+             (each tool passes its own: A's credential field names under `existing`, B's fixed
+             keys such as username_admin_password, .dockerconfigjson, tls.crt and tls.key)
+    errors   a missing key fails naming the Secret and the missing keys, key names only (START
+             class: the module's own refusal, X4); NF for a missing Secret as SecretKeys; REF
+             (a refused read) is a warning and does not block (least privilege); FAIL
+    answer   SEC-safe: values never leave kubectl
+    private  new builder
+    A        cmd/solmq-conn-util/secretprobe.go:36 (today's key check)
+    B        -
+    note     Called before deploy for every `existing:` Secret, never for a derived one
 
 #### SecretValue (new, ruling 6)
     sig      SecretValue(ctx, ns, name, key string) ([]byte, Result, error)
@@ -681,7 +728,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
     A        internal/runner/runner.go:886-904
     B        -
 
-#### MissingNamespace (not an operation: a method, open N60)
+#### MissingNamespace (not an operation: a method, N60)
     sig      (c *Client) MissingNamespace(ns string, err error) error
     note     words the "namespace does not exist and this identity may not create it" error; the
              tokens stay inside the client
@@ -704,7 +751,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
              (-n <ns> | --all-namespaces | nothing)
     args     Verb: gdu 4 grammar (verb); Resource: gdu 4 grammar (plural resource, [a-z.]+);
              Name: G-sub; Namespace: G-lbl; Subresource: G-free (no caller in either tool)
-    errors   *RefusedError, which also answers errors.Is(err, runner REF) (open N61); UNA (run
+    errors   *RefusedError, which also answers errors.Is(err, runner REF) (N61); UNA (run
              error with no verdict, or exit 0 without "yes"; carries the login hint); NOC when
              kubectl reports no configuration
     answer   PRB: the verdict is the stdout; nothing is written
@@ -716,7 +763,7 @@ kube 26, rbac 1, nsgate 1. Total 70.
 #### nsgate.Read
     sig      nsgate.Read(ctx, kc *kube.Client, ns string) (Listing, runner.Result, error)
     cmd      today: <kubectl> get all,persistentvolumeclaims,secrets,configmaps -n <ns> -o json
-             recommended (open N49): metadata-only template for every kind, and with gdu 1 the
+             recommended (N49): metadata-only template for every kind, and with gdu 1 the
              kinds from `<kubectl> api-resources --verbs=list --namespaced -o name` (two commands,
              Result = last)
     args     ns: G-lbl (Protected is not checked here: Read is read-only)
@@ -726,8 +773,8 @@ kube 26, rbac 1, nsgate 1. Total 70.
     private  nsgate.List
     A        internal/runner/runner.go:871
     B        internal/k8s/namespace.go:57
-    pure     Occupants(Listing, Owned) []Object (open N55); Gate(...) decision function (open
-             N54); DeleteProbe(ns) asks about one namespace (open N51)
+    pure     Occupants(Listing, Owned) []Object (N55); Gate(...) decision function (open
+             N54); DeleteProbe(ns) asks about one namespace (N51)
 
 ## 3. The 13 gap operations (findings 2.2)
 
@@ -739,9 +786,11 @@ kube 26, rbac 1, nsgate 1. Total 70.
                                             runs them over the runner it holds, no client.
     4  Secret read without values           kube.Client.SecretKeys, SecretValue; A's status
                                             existence read is Get -o name (open X9).
+                                            CheckSecretKeys wraps SecretKeys for the deploy.
     5  systemctl show, also system manager  systemd.Client.Show with ShowOptions{System}.
     6  compose version                      containercli.Client.ComposeVersion.
-    7  registry login, password on stdin    containercli.Client.Login.
+    7  registry login, password on stdin    Not built (E18): no login in M or in the tools.
+                                            containercli.Client.Pull classifies a failed pull.
     8  copy in and out                      CopyTo and CopyFrom on containercli.Client and
                                             kube.Client.
     9  podman unshare                       podman.Client.Unshare (what runs inside stays B's).
@@ -751,11 +800,11 @@ kube 26, rbac 1, nsgate 1. Total 70.
     13 timed-out vs failed                  Kind TO, returned by Delete, DeleteNamespace,
                                             DeleteNamed and RolloutStatus.
 
-Stays tool-built via Run (findings 2.5): image pull (A, plain argv, nothing to parse), describe
-(B), `set env WATCH_NAMESPACE` (B, the operator's own variable), `systemctl status` and `cat`
+Stays tool-built via Run (findings 2.5): describe (B), `set env WATCH_NAMESPACE` (B, the
+operator's own variable), `systemctl status` and `cat`
 (B, display only), `<engine> version` row (B: drop, Info answers it), the in-broker commands
 (over Exec, ExecOutput, Upload), the StorageClass reads (over Get). `wait --for=condition=Ready`
-(gdu 17) is added only if the owner check says OnDelete (open N62).
+(gdu 17) is added only if the owner check says OnDelete (N62).
 
 ## 4. Methods neither tool needs today (findings 2.3)
 
@@ -767,11 +816,13 @@ Stays tool-built via Run (findings 2.5): image pull (A, plain argv, nothing to p
     podman.SecretLabels (gdu 16)   Keep, same reason.
     kube.WhoAmI (gdu 11)           Keep, same reason.
     kube.ListLabelled (gdu 18)     Keep, same reason.
-    kube.NamespaceLabels (gdu 1)   Keep (open N53): the remove gate needs it.
+    kube.NamespaceLabels (gdu 1)   Keep (N53): the remove gate needs it.
     kube.Client.Pin               Both tools call it (A is new by gdu 11).
     Stats, Top, InspectImage       A only, kept (ruling 6).
-    Login, SecretValue, Unshare,   B only, kept (ruling 6).
+    SecretValue, Unshare,          B only, kept (ruling 6).
     CopyTo, CopyFrom, ServerVersion, ComposeVersion, systemd.Show
+    Login                          Not built: E18 takes registry login out of ruling 6's list.
+    CheckSecretKeys                Both tools, new with the 2026-11-27 Secrets decision.
     rbac.Probe.Subresource and     No non-test caller in either tool (findings 2.8); the fields
     AllNamespaces                  stay as listed under "No decision needed"; drop is the owner's.
     Run and Output on podman and   No caller today; ruling 2 puts them on every client.
@@ -800,17 +851,17 @@ touch the machine:
           any other error is returned; replaces the isDir argument of UserSession
       func UserSession(euid int, h Host) (Session, error)       // signature change
       func (h Host) AccountName(uid int) string
-          os/user LookupID, then the numeric uid (open N40); never `id -un`, never $USER
+          os/user LookupID, then the numeric uid (N40); never `id -un`, never $USER
       func (h Host) HardLimit(name string) (int, error)
-          reads /proc/self/limits (open N44); ProcLimits goes
+          reads /proc/self/limits (N44); ProcLimits goes
 
 Files read: /etc/subuid, /etc/subgid, /proc/self/limits, the runtime directory (stat only).
 Account name: os/user, which under CGO_ENABLED=0 reads /etc/passwd and misses directory accounts.
-One test for "does the repair apply": Linux and a real uid (open N39). The pure parts stay:
-Decide, Session.Env and String, CheckLinger, ParseLimit, LimitText, CheckCore (open N43).
+One test for "does the repair apply": Linux and a real uid (N39). The pure parts stay:
+Decide, Session.Env and String, CheckLinger, ParseLimit, LimitText, CheckCore (N43).
 New or changed pure functions: `SubIDRefusal(cause, user, uid, gid, maps)` assembling the whole
 refusal (NextFreeRange and SubIDFix private, range sized from the larger of uid and gid plus one,
-open N41); `CheckIDMap(maps, uid, gid) *IDMapError` (open N42); `LingerFix(user)` (added).
+N41); `CheckIDMap(maps, uid, gid) *IDMapError` (N42); `LingerFix(user)` (added).
 
 ## 6. Exported names that go private, move or change
 
@@ -869,76 +920,84 @@ Change signature or shape (18):
     inspect.Containers           -> error, not `ok` bool (settled)
 
 Added (names): runner.Result, Setup, Error and seven kinds; execguard.CheckValue (N11),
-ApproveName (N10); containercli.CheckName (N30), Engine.Title (N34), SafeNames; kube.Pin,
-WhoAmI, DeleteNamed, ListLabelled, NamespaceLabels, SecretKeys, SecretValue, ServerVersion, Top,
-Copy; the clients and their `New` for containercli, podman, systemd, kube; rbac.Run, nsgate.Read
+NoPromptName and NoPromptFlag (N10; no `ApproveName`, `--allow-command` is gone);
+containercli.CheckName (N30), Engine.Title (N34), SafeNames, Pull; kube.Pin, WhoAmI, DeleteNamed,
+ListLabelled, NamespaceLabels, SecretKeys, CheckSecretKeys, SecretValue, ServerVersion, Top, Copy;
+the clients and their `New` for containercli, podman, systemd, kube; rbac.Run, nsgate.Read
 and Gate; rootless.Host and its methods, LingerFix, SubIDRefusal.
 
 Stay (no change): Cmd, Runner, Exec and its methods, Resolve, CheckRun, CheckAttach, Echo, MaskEnv,
 Engine, Docker, Podman, Row, HasName, ByImage, ValidName, ComposeDigest, inspect.Decode, State,
 Health, Mount, NamespaceState and its constants, Probe, ClusterScoped, RefusedError,
 podman.QuadletDir and SystemQuadletDir (N48), Decide, Session, Env, String, CheckLinger,
-Unbounded, ParseLimit, LimitText, CheckCore, execguard.Rules, Approvals, Check, Approve.
+Unbounded, ParseLimit, LimitText, CheckCore. Go with the free-form command keys (E24, N10):
+execguard.Rules, Approvals and Approve for them, and the `--allow-command` constant; what else of
+`execguard` stays is open X19.
 
 ## 7. Open points
 
-Open N entries this draft depends on (recommendation used):
+N entries this draft applies (all answered 2026-11-18; the recommendation was taken, except N9
+and N10, reshaped by E24):
 
-- open N1: M marks exit 2 only for execguard and envref errors; New returns the guard error
+- N1: M marks exit 2 only for execguard and envref errors; New returns its set-up error
   unwrapped.
-- open N2: Combined, Split and Output go private; tools move to client.Run and client.Output.
-- open N3: after a command ran Result.ExitCode is never negative (a signalled child is 1); -1 is
+- N2: Combined, Split and Output go private; tools move to client.Run and client.Output.
+- N3: after a command ran Result.ExitCode is never negative (a signalled child is 1); -1 is
   "never started".
-- open N4: exitcode.ChildStatus stays exported; runner.Error carries ExitCode().
-- open N5: Result describes the last command run; the method doc lists the commands.
-- open N6: Exec.Grace and DefaultGrace stay; add a smoke row for piped compose and pull output.
-- open N7: one masked display form on Cmd, Announce takes the Cmd, Quote becomes DisplayQuote,
+- N4: exitcode.ChildStatus stays exported; runner.Error carries ExitCode().
+- N5: Result describes the last command run; the method doc lists the commands.
+- N6: Exec.Grace and DefaultGrace stay; add a smoke row for piped compose and pull output.
+- N7: one masked display form on Cmd, Announce takes the Cmd, Quote becomes DisplayQuote,
   MaskEnv and Call.String stay.
-- open N8: NoEnv stays in B; only ComposeUp, ComposeDown and the session env set Cmd.Env.
-- open N9: each client states the programs it issues; a tool picks its subset for Rules.Allowed.
-- open N11: execguard exports CheckValue; tilde refused leading only.
-- open N12: a neutral character package holds IsControl, IsInvisible, UnsafeChars, CheckValue.
-- open N13: IsControl includes U+0085.
-- open N14: one exported CheckHostPath, leading tilde refused.
-- open N16: one terminal package; Attach turns on the Windows console mode.
-- open N17: Attach installs and removes the interrupt catcher for the call.
-- open N26: containercli/inspect stays as the plain decode package; only the builder goes private.
-- open N27: Printable moves to runner with a form that keeps newline and tab.
-- open N28: the stderr field holds exact bytes; Error() uses a cleaned copy.
-- open N29: Inspect returns NF for one missing name, PART for several; Start, Stop, Restart do
+- N8: NoEnv stays in B; only ComposeUp, ComposeDown and the session env set Cmd.Env.
+- N9 (reshaped by E24): each client states the programs it issues, and the env file's `cli`
+  words pick from them (`kubectl` or `oc`; `docker` or `nerdctl`; compose as plugin or
+  standalone `docker-compose`; `podman`). No per-tool `Rules.Allowed` list.
+- N10 (reshaped by E24): `--allow-command` is gone with the free-form command keys. M exports
+  only the no-prompt pair, `NoPromptName` (`no-prompt`) and `NoPromptFlag` (`--no-prompt`).
+- N11: execguard exports CheckValue; tilde refused leading only.
+- N12: a neutral character package holds IsControl, IsInvisible, UnsafeChars, CheckValue.
+- N13: IsControl includes U+0085.
+- N14: one exported CheckHostPath, leading tilde refused.
+- N16: one terminal package; Attach turns on the Windows console mode.
+- N17: Attach installs and removes the interrupt catcher for the call.
+- N26: containercli/inspect stays as the plain decode package; only the builder goes private.
+- N27: Printable moves to runner with a form that keeps newline and tab.
+- N28: the stderr field holds exact bytes; Error() uses a cleaned copy.
+- N29: Inspect returns NF for one missing name, PART for several; Start, Stop, Restart do
   not guess NF; add a smoke row for the missing-name exit code.
-- open N30: ValidName stays the engine grammar; CheckName words the DNS-label rule for creation.
-- open N31: List gets a label filter; Row gains no Labels; ByImage stays.
-- open N32: Tail becomes a count, Since a time.Duration; zero or negative Since refused.
-- open N33: containercli.LogOptions gains Previous; Logs refuses it; NoPrevious goes private.
-- open N34: add SafeNames, Engine.Title, find-by-name and the digest-plus-env helper; no running
+- N30: ValidName stays the engine grammar; CheckName words the DNS-label rule for creation.
+- N31: List gets a label filter; Row gains no Labels; ByImage stays.
+- N32: Tail becomes a count, Since a time.Duration; zero or negative Since refused.
+- N33: containercli.LogOptions gains Previous; Logs refuses it; NoPrevious goes private.
+- N34: add SafeNames, Engine.Title, find-by-name and the digest-plus-env helper; no running
   helper.
-- open N38: the session env goes to systemd and the podman clients; B stops using os.Setenv.
-- open N39: the user-session repair applies on Linux with a real uid only.
-- open N40: account name by os/user, then the numeric uid; smoke row for a number in the fix text.
-- open N41: one function assembles the sub-id refusal; range sized from the larger of uid and gid
+- N38: the session env goes to systemd and the podman clients; B stops using os.Setenv.
+- N39: the user-session repair applies on Linux with a real uid only.
+- N40: account name by os/user, then the numeric uid; smoke row for a number in the fix text.
+- N41: one function assembles the sub-id refusal; range sized from the larger of uid and gid
   plus one.
-- open N42: IDMap returns both maps from one call; CheckIDMap returns *IDMapError.
-- open N43: the six core-limit helpers stay in M; the parity body line is reworded.
-- open N44: /proc/self/limits is read in Go; ProcLimits goes.
-- open N45: one Show(unit, props...) returning a map; manager selectable per call.
-- open N46: State returns a typed UnitState and UNA; Active and Stopped become its methods.
-- open N47: no composite that resolves the whole podman scope.
-- open N48: QuadletDir and SystemQuadletDir stay in podman.
-- open N49: the namespace listing asks for a metadata-only template, no -o json.
-- open N50: NamespaceState returns the state and the typed error together; zero value Unknown.
-- open N51: DeleteProbe(ns) asks about the one namespace, without --all-namespaces.
-- open N52: Protected moves to kube; Client.DeleteNamespace refuses a protected name.
-- open N53: a separate NamespaceLabels method for the remove gate; a failed read is "unlabelled".
-- open N54: nsgate gains one pure gate function for the question table.
-- open N55: Object lives in kube; Occupants takes an Owned value and returns []Object.
-- open N56: add SecretKeys (names only) beside SecretValue.
-- open N57: Attach keeps two switches, input and terminal; a terminal without input is refused.
-- open N58: a Namespace document value in a package under kube.
-- open N59: rename ValidLabel to ValidDNSLabel, add ValidDNSSubdomain and a label-value rule.
-- open N60: MissingNamespace becomes a Client method.
-- open N61: *RefusedError also answers errors.Is for the runner refused error.
-- open N62: add no pod-wait method now.
+- N42: IDMap returns both maps from one call; CheckIDMap returns *IDMapError.
+- N43: the six core-limit helpers stay in M; the parity body line is reworded.
+- N44: /proc/self/limits is read in Go; ProcLimits goes.
+- N45: one Show(unit, props...) returning a map; manager selectable per call.
+- N46: State returns a typed UnitState and UNA; Active and Stopped become its methods.
+- N47: no composite that resolves the whole podman scope.
+- N48: QuadletDir and SystemQuadletDir stay in podman.
+- N49: the namespace listing asks for a metadata-only template, no -o json.
+- N50: NamespaceState returns the state and the typed error together; zero value Unknown.
+- N51: DeleteProbe(ns) asks about the one namespace, without --all-namespaces.
+- N52: Protected moves to kube; Client.DeleteNamespace refuses a protected name.
+- N53: a separate NamespaceLabels method for the remove gate; a failed read is "unlabelled".
+- N54: nsgate gains one pure gate function for the question table.
+- N55: Object lives in kube; Occupants takes an Owned value and returns []Object.
+- N56: add SecretKeys (names only) beside SecretValue.
+- N57: Attach keeps two switches, input and terminal; a terminal without input is refused.
+- N58: a Namespace document value in a package under kube.
+- N59: rename ValidLabel to ValidDNSLabel, add ValidDNSSubdomain and a label-value rule.
+- N60: MissingNamespace becomes a Client method.
+- N61: *RefusedError also answers errors.Is for the runner refused error.
+- N62: add no pod-wait method now.
 
 New open points from this draft (no N entry exists; the recommendation is mine):
 
@@ -952,7 +1011,6 @@ New open points from this draft (no N entry exists; the recommendation is mine):
   it is a START-class validation error.
 - open X5: Pin returns the unpinned client with NOC; the tool then calls WhoAmI (ruling 11 needs a
   command at start-up, ruling 3 says set-up only guards).
-- open X6: systemd.New has no tokens, so ruling 3's guard check has nothing to run there.
 - open X7: kube.RolloutTimeout changes from the string "300s" to a time.Duration.
 - open X8: a missing compose plugin is UNS with B's hint.
 - open X9: Get on a Secret with -o json is not refused in this draft; the owner may want the
@@ -964,21 +1022,45 @@ New open points from this draft (no N entry exists; the recommendation is mine):
 - open X12: Error() text does not repeat stderr; a tool whose writer discards stderr loses today's
   "<cmd>: <output>" wording.
 - open X13: Run and Output check their args only for control characters and an empty list.
-- open X14: B allows nerdctl and docker-compose; Config.Engine allows Docker or Podman only
-  (ruling 3), so nerdctl runs as Docker with its own tokens.
+- open X14: `docker.cli: nerdctl` is a word of the docker section (E24) while Config.Engine
+  allows Docker or Podman only (ruling 3). Draft: nerdctl runs as Docker with its own program
+  name; the sources do not say whether Engine gets a third value.
 - open X15: smoke rows to add: missing-name inspect exit code (N29), piped compose output (N6),
   can-i for a named namespace (N51), SecretKeys and namespace templates (N49, N56), the one-call
   IDMap template (N42), systemd exit codes 5, 3 and 4 (todo item 9), a number in the linger fix
   line (N40).
 - open X16: A's status script needs both streams merged in order, so it uses Exec with
   With(buf, buf); ExecOutput returns stdout only (findings 2.8).
+- open X17: remote docker engine. The flatten answer says a remote engine is detectable (the
+  selected context's endpoint is not `unix://` or `npipe://`) and a bind-mount source is then
+  refused. No source says which M piece reads the endpoint: a containercli method, or the tool
+  with `docker context inspect` over Run. No method is in section 2.2 for it. Podman is local
+  only; Kubernetes writes no host path.
+- open X18: CRDs (K4: a CRD is never deleted). `Manifest.Refs` refuses a CRD and B drops
+  `--delete-crd`. Whether `DeleteNamed` also refuses the kind `customresourcedefinition`, and
+  whether `Delete` refuses a CRD document in a stream (K9 refuses a Namespace there), is not
+  stated.
+- open X19: `execguard` after E24. The token rules, `Rules`, `Approvals` and `Approve` go with
+  the command keys; `CheckValue`, the character rules and `Check` for `Cmd` arguments (N11,
+  N12) stay in use. The sources do not list what else of the package is removed.
+- open X20: the pre-deploy pull. Ruling 6 left image pull with the tool over Run; E18
+  (2026-11-18, later) has M read the engine's error and name the cause, so this draft puts a
+  `Pull` method in M (2.2) that also applies the imagePullPolicy word. The alternative is a
+  pure `ClassifyPull` over the tool's own pull. Not stated: how the pull treats compose's
+  `if_not_present` (the sources list the behaviour of always, missing, never and the engine
+  decided words only), and whether the policy switch lives in M or in each tool.
+- open X21: a compose `standalone` form with a `docker.context`: E24 gives both keys but not
+  how `docker-compose` takes the context. Not decided here.
 
 Where the rulings collide with the code as it is:
 
 - Ruling 1 against probes: see X2. Ruling 1 against A: `runParsed` folds stdout into error text
   (internal/runner/runner.go:86-91) and a failed namespace listing prints Secret documents; ruling
   4 removes that.
-- Ruling 3 against ruling 11: see X5. Ruling 3 against systemd: see X6.
+- Ruling 3 as worded (the tool's `execguard` rules and command tokens at set-up) is replaced by
+  E24: set-up checks structured words. Ruling 3 against ruling 11: see X5.
+- Ruling 6 lists image pull as tool-built and registry login as moving into M; E18 reverses
+  both (no login; the pull's failure classes are M's): see X20.
 - Ruling 4 "result returned on failure too": `runner.Exec.Run` returns only an error and `Attach`
   returns (int, error), so each client builds the Result; Duration and masked Argv are new.
 - Ruling 5 "a non-zero exit is an error": `Exec.Run` today wraps *exec.ExitError as
