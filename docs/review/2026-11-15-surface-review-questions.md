@@ -739,6 +739,10 @@ them. Key names are written in camelCase, as ruling 11 requires.
   `create` and `existing` too (`kubernetes.secrets.stores`,
   `kubernetes.secrets.additionalUsers`; exact spelling at build); B's operator `regcred`
   stays as E10 says.
+  Revised 2026-11-27 (also E8, E11): no `create: true` switch for any Secret. Material set
+  means built under the derived name, `existing: NAME` means referenced, both is an error,
+  neither builds nothing (B's admin: the operator generates one). See
+  [2026-11-18-secrets-assessment.md](2026-11-18-secrets-assessment.md) section 6.
 
 ### E10. B's operator pull Secret when the broker's is "existing"
 
@@ -913,6 +917,8 @@ them. Key names are written in camelCase, as ruling 11 requires.
   so no password lands in the engine's auth file. `image.user` and `image.pass` serve the
   Kubernetes pull Secret only. B loses its own login, and ruling 6's registry login does not
   move into M.
+  Revised 2026-11-27: the pull follows a new `imagePullPolicy` on docker and podman (each
+  platform's words), so a local-only image is not pulled under `missing` or `never`.
 
 ### E19. B's `podman.quadletDir`
 

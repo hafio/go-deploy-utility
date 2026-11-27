@@ -2,6 +2,9 @@
 
 Date 2026-11-18. Read-only assessment for the owner. Nothing here is built.
 
+Status 2026-11-27: the owner chose derivation over `create: true` blocks (section 6), which
+replaces the rule in section 1. Sections 2 to 5 are the analysis as written.
+
 Paths. A = solmq-conn-util (`solace-ibmmq-connector-helper`), paths relative to it, written
 `A spec/kubernetes.go:320` for `internal/spec/kubernetes.go:320` (and `A cmd/...` for `cmd/`).
 B = solace-util (`solace-cnt-scripts`), written `B config/config.go:114` the same way. Every
@@ -310,6 +313,7 @@ Open points that need the owner:
   operator install: legal (needed for `regcred`) or refused? E10 implies legal. The rule needs
   one sentence saying `image.user/pass` are exempt from both errors in B, and that with no
   block the pair builds only `regcred`.
+  Answer (owner, 2026-11-27): exempt, as above.
 - O3. A TLS (E9 "Secrets reach"): is `kubernetes.secrets.stores.existing: NAME` a whole-Secret
   reference keyed by store name, living beside per-store `existing.secret {name,key}`? Both?
   A retired this block on purpose (A validate/validate.go:973-985, 1229-1248). And does
@@ -324,6 +328,76 @@ Open points that need the owner:
   credentials. Fix inside this work or separately?
 - O7. Adoption (E5): accept silent replace of a same-name Secret under `create`, or require a
   tool label so a foreign Secret is refused?
+  Answer (owner, 2026-11-27): replace, with the derived name reserved for the tool and the
+  docs saying so.
 - O8. Name migration for B: an env file that built under a custom name now builds the derived
   name. The old Secret is orphaned and the CR switches. Is a one-line load warning that names the
   old Secret enough?
+
+## 6. Owner's decisions (2026-11-27)
+
+Derivation is the standard for every Kubernetes Secret in both tools, TLS included. No Secret
+has a `create: true` switch; each has an optional `existing: NAME`.
+
+| The env file has | Result |
+|---|---|
+| `existing: NAME` only | That Secret is referenced; nothing is built or deleted |
+| Material only | Built under the derived name |
+| Both | Load error, except the two cases below |
+| Neither | Nothing built or referenced; B's admin: the operator generates one (today) |
+
+- Material is present when its literal or its `...Env` key is set, whatever the value (E2). An
+  unset or empty variable stays a load error where the value is read (`envref`).
+- Material per Secret. A credentials: the credential fields. A image pull: `image.user` and
+  `image.pass`. A stores: a selected tool-held store. B credentials: `semp.adminPass`
+  (`monitorPass` and `psk` are entries of it). B image pull: `image.user` and `image.pass`. B
+  TLS: `tls.cert` and `tls.certKey`. B additional users: a non-empty `semp.additionalUsers`.
+- Exceptions to "both is an error": A's credential fields under `existing` name the keys of that
+  Secret (O1); B's `image.user` and `image.pass` also build `regcred` (O2, answered: exempt).
+  With `imagePull.existing` the pair builds only `regcred`; with no block it builds the
+  broker's pull Secret and `regcred`, as today.
+- A's stores keep today's shape: no block, `<name>-stores` built when a selected store is
+  tool-held, per-store `existing.secret` unchanged. O3 and O4 fall away.
+- `create:` blocks that hold material stay: A's `libs.pvc.create` and A's per-store `create`.
+- O7 (answered): a Secret already under a derived name is replaced; derived names are reserved
+  for the tool and the docs say so.
+- The rule applies only where the Kubernetes platform is used (E1, scope). `generate` prints a
+  Secret for each built one and none for `existing` (E4).
+- Trade-off accepted: a file that meant to build a Secret but lost all its material builds
+  nothing. For B's TLS the broker then comes up without the server certificate; a switch would
+  have caught it.
+
+Left for the owner:
+
+- O1 (answered 2026-11-27): A keeps it. Under `existing`, a field written `-env: VAR` names the
+  key VAR in that Secret and the host variable is never read; a literal maps to its `_GEN_` key.
+  It cannot be common: B's keys are fixed by their readers, not by B (`username_admin_password`,
+  `username_monitor_password`, `preshared_auth_key` by the operator, B k8s/secrets.go:71-116;
+  `.dockerconfigjson` by Kubernetes; `username_<user>_password` by the broker; `tls.crt` and
+  `tls.key` by B's CR). Answer (2026-11-27): add a common check. Before deploy, M checks that
+  an `existing` Secret holds the keys the tool reads, listing key names only (values never
+  leave kubectl), and fails naming the Secret and the missing keys. Refused permission to read
+  Secrets warns and does not block (least privilege). Each tool passes its keys.
+- Remove scope (answered 2026-11-27: every derived name, as recommended). Remove deletes
+  every derived Secret name with
+  `--ignore-not-found`, needing no material (gdu 3), and `existing:` may not name a derived
+  name. It clears the leftover of a move from built to `existing` (E6) and of material deleted
+  between deploy and remove. The other choice: delete only what the current file builds.
+- O5: B's registry login on docker and podman goes (E18). Recommended: accept; the pull-failure
+  message already tells the operator to log in. The owner leans accept and asked about
+  local-only images: an unconditional pull fails for them, so the pull must run only when the
+  host lacks the image. Answer (2026-11-27): accept, and a new `imagePullPolicy` on docker and
+  podman with each platform's own words beside the Kubernetes one; the pull before deploy
+  follows it (env-layout section 4).
+- O6: B podman remove leaves a secret dropped from the file; A docker remove resolves `-env`
+  credentials. Recommended: separate items, not this work.
+- O8: B's custom names. Old keys fail as unknown under strict decoding, so every such file is
+  edited anyway. Recommended: a migration note (keep the old Secret with `existing: NAME` and
+  drop the password, or let the tool build the derived name and delete the old one by hand),
+  no load warning. Answer (2026-11-27): `validate` warns; other operations ignore the three
+  old keys (retired keys, accepted like A's retired names). The reference form (a name with
+  no material beside it) is ignored too, by the owner's choice after the risk was put: such a
+  file then deploys without TLS, with the operator's generated admin Secret (SEMP logins fail),
+  or without its pull Secret, until it is edited; `validate` names the key.
+- At build (E7): B's `-additional-users` on a 48-character name is 65 characters; check
+  whether that name is also a volume name or label value (limit 63).

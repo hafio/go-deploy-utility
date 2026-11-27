@@ -210,9 +210,9 @@ The plan review raised these and nothing decided since contradicts them.
 - The detail questions of the surface review, in
   [2026-11-15-surface-review-questions.md](2026-11-15-surface-review-questions.md): 147 of
   154 answered on 2026-11-17 and 2026-11-18 (summary in section 11 of the design note). Open:
-  the `create` defaults of every Secret, after the owner reads
-  [2026-11-18-secrets-assessment.md](2026-11-18-secrets-assessment.md) (the flatten review of [2026-11-17-env-layout.md](2026-11-17-env-layout.md)
-  settled the rest on 2026-11-18).
+  the points left on Secrets after the 2026-11-27 decision to derive them (section 6 of
+  [2026-11-18-secrets-assessment.md](2026-11-18-secrets-assessment.md)); the flatten review of
+  [2026-11-17-env-layout.md](2026-11-17-env-layout.md) settled the rest on 2026-11-18.
   Its thirteen rulings were made on 2026-11-15 and are section 10 of
   [docs/design/2026-11-15-shared-deploy-api.md](../design/2026-11-15-shared-deploy-api.md).
 - The consolidation work of [2026-11-15-surface-review.md](2026-11-15-surface-review.md),

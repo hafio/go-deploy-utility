@@ -548,6 +548,18 @@ over both.
   node port is not offered: the cluster picks one.
 - **Still open** (2026-11-18): one rule for the `create` defaults of every Secret
   ([../review/2026-11-18-secrets-assessment.md](../review/2026-11-18-secrets-assessment.md)).
+  Answered 2026-11-27: derivation is the standard for every Secret, TLS included: no
+  `create: true` switch; material set means built under the derived name, `existing: NAME`
+  means referenced, both is an error, neither builds nothing. `create:` blocks that hold
+  material (A's `libs.pvc`, A's stores) stay. Also O2 (B's `image.user`/`image.pass` exempt)
+  and O7 (replace, derived names reserved for the tool). O3 and O4 fall away. O1: A's
+  credential fields stay key names under `existing` (A only; B's keys are fixed by their
+  readers), and M checks before deploy that an `existing` Secret holds the keys the tool
+  reads (key names only; a refused read warns). Remove deletes every derived Secret name. O8:
+  `validate` warns on B's three old name keys and every other operation ignores them, the
+  reference form included (owner's choice, risk stated). O5: accepted, with a new
+  `imagePullPolicy` on docker and podman in each platform's words, which the pull before
+  deploy follows (env-layout section 4). Left: O6, two bugs, as separate items.
 - **Consolidation drafts** (2026-11-17, Sonnet agents, open points marked):
   [2026-11-17-container-description.md](2026-11-17-container-description.md) and
   [2026-11-17-catalogue.md](2026-11-17-catalogue.md).

@@ -71,6 +71,7 @@ docker:
   name: connector          # unchanged (ruling 11: <platform>.name; DNS label <= 63)
   projectName: solace-connectors  # ruling 11 + E1: compose project
   restart: always          # E6: default now always (was unless-stopped)
+  imagePullPolicy: missing  # pull (new): compose words, default missing (see section 4)
   network:                 # E4 (new for A): B's block, kept
     mode: bridge           # bridge|host|none; absent: open C2
     ports: [8090, "9000:9000"]  # E7 (was docker.ports): bare N = N:N, handled in M
@@ -110,6 +111,7 @@ podman:
     mode: private          # private|bridge|pasta|slirp4netns|host|none; absent: open C2
     ports: [8090]          # E7 (was podman.ports): bare N = N:N, handled in M
   restart: always          # unchanged
+  imagePullPolicy: missing  # pull (new): always|missing|never|newer; default missing
   resources:               # E12 (new on podman for A)
     memory: 2g             # E12
   readOnlyRoot: true       # E21 (new): A default true; M requires a value
@@ -163,6 +165,7 @@ kubernetes:
   name: connector          # ruling 11 (was deployment.name)
   namespace: solace        # ruling 11 (was deployment.namespace)
   replicas: 1              # ruling 11 (was deployment.replicas)
+  imagePullPolicy: Always  # pull (new): Always|IfNotPresent|Never; unset writes nothing (today)
   resources:               # ruling 11 dissolve; E12 for the name
     cpu: 500m              # E12
     memory: 512Mi          # E12
@@ -186,10 +189,11 @@ kubernetes:
         registry: ""       # empty = Docker Hub
         name: busybox
         tag: "1.37"
-  secrets:
-    credentials: {create: true}    # unchanged ({existing: NAME} alternative)
-    imagePull: {create: true}      # E8 + E1 (was image-pull; {existing: NAME} replaces name:)
-    stores: {create: true}         # Secrets reach (new): or {existing: NAME}; was implicit
+  secrets:                 # derived (2026-11-27): material set = built under the derived name
+    credentials: {existing: NAME}  # optional; create: true dropped; credential fields set = built
+    imagePull: {existing: NAME}    # optional (was image-pull.name); image.user/pass set = built;
+                                   # image-pull.create dropped
+                                   # no stores block: a tool-held store builds <name>-stores (unchanged)
   securityContext:         # E22 (was run-as "1000:0"): pod fields, as in B and Kubernetes
     runAsUser: 1000
     fsGroup: 0
@@ -263,6 +267,7 @@ docker:
                            # every role (separate hosts); redundancy.sameHost: true (new)
                            # makes <name>-primary, -backup, -monitor on one host
   restart: always          # E6 (new; default always)
+  imagePullPolicy: missing  # pull (new): compose words, default missing (see section 4)
   runAs: "1000001:0"       # E5 (was container.runUser); absent = default; word default allowed
   readOnlyRoot: false      # E21 (new): B default false; M requires a value
   network:                 # E4: unchanged
@@ -313,6 +318,7 @@ podman:
   # baseDir                # E20: dropped; B stops deleting the legacy file
   name: solace             # ruling 11 (was container.name)
   restart: always          # E6 (new; default always)
+  imagePullPolicy: missing  # pull (new): always|missing|never|newer; default missing
   runAs: "1000:0"          # E5 (was container.runUser); default 1000:0 / 1000001:0 rootful
   readOnlyRoot: false      # E21 (new): B default false; M requires a value
   network:                 # E4: unchanged; podman words (todo 6)
@@ -384,13 +390,14 @@ kubernetes:
   context: prod            # E24 (new, optional): --context; absent = pinned current (gdu 11)
   name: solace             # unchanged
   namespace: solace        # unchanged
-  secrets:                 # E8
-    credentials: {create: true}     # was adminSecret; or {existing: NAME}; E11: no mixes
-    imagePull: {existing: regcred2} # was imagePullSecret; or {create: true}
-    tls: {create: true}             # E9 (was tlsServerSecret); or {existing: NAME}
-    additionalUsers: {create: true} # Secrets reach (new): or {existing: NAME}; was implicit
+  secrets:                 # E8; derived (2026-11-27): material set = built under the derived name
+    credentials: {existing: NAME}   # optional (was adminSecret); semp.adminPass set = built;
+                                    # neither = the operator generates one (today)
+    imagePull: {existing: regcred2} # optional (was imagePullSecret); image.user/pass set = built
+    tls: {existing: NAME}           # optional (was tlsServerSecret); tls.cert/certKey set = built
+    additionalUsers: {existing: NAME}  # optional (new); semp.additionalUsers set = built
                                     # K8: still named in the CR's extraEnvVarsSecret
-  imagePullPolicy: Always  # unchanged
+  imagePullPolicy: Always  # unchanged: Always|IfNotPresent|Never; default IfNotPresent
   updateStrategy: automatedRolling  # unchanged
   serviceAccount: sa       # unchanged
   storage: {...}           # unchanged: 4 keys
@@ -460,6 +467,7 @@ moves table and not counted as moves.
 | A | kubernetes.deployment.spread | kubernetes.placement.spread | ruling 11, E14 |
 | A | kubernetes.secrets.image-pull | kubernetes.secrets.imagePull | E8, E1 |
 | A | kubernetes.secrets.image-pull.name | kubernetes.secrets.imagePull.existing | E8 |
+| A | kubernetes.secrets.credentials.create, image-pull.create | dropped: derived from material | Secrets (2026-11-27) |
 | B | image.repo | image.name | E3 (revised 2026-11-18) |
 | B | docker.container.name | docker.name | ruling 11 |
 | B | podman.container.name | podman.name | ruling 11 |
@@ -483,9 +491,9 @@ moves table and not counted as moves.
 | B | docker.compose (a command string) | docker.compose: plugin or standalone | E24 |
 | B | podman.command | dropped (podman is local only) | E24 |
 | B | kubernetes.command | kubernetes.cli, with new kubernetes.contextFile and kubernetes.context | E24 |
-| B | kubernetes.adminSecret | kubernetes.secrets.credentials | E8 |
-| B | kubernetes.imagePullSecret | kubernetes.secrets.imagePull | E8 |
-| B | kubernetes.tlsServerSecret | kubernetes.secrets.tls | E9 |
+| B | kubernetes.adminSecret | kubernetes.secrets.credentials.existing | E8, Secrets (2026-11-27) |
+| B | kubernetes.imagePullSecret | kubernetes.secrets.imagePull.existing | E8, Secrets (2026-11-27) |
+| B | kubernetes.tlsServerSecret | kubernetes.secrets.tls.existing | E9, Secrets (2026-11-27) |
 | B | kubernetes.msgNode.cpu | kubernetes.resources.cpu | E12 |
 | B | kubernetes.msgNode.mem | kubernetes.resources.memory | E12 |
 | B | kubernetes.operator.cpu | kubernetes.operator.resources.cpu | E12 |
@@ -498,13 +506,13 @@ moves table and not counted as moves.
 
 New keys (not moves): A: docker.network.mode and podman.network.mode (E4), docker.compose and
 docker.context (E24), kubernetes.contextFile and kubernetes.context (E24), readOnlyRoot on
-three platforms (E21), kubernetes.secrets.stores (Secrets reach), kubernetes.service.type
-(Service types),
+three platforms (E21), kubernetes.service.type
+(Service types), docker|podman|kubernetes.imagePullPolicy (pull),
 docker|podman.resources.memory (E12). B: docker.projectName (ruling 11), docker.restart
 and podman.restart (E6), docker.context, kubernetes.contextFile and kubernetes.context (E24),
-readOnlyRoot on docker and podman (E21), kubernetes.secrets.additionalUsers (Secrets reach),
+readOnlyRoot on docker and podman (E21), kubernetes.secrets.additionalUsers.existing (Secrets reach),
 image.userEnv (no decision needed), kubernetes.placement.spread (E14),
-kubernetes.service.type (Service types).
+kubernetes.service.type (Service types), docker|podman.imagePullPolicy (pull).
 
 Other A keys renamed by E1 outside the platform sections (listed for completeness, not
 counted): java-options, leader-election (and its conn-ref), solace-defaults, mq-defaults,
@@ -546,7 +554,24 @@ is fixed at build.
 - Service types: a new `kubernetes.service.type` in both tools. M owns the words (ClusterIP,
   NodePort, LoadBalancer, exact case) and checks them; the tools own the default. B: default
   LoadBalancer, accepts all three. A: default ClusterIP, accepts all three.
+- Secrets (2026-11-27): no `create: true` switch for any Secret, TLS included, as the standard.
+  Material set (literal or `...Env` key) means the tool builds the Secret under the derived
+  name; `existing: NAME` means it uses that one; both is a load error; neither builds nothing.
+  `create:` blocks that hold material (A's `libs.pvc.create`, A's per-store `create`) stay.
+  Details: [2026-11-18-secrets-assessment.md](2026-11-18-secrets-assessment.md) section 6.
+- Pull (2026-11-27): `imagePullPolicy` on every platform in both tools, each with the
+  platform's own words, M checking them. Kubernetes: `Always`, `IfNotPresent`, `Never`. Docker
+  (compose `pull_policy`): `always`, `missing`, `never`, `daily`, `weekly`, `every_<duration>`,
+  `if_not_present`; `build` refused, as the tools write no build section. Podman (quadlet
+  `Pull=`): `always`, `missing`, `never`, `newer`. Word lists to check against the docs at
+  build. Defaults are the tools' and keep today's behaviour: docker and podman `missing`, B
+  Kubernetes `IfNotPresent`, A Kubernetes nothing written. Deploy's pull before running (E18)
+  follows the value: pull for always; pull only when the host lacks the image for missing;
+  never pulls for never and stops if the image is absent; the engine decides for newer,
+  daily, weekly and every_<duration>. A local-only image therefore works under missing or
+  never. Kubernetes has no tool pull: the cluster pulls.
 
 ## 5. Still open
 
-- One rule for the `create` defaults of every Secret.
+- Secrets: the points left after the 2026-11-27 decision
+  ([2026-11-18-secrets-assessment.md](2026-11-18-secrets-assessment.md) section 6).
