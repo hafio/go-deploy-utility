@@ -174,7 +174,7 @@ kubernetes:
   service:                 # E15: A keeps enabled and port
     enabled: false         # unchanged
     type: ClusterIP        # Service types (new): ClusterIP|NodePort|LoadBalancer;
-                           # A default ClusterIP (recommended, to confirm)
+                           # A default ClusterIP (owner, 2026-11-18)
     port: "80:8090"        # unchanged
   readOnlyRoot: true       # E21 (new): A default true; M requires a value
   libs:                    # unchanged but for download.image (pvc.create.storage, nfs, ...)
@@ -545,9 +545,8 @@ is fixed at build.
 - B on Kubernetes states user 1000001, group and fsGroup 1000002 when unset, and refuses 0.
 - Service types: a new `kubernetes.service.type` in both tools. M owns the words (ClusterIP,
   NodePort, LoadBalancer, exact case) and checks them; the tools own the default. B: default
-  LoadBalancer, accepts all three. A: see "Still open".
+  LoadBalancer, accepts all three. A: default ClusterIP, accepts all three.
 
 ## 5. Still open
 
 - One rule for the `create` defaults of every Secret.
-- A's default Service type. Recommended: ClusterIP.

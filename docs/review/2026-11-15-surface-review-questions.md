@@ -2097,7 +2097,7 @@ covers compose or quadlet is in the shared part (S1 to S13).
 - **Answer:** Owner (2026-11-17): build nothing ahead of need. No HTTP probe, `args` or
   Service type and no RBAC kinds until a tool needs one. The CRD is never modelled.
   Revised 2026-11-18: the Service types are built now. M checks ClusterIP, NodePort and
-  LoadBalancer and requires one; the tools set the default (B LoadBalancer).
+  LoadBalancer and requires one; the tools set the default (A ClusterIP, B LoadBalancer).
 
 #### Settled by the rulings
 

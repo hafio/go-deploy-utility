@@ -544,11 +544,10 @@ over both.
   LoadBalancer, exact case; ExternalName refused), checks it, and its Service object requires
   a word: M writes no default. Each tool sets its own. B defaults to LoadBalancer, written
   into the custom resource as today, accepts all three, and refuses `service.loadBalancer`
-  unless the type is LoadBalancer. A: default to confirm (ClusterIP recommended). A fixed
+  unless the type is LoadBalancer. A defaults to ClusterIP (owner, 2026-11-18). A fixed
   node port is not offered: the cluster picks one.
 - **Still open** (2026-11-18): one rule for the `create` defaults of every Secret
-  ([../review/2026-11-18-secrets-assessment.md](../review/2026-11-18-secrets-assessment.md));
-  A's default Service type (ClusterIP recommended).
+  ([../review/2026-11-18-secrets-assessment.md](../review/2026-11-18-secrets-assessment.md)).
 - **Consolidation drafts** (2026-11-17, Sonnet agents, open points marked):
   [2026-11-17-container-description.md](2026-11-17-container-description.md) and
   [2026-11-17-catalogue.md](2026-11-17-catalogue.md).
