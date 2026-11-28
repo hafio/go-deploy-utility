@@ -14,6 +14,8 @@ package compose
 import (
 	"strconv"
 	"strings"
+
+	"github.com/hafio/go-deploy-utility/internal/posture"
 )
 
 // Escape doubles every '$'. Docker Compose interpolates the whole document,
@@ -56,18 +58,16 @@ func FlowList(items []string) string {
 
 // Posture is the service's privilege posture, stated rather than inherited:
 // privileged off, every capability dropped, and no-new-privileges on, as five
-// lines at service indent.
+// lines at service indent. The text lives in internal/posture, one copy for this
+// package, the renderers and artifacttest; this is that constant under its
+// exported name, and it keeps the same bytes.
 //
 // privileged is a bare boolean because the schema of compose v1 rejects a quoted
 // one. no-new-privileges takes the '=' separator because dockerd logs a
 // deprecation warning for ':' on every container create. The user: line is not
 // part of the block: a tool may leave the image's own user in place, so it writes
 // that line itself.
-const Posture = "    privileged: false\n" +
-	"    cap_drop:\n" +
-	"      - ALL\n" +
-	"    security_opt:\n" +
-	"      - no-new-privileges=true\n"
+const Posture = posture.ComposeLines
 
 // Secret is one secret the service mounts. Its value never appears in the file:
 // compose reads it from the environment it runs with (the environment provider,

@@ -2,11 +2,13 @@ package artifacttest
 
 import (
 	"fmt"
+	"slices"
 	"strings"
 	"testing"
 
 	"github.com/hafio/go-deploy-utility/containerart/compose"
 	"github.com/hafio/go-deploy-utility/containerart/quadlet"
+	"github.com/hafio/go-deploy-utility/internal/posture"
 )
 
 // composeFile is a single-service compose file in the shape both tools render,
@@ -119,6 +121,53 @@ func TestWideningIsTheUnionOfBothTools(t *testing.T) {
 	widening[0] = "edited"
 	if Widening()[0] != "privileged: true" {
 		t.Error("Widening() must return a new slice each call")
+	}
+}
+
+// TestWideningKeysAreDenied: R2. Widening() holds substrings searched in rendered
+// text, and internal/posture holds key names refused in extras, a different shape.
+// Every Widening token that is a compose or quadlet key name is denied by posture,
+// and every other token is named here as a value, a flag or a spelling with no key
+// of its own, so a token added to Widening must be placed in one list or the other.
+func TestWideningKeysAreDenied(t *testing.T) {
+	composeKeys := map[string]string{
+		"privileged: true": "privileged", "cap_add": "cap_add", "devices:": "devices", "sysctls:": "sysctls",
+		"pid: host": "pid", "ipc: host": "ipc",
+	}
+	quadletKeys := map[string]string{
+		"AddCapability": "AddCapability", "AddDevice": "AddDevice", "Sysctl=": "Sysctl",
+		"SecurityLabelDisable": "SecurityLabelDisable", "SeccompProfile=": "SeccompProfile",
+		"NoNewPrivileges=false": "NoNewPrivileges",
+	}
+	// Spellings that are a value, a podman flag, or a key quadlet does not have
+	// (there is no Privileged= key), so no extras key names them.
+	notKeys := []string{
+		"--privileged", "Privileged=true", "no-new-privileges:false", "no-new-privileges=false", "SYS_ADMIN",
+		"label=disable", "label:disable", "unconfined", "Unconfined", "--cap-add", "--device", "--sysctl",
+		"--pid=host", "--pid host", "--ipc=host", "--ipc host", "--userns=host", "--userns host",
+	}
+	for _, tok := range Widening() {
+		_, isCompose := composeKeys[tok]
+		_, isQuadlet := quadletKeys[tok]
+		if !isCompose && !isQuadlet && !slices.Contains(notKeys, tok) {
+			t.Errorf("Widening() token %q is in no list of this test: add it as a compose key, a quadlet key or a non-key", tok)
+		}
+	}
+	for tok, key := range composeKeys {
+		if !slices.Contains(Widening(), tok) {
+			t.Errorf("Widening() no longer holds %q; update this test", tok)
+		}
+		if _, denied := posture.ComposeExtra(key); !denied {
+			t.Errorf("Widening() token %q names compose key %q, which posture does not deny", tok, key)
+		}
+	}
+	for tok, key := range quadletKeys {
+		if !slices.Contains(Widening(), tok) {
+			t.Errorf("Widening() no longer holds %q; update this test", tok)
+		}
+		if _, denied := posture.QuadletExtra(key); !denied {
+			t.Errorf("Widening() token %q names quadlet key %q, which posture does not deny", tok, key)
+		}
 	}
 }
 

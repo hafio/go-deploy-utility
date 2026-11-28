@@ -107,7 +107,7 @@ func sinkSize(check func(Sink, string) *FieldError, sink Sink) func(string) *Fie
 }
 
 // TestValidMemoryAndShmSize: S2. A number with an optional b, k, m or g in either
-// case on compose and quadlet; Kubernetes waits for E12.
+// case on compose and quadlet; Kubernetes has no shm-size field.
 func TestValidMemoryAndShmSize(t *testing.T) {
 	accept := []string{"512", "6898m", "8g", "8G", "1024k", "1024K", "64b", "64B", "1M", "0", "007m"}
 	reject := []string{
@@ -117,9 +117,34 @@ func TestValidMemoryAndShmSize(t *testing.T) {
 		for _, sink := range []Sink{SinkCompose, SinkQuadlet} {
 			rows(t, name, sinkSize(check, sink), accept, reject)
 		}
-		f := check(SinkKubernetes, "8g")
-		if f == nil || !strings.Contains(f.Rule, "Kubernetes") || !strings.Contains(f.Rule, "E12") {
-			t.Errorf("%s on Kubernetes = %v, want a refusal that says it waits for E12", name, f)
+	}
+	f := ValidShmSize(SinkKubernetes, "8g")
+	if f == nil || f.Field != "shm-size" || !strings.Contains(f.Rule, "Kubernetes") {
+		t.Errorf("ValidShmSize on Kubernetes = %v, want a refusal naming Kubernetes", f)
+	}
+}
+
+// TestValidMemory: E12. On Kubernetes the quantity grammar: digits with an optional
+// single fraction, then nothing, a decimal or binary suffix, or an exponent.
+func TestValidMemory(t *testing.T) {
+	rows(t, "ValidMemory(Kubernetes)", sinkSize(ValidMemory, SinkKubernetes),
+		[]string{
+			"512Mi", "2G", "1.5Gi", "129e6", "4096", "1k", "1M", "1T", "1P", "1E", "1Ki", "1Ti", "1Pi", "1Ei", "0", "007Mi",
+			"1e0", "1.25M",
+		},
+		[]string{
+			"512m", "1m", "5u", "5n", "Mi", "1Ti5", "", "m", "1.", ".5", "1.5.2", "1e", "1e123", "1E6", "1K", "1g", "1mi",
+			"-1", "+1", "8 Mi", " 8Mi", "8Mi ", "8MiB", marker, "512Mi " + marker, "1" + strings.Repeat("0", 18) + "Mi",
+		})
+}
+
+// TestValidMemoryKubernetesRefusesBareM: a bare m, u or n is milli-bytes, so the
+// message says what to write instead.
+func TestValidMemoryKubernetesRefusesBareM(t *testing.T) {
+	for _, in := range []string{"512m", "1m", "5u", "5n"} {
+		f := ValidMemory(SinkKubernetes, in)
+		if f == nil || f.Field != "memory" || !strings.Contains(f.Rule, "write Mi or M, not m") {
+			t.Errorf("ValidMemory(Kubernetes, %q) = %v, want the write-Mi-or-M message", in, f)
 		}
 	}
 }

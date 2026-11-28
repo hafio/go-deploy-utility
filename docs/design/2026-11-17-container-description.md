@@ -5,8 +5,12 @@ date; the design note wins on any conflict. Settled since the first draft: the S
 `create: true` switch, derived names, a key check before deploy), Service types (M requires a
 word and writes no default), `imagePullPolicy` on all three sinks, the read-only root key in
 both tools, Kubernetes identity in pod and container fields, the image block, C2 and E4, K4,
-K6, K10, K16, K18 and every N entry. R1 shipped `containerart/workload` (checks only): names
-in section 3 that exist in that package are marked R1, the rest are the plan for R2.
+K6, K10, K16, K18 and every N entry, and P9 and P11 (owner, 2026-11-27, section 8.1). R1
+shipped `containerart/workload` (checks only): names in section 3 that exist in that package
+are marked R1. R2 shipped `containerart/writer`, `internal/posture` and the follow-ups to
+the checks (`ValidMemory` and `ValidRestart` for Kubernetes, `ValidKubeRestart`,
+`ValidPullPolicy`, `ValidServiceType`), marked R2; the rest is the plan for R3 onward.
+Plan: 2026-11-27-plan-r2-writer.md.
 
 Draft for item 3 of section 6 of docs/review/2026-11-15-surface-review.md. Read-only inputs:
 docs/design/2026-11-15-shared-deploy-api.md sections 8-11 (10 wins over 3-8; 11 wins over
@@ -143,8 +147,6 @@ type Spec struct {
 	Restart    string     // "" writes "always" (E6, ruling 9). Words per sink, see ValidRestart.
 	Root       RootFS     // required (RootUnset is an error). Read-only writes the line;
 	                      // writable writes nothing (ruling 9, gdu 6). A true, B false (E21).
-	Entrypoint []string   // nil writes nothing. Compose entrypoint, Kubernetes command.
-	Command    []string   // nil writes nothing. Compose command, Kubernetes args.
 	Timezone   string     // "" writes nothing. IANA name (S13). Written as TZ, first.
 	Env        []EnvVar   // nil writes nothing. Given order kept. TZ here beside Timezone
 	                      // is an error (duplicate).
@@ -160,8 +162,6 @@ type Spec struct {
 	Secrets    []Secret   // nil writes nothing. Files at absolute targets.
 	Configs    []Config   // nil writes nothing. Inline content (see Config).
 	Mounts     []Mount    // nil writes nothing. Host bind mounts; refused on Kubernetes.
-	Tmpfs      []Tmpfs    // nil writes nothing. Compose only; refused on quadlet (extras
-	                      // Tmpfs= passes there) and on Kubernetes.
 	Health     *Health    // nil writes nothing (the image's own check applies).
 	Labels     []Label    // the tool's own labels, after M's own. nil writes nothing.
 	Digest     DigestLabel // zero writes nothing.
@@ -227,13 +227,6 @@ const (
 	RelabelPrivate // Z
 )
 
-// Tmpfs is a compose tmpfs entry.
-type Tmpfs struct {
-	Target string      // absolute, no ':'
-	Mode   fs.FileMode // permission bits only, written 0700 style
-	Owner  string      // "" or "uid:gid" digits, both halves
-}
-
 // Secret is a secret file. The value never enters the description.
 type Secret struct {
 	Name   string // compose secret name | podman secret name | Kubernetes Secret name
@@ -293,7 +286,6 @@ field path for its error and never echoes free text (S8):
 | `ParseRunAs`, `RunAsIDs`, `RunAs.Stated/UID/GID/String` | parser | numeric uid:gid, both halves |
 | `ParsePort`, `Port.Check`, `Port.String` | parser | port grammar; range lo <= hi; 1..65535 |
 | `Mount.Check(Sink)`, `CheckMountSource(Sink, s)` | check | absolute; one drive-letter root; no ':' else (R1: the second) |
-| `Tmpfs.Check` | check | absolute, no ':', permission bits, owner digits |
 | `Secret.Check(Sink)` | check | target absolute; per-sink required fields; names |
 | `Config.Check(Sink)` | check | target absolute; `CheckInlineText` on Content |
 | `CheckInlineText` | check | C7: no CR, NEL, LS, PS, control (tab, LF ok), DEL, C1, BOM; UTF-8 (R1) |
@@ -305,11 +297,12 @@ field path for its error and never echoes free text (S8):
 | `CheckComposeVar` | check | C6: `envref.ValidName`, then `PATH`, `HOME`, `IFS`, `SHELL`, `BASH_ENV`, `LD_`, `DOCKER_`, `COMPOSE_` refused (R1; replaces the planned `CheckEnvName`) |
 | `CheckLabelKey`, `CheckLabelValue` | check | qualified name; reserved prefixes (S1 answer) |
 | `ReservedLabelPrefixes` | list | M's own prefixes and the engine prefixes of S1 |
-| `ValidRestart(Sink, word)` | check | compose/quadlet words; Kubernetes: "" or always only (R1; P9) |
+| `ValidRestart(Sink, word)` | check | compose/quadlet words; Kubernetes `Always`, `OnFailure`, `Never` as a union, `always` refused (P9; R2 changes R1) |
+| `ValidKubeRestart(kind, word)` | check | R2. The per-kind rule of P9: Deployment, StatefulSet, ReplicaSet, DaemonSet `Always` only; Job, CronJob `OnFailure`, `Never`; Pod all three; empty allowed; an unknown kind refused naming the seven kinds. The kind is a plain word the renderer passes; `Spec.Check` runs the kind-free `ValidRestart` |
 | `ValidNetwork(Sink, word)` | check | docker and podman word lists of gdu 6; Kubernetes: empty (R1) |
-| `ValidPullPolicy(Sink, word)` | check | R2, working name. Compose `pull_policy`: `always`, `missing`, `never`, `daily`, `weekly`, `every_<duration>`, `if_not_present`; `build` refused. Quadlet `Pull=`: `always`, `missing`, `never`, `newer`. Kubernetes: `Always`, `IfNotPresent`, `Never`. "" allowed. Lists checked against each engine's docs at build |
-| `ValidServiceType(word)` | check | R2, working name. `ClusterIP`, `NodePort`, `LoadBalancer`, exact case; `ExternalName` refused; empty is an error (M writes no default) |
-| `ValidMemory(Sink, s)`, `ValidCPUSet(s)`, `ValidShmSize(Sink, s)` | check | per-sink grammar (R1; E12: R2 gives Kubernetes memory its quantity grammar, bare `m` refused; R1 refuses Kubernetes memory) |
+| `ValidPullPolicy(Sink, word)` | check | R2. Compose `pull_policy`: `always`, `missing`, `never`, `daily`, `weekly`, `every_<duration>`, `if_not_present`; `build` refused. Quadlet `Pull=`: `always`, `missing`, `never`, `newer`. Kubernetes: `Always`, `IfNotPresent`, `Never`. "" allowed. Exact case; `build` refused with "M never builds". Lists checked against each engine's docs at build |
+| `ValidServiceType(word)` | check | R2. `ClusterIP`, `NodePort`, `LoadBalancer`, exact case; `ExternalName` refused; empty is an error (M writes no default) |
+| `ValidMemory(Sink, s)`, `ValidCPUSet(s)`, `ValidShmSize(Sink, s)` | check | per-sink grammar (R1); R2 (E12) gives `ValidMemory` on Kubernetes the quantity grammar (digits, one fraction, `k M G T P E`, `Ki Mi Gi Ti Pi Ei` or `e<digits>`), bare `m`, `u` and `n` refused with "write Mi or M, not m"; `ValidShmSize` still refuses Kubernetes |
 | `CheckName` | check | container name: DNS label <= 63 (rulings 11, 13; N30) (R1) |
 | `ValidDNSLabel` | check | the DNS-1123 label rule `kube.ValidLabel` delegates to (R1; N59) |
 | `CheckText` | check | UTF-8, controls, invisibles (R1) |
@@ -324,7 +317,7 @@ Exported names in package workload, flat:
 `Sink`, `SinkCompose`, `SinkQuadlet`, `SinkKubernetes`, `Spec`, `Identity`, `RootFS`,
 `RootUnset`, `RootReadOnly`, `RootWritable`, `Image`, `ParseImage`, `RunAs`, `RunAsIDs`,
 `ParseRunAs`, `Port`, `ParsePort`, `Mount`, `Relabel`, `RelabelNone`, `RelabelShared`,
-`RelabelPrivate`, `CheckMountSource`, `Tmpfs`, `Secret`, `Config`, `CheckInlineText`,
+`RelabelPrivate`, `CheckMountSource`, `Secret`, `Config`, `CheckInlineText`,
 `EnvVar`, `Label`, `DigestLabel`, `Health`, `ParseSeconds`, `Ulimit`, `UlimitNames`,
 `ParseLimit`, `ValidHostName`, `ValidTimezone`, `CheckComposeVar`, `ValidDNSLabel`,
 `ValidPullPolicy`, `ValidServiceType`, `CheckLabelKey`,
@@ -525,17 +518,12 @@ data-directory chown and refuses a user that is not numeric (E5 answer).
 | Check | `RootUnset` is an error |
 | Answer | ruling 9, C3 (smoke row before A turns it on), E21: both tools have the key and M requires a value; whether B accepts true depends on B supporting a read-only root (B's session) |
 
-### Spec.Entrypoint and Spec.Command
+### Entrypoint and command (not fields, P4)
 
-| Column | Value |
-| --- | --- |
-| A source | storescript shell/path and its command (A:dockergen:158-161) |
-| B source | none |
-| C | `entrypoint: [..]` then `command: [..]`, flow lists, tokens quoted, `$` doubled |
-| Q | refused; the [Container] extras `Entrypoint=` and `Exec=` pass (open P4) |
-| K | `command` (Entrypoint) and `args` (Command), block lists, `$` doubled |
-| Check | `CheckText` per token |
-| Answer | S2 (compose fields), K13 (`$` doubled) |
+Not fields (P4, owner 2026-11-27). Only A's docker store script uses an entrypoint and a
+command (A:dockergen:158-161), so they are A's, not common: A passes `entrypoint:` and
+`command:` through the compose extras, held to the extras deny list (S1) and `CheckText`.
+Quadlet and Kubernetes have neither.
 
 ### Spec.Timezone
 
@@ -595,7 +583,7 @@ data-directory chown and refuses a user that is not numeric (E5 answer).
 | Q | `PodmanArgs=--memory=<v>`, `PodmanArgs=--cpuset-cpus=<v>`, `ShmSize=<v>` |
 | K | Memory -> `limits.memory`; CPUSet, ShmSize refused. Requests/CPU: `kubernetes.Resources` |
 | Check | `ValidMemory`, `ValidCPUSet`, `ValidShmSize` |
-| Answer | S2, E12 (memory under `resources` on every platform, CPU on Kubernetes in A only, B's `msgNode.cpu` dropped, a bare `m` on Kubernetes refused); open P7 |
+| Answer | S2, E12 (memory under `resources` on every platform, CPU on Kubernetes in A only, B's `msgNode.cpu` dropped, a bare `m` on Kubernetes refused); P7: request = limit |
 
 ### Spec.Ulimits
 
@@ -645,17 +633,13 @@ data-directory chown and refuses a user that is not numeric (E5 answer).
 | Check | `Mount.Check`, `CheckMountSource` |
 | Answer | ruling 9 (zero value `:ro`), C8, Q7, Q8; on a remote docker engine a bind source is refused (flatten answer; where the endpoint test runs is in the catalogue) |
 
-### Spec.Tmpfs
+### Tmpfs (not a field, P4)
 
-| Column | Value |
-| --- | --- |
-| A source | decoded stores dir, mode 0700 and the run-as ids (A:dockergen:252-257) |
-| B source | none |
-| C | `tmpfs:` `"<target>:mode=0700[,uid=U,gid=G]"` |
-| Q | refused (extras `Tmpfs=` passes) |
-| K | refused (open P4) |
-| Check | `Tmpfs.Check`; a mount under a tmpfs is allowed (C5) |
-| Answer | S2, C5 |
+Not a field (P4, owner 2026-11-27). A's decoded-stores directory (A:dockergen:252-257) is
+A's own: A passes `tmpfs:` through the compose extras and states a size (the deep dive:
+unsized, docker lets it grow to half the host's memory). Quadlet and Kubernetes have none.
+Whether A's image needs a writable `/tmp` under its read-only root (E21) is checked at A's
+adoption; if it does, A adds it the same way.
 
 ### Spec.Health
 
@@ -729,7 +713,9 @@ in exactly one newline.
   the text needs (`|-`, `|`, `|+`) and an indent marker when the first non-empty line starts
   with a space; empty lines carry no indent. Kubernetes `|` never uses `|+`: text with
   several trailing newlines is written as a quoted string (K "no decision needed"). The two
-  differ on purpose; see P8.
+  differ on purpose; see P8. Compose block text has every `$`
+  doubled, as any compose value does (R2's reading of C10: the bytes are the tool's, the sink's
+  escaping is the writer's); Kubernetes block text is left alone.
 - Empty values: an empty map or list is dropped in M's own documents; a key never holds null.
   An empty environment value is `"KEY": ""`, never a bare key. A tool-built tree with an empty
   node is an error.
@@ -766,9 +752,9 @@ group after the ports, ahead of Environment.
 
 Top level: `name`, `services`, `networks` (only when the service uses the project network),
 `configs`, `secrets`; a block with nothing in it is left out. Service: image, pull_policy, container_name,
-hostname, user, restart, entrypoint, command, posture block, read_only, mem_limit, cpuset,
+hostname, user, restart, posture block, read_only, mem_limit, cpuset,
 shm_size, ulimits, extras, networks or network_mode, ports, environment, secrets, configs,
-volumes, tmpfs, healthcheck, labels. The labels end the block, so the digest label closes the
+volumes, healthcheck, labels. A's `entrypoint:`, `command:` and `tmpfs:` come in the extras (P4). The labels end the block, so the digest label closes the
 service. The network block has no labels (C4). `name:` is always written (C9).
 
 ### 5.4 Kubernetes order
@@ -794,11 +780,10 @@ character; the value is not shown`. Every problem is collected; nothing partial 
 
 All in `workload.CheckTargets` and `Spec.Check(Sink)`, run at load and again at render.
 
-1. Mount nesting (C5). A secret or config target must not equal or lie under a mount target
-   or a tmpfs target, and the reverse. One nesting is allowed: a mount under a tmpfs
-   (A binds existing stores inside its truststores tmpfs). Compose, quadlet and Kubernetes
-   (volume mounts) all run it.
-2. Duplicates. Targets across secrets, configs, mounts and tmpfs; environment names (and TZ
+1. Mount nesting (C5). A secret or config target must not equal or lie under a mount target,
+   and the reverse. Compose, quadlet and Kubernetes (volume mounts) all run it. A's stores
+   tmpfs is an extra (P4), so A keeps its own check for the existing stores it binds inside.
+2. Duplicates. Targets across secrets, configs and mounts; environment names (and TZ
    against `Timezone`); label keys (including M's five and the digest key); secret names;
    compose `Secret.EnvVar` values and the digest variable and every `Label.Var` (one
    namespace, C6); Kubernetes volume names and container names; ulimit names.
@@ -808,9 +793,8 @@ All in `workload.CheckTargets` and `Spec.Check(Sink)`, run at load and again at 
    error. A tool keeps its own list check at load (B does).
 5. Network and ports on Kubernetes: `Network` set is refused; a published `Host` that is not
    the container port is refused (no `hostPort`).
-6. Sink refusals: `HostName`, `CPUSet`, `ShmSize`, `Ulimits`, `Mounts`, `Tmpfs`, `Network`,
-   `Label.Var`, `Digest` on Kubernetes; `Entrypoint`, `Command`, `Tmpfs`, `Label.Var` on
-   quadlet; `Secret.EnvVar` is required on compose and `Secret.Key`, `Secret.Volume` on
+6. Sink refusals: `HostName`, `CPUSet`, `ShmSize`, `Ulimits`, `Mounts`, `Network`,
+   `Label.Var`, `Digest` on Kubernetes; `Label.Var` on quadlet; `Secret.EnvVar` is required on compose and `Secret.Key`, `Secret.Volume` on
    Kubernetes (each error names the field).
 7. Run-as against root: a stated `0:0` is written, never refused (both tools accept it).
 8. Health: Kubernetes `Readiness` set together with `Health` is an error (one source).
@@ -867,7 +851,7 @@ artifact line, or it is content, and the reason is stated.
 | :152 | service key | `Spec.Name` |
 | :153 | `image:` | `Spec.Image` |
 | :154 | `container_name:` | `Spec.Name` |
-| :159-160 | `entrypoint:` `command:` | `Spec.Entrypoint`, `Spec.Command` |
+| :159-160 | `entrypoint:` `command:` | A's compose extras (P4) |
 | :169-179 | labels le-mode, role, stores digest | `Spec.Labels` (digest via `Var`) |
 | :182 | deploy digest label | `Spec.Digest` |
 | :184 | `restart:` | `Spec.Restart` (empty now writes always) |
@@ -877,7 +861,7 @@ artifact line, or it is content, and the reason is stated.
 | :205-222 | `environment:` TZ, JAVA_*, SYSLOG_* | `Spec.Timezone`, `Spec.Env` |
 | :229 | service `secrets:` | `Spec.Secrets` |
 | :236-247 | service `configs:` | `Spec.Configs` |
-| :252-257 | `tmpfs:` | `Spec.Tmpfs` |
+| :252-257 | `tmpfs:` | A's compose extras (P4), with a size |
 | :288-293 | `healthcheck:` | `Spec.Health` |
 | :262-267 | `volumes:` stores then libs | `Spec.Mounts` |
 | :299-315 | inline config block text | writer frames `Spec.Configs[].Content`; payload stays in A |
@@ -1051,43 +1035,53 @@ then the points the sources leave undecided, marked "open".
   of `kube.NamespaceManifest` is N58's.
 - P6: settled by the Q5 answer: one helper, `outfile`, writes `generate` output (umask mode)
   and the installed unit (0600), and refuses a symbolic link in both.
+- P2 (2026-11-27): falls away. Every Secret mount lists its keys (the Secrets decision and
+  the key check before deploy), so no tool mounts a whole Secret.
+- P3 (owner, 2026-11-27): one health check on every platform, the same command and the
+  same timings. `Spec.Health` maps to the compose healthcheck, the quadlet Health* keys and
+  the Kubernetes readiness probe (period = interval, timeoutSeconds = timeout, stated since
+  Kubernetes defaults it to 1s, failureThreshold = retries). A's timings become 10s interval,
+  5s timeout, 3 retries, 60s start period everywhere (its docker and podman checks were
+  30s/10s). Liveness stays the tool's own: A passes a TCP check on the management port, so a
+  flapping downstream never restarts the connector. B's broker probes are the operator's.
+- P4 (owner, 2026-11-27): entrypoint, command and tmpfs are not common fields. Only A's
+  docker store script needs them, and the deep dive keeps that script
+  (docs/review/2026-11-27-docker-stores-assessment.md), so A passes them through the compose
+  extras, the tmpfs with a size. Quadlet and Kubernetes have none. Carried to A's adoption:
+  whether its image needs a writable `/tmp` under the read-only root (unverified).
+- P5 (2026-11-27): `Spec.Configs` on quadlet become `Secret=` lines, the podman secret
+  created from `Content`, as A does today.
+- P7 (owner, 2026-11-27): one value per resource, written as both request and limit
+  (guaranteed QoS, as A today). No request keys. `Spec.Memory` and `kubernetes.Resources`
+  are one value, not two.
+- P8: settled by C10 (compose `|-`, `|`, `|+`) and the settled Kubernetes rule (no `|+`; a
+  quoted string instead).
+- P9 (owner, 2026-11-27): Kubernetes restart words in Kubernetes spelling, checked per kind:
+  Deployment, StatefulSet, ReplicaSet and DaemonSet `Always` only; Job and CronJob
+  `OnFailure` and `Never`; Pod all three. Empty writes nothing. R2 replaced R1's lowercase
+  `always` (built: `ValidRestart` takes the three words as a union, `ValidKubeRestart` the kind).
+- P11 (owner, 2026-11-27, per the R2 plan Part 4; built with `Spec` and the `kubernetes` package,
+  nothing in R2): (a) Kubernetes identity reuses `workload.RunAs`, no new type. `Spec.RunAs`
+  (uid:gid) feeds the container block, `runAsUser` = UID and `runAsGroup` = GID.
+  `kubernetes.Pod` carries a second `workload.RunAs` built with `RunAsIDs(uid, fsGroup)`: its
+  UID is the pod `runAsUser` and its GID the pod `fsGroup`, and the doc names the mismatch. The
+  word `default` is the zero `RunAs` in all four fields and writes nothing; unset is the tool's
+  default, filled in before the call (A `1000:0`; B 1000001 and 1000002 on Kubernetes).
+  `runAsNonRoot: true` follows a stated container uid other than 0, and a stated 0 writes none;
+  B's refusal of a stated 0 on Kubernetes stays in B. (b) `FieldError` gains no sink or object
+  member: each renderer prefixes its messages with `fmt.Errorf("compose: service %q: %w", name,
+  err)`, so `errors.As` still reaches the `*FieldError` and the example of 5.5 reads as written.
+  The writer's `*Error` follows the same rule (path and rule only).
 - P10 stays a working-name note: package names `containerart/writer`, `containerart/workload`,
   `containerart/kubernetes` and `containerart/outfile` are working names (R1 shipped
   `containerart/workload`).
 
 ### 8.2 Still open
 
-- open P2: Kubernetes secret mapping. Draft: `Secret.Volume` names the volume, secrets with
-  one `Volume` share a projected volume and one directory, items are key -> basename(Target).
-  Undecided: whether a tool ever mounts a whole Secret (`Key` empty, `Target` a directory).
-  The 2026-11-27 decision makes every Secret's keys known and checked before deploy, so the
-  case may fall away; no source says so.
-- open P3: Kubernetes probe numbers. Draft: A passes `Deployment.Readiness` and `Liveness`
-  with its own numbers (15/10/5/3 and 30/15) and leaves `Spec.Health` nil on Kubernetes, so
-  the probes do not move; `Spec.Health` on Kubernetes would map to a readiness exec probe
-  with `periodSeconds` = Interval, `timeoutSeconds` = Timeout, `failureThreshold` = Retries,
-  `initialDelaySeconds` = StartPeriod. No entry asked it.
-- open P4: `Entrypoint`, `Command` and `Tmpfs` refused on quadlet and Kubernetes (quadlet
-  reaches `Exec=`, `Entrypoint=`, `Tmpfs=` through extras). The S2 answer names them compose
-  fields; whether quadlet and Kubernetes ever need them is not asked.
-- open P5: `Spec.Configs` on quadlet become `Secret=` lines named `Config.Name`; the tool
-  creates the podman secret from `Content` (A does this today). S2 names configs a compose
-  field, so the quadlet form is unconfirmed.
-- open P7: `Spec.Memory` on Kubernetes writes `limits.memory`; whether M also writes
-  requests, and how `kubernetes.Resources` and `Spec.Memory` avoid a duplicate, is not
-  decided (E12 fixes the key names and the `m` refusal only).
-- open P8: block text: compose follows C10 (`|-`, `|`, `|+`); Kubernetes follows the K note
-  (no `|+`, quoted string instead). Kept as drafted; no entry revisits it.
-- open P9: Kubernetes `Restart`: only empty or `always`; any other word is refused because a
-  Deployment always restarts. R1's `ValidRestart` implements this as an assumption.
-- open P11: Kubernetes identity (E22) and `FieldError` context. (a) The owner fixed the shape
-  (pod fields `runAsUser`, `fsGroup`; container fields `runAsUser`, `runAsGroup`; `default`
-  writes none; unset is the tool's default) but not how it maps into `Spec.RunAs` and
-  `kubernetes.Pod`. Draft: `Spec.RunAs` feeds the container fields, `Pod` carries the pod
-  `runAsUser` and `fsGroup` as stated numbers, `runAsNonRoot` follows the stated uid. (b) R1's
-  `FieldError` has no sink or object member; R2 either adds them or each renderer prefixes
-  the message (the example in 5.5 assumes a prefix).
 - Build notes, not decisions: the word lists of `ValidPullPolicy` and the deny lists are
   checked against the compose, podman and Kubernetes references at build and name the
   versions in a test (S1, env-layout section 4). The compose position of `pull_policy` and
   the quadlet position of `Pull=` are fixed by the goldens.
+  R2 names `Docker Compose 2.40` and `Podman 5.6` in `posture.ComposeCheckedAgainst` and
+  `QuadletCheckedAgainst`; the lists are recalled from the references and not yet run on an
+  engine, so the hand check (docs/smoke.md) confirms or corrects both names.

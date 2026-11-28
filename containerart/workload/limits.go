@@ -103,16 +103,16 @@ func (u Ulimit) check() *FieldError {
 	return nil
 }
 
-// sizeCheck is the grammar of a memory or shared-memory size: digits with an
-// optional unit of b, k, m or g in either case. Kubernetes memory waits for the
-// Deployment's resources (E12), so it is refused with a message that says so.
+// sizeCheck is the grammar of a memory or shared-memory size on compose and
+// quadlet: digits with an optional unit of b, k, m or g in either case. Kubernetes
+// has no shared-memory size field, so it is refused for shm-size; Kubernetes memory
+// is ValidMemory's own quantity grammar and does not come here.
 func sizeCheck(field string, sink Sink, s string) *FieldError {
 	if f := checkSink(field, sink); f != nil {
 		return f
 	}
 	if sink == SinkKubernetes {
-		return fail(field, "is not supported on Kubernetes yet: the Deployment's resources are still to be decided "+
-			"(E12); remove the field")
+		return fail(field, "has no Kubernetes form: a Deployment has no shared-memory size field; remove the field")
 	}
 	n := s
 	if n != "" && strings.IndexByte("bBkKmMgG", n[len(n)-1]) >= 0 {
@@ -124,13 +124,56 @@ func sizeCheck(field string, sink Sink, s string) *FieldError {
 	return nil
 }
 
-// ValidMemory checks a memory limit: a number with an optional b, k, m or g in
-// either case. Kubernetes is refused until the Deployment's resources are decided
-// (E12). The value is not echoed.
-func ValidMemory(sink Sink, s string) *FieldError { return sizeCheck("memory", sink, s) }
+// kubeQuantity checks a Kubernetes quantity (E12): digits with an optional single
+// fraction, then nothing, a decimal suffix k, M, G, T, P or E, a binary suffix Ki,
+// Mi, Gi, Ti, Pi or Ei, or an exponent such as e6. A bare m, u or n is a milli, micro
+// or nano quantity, which reads as milli-bytes for memory, so it is refused with its
+// own sentence.
+func kubeQuantity(field, s string) *FieldError {
+	i := 0
+	for i < len(s) && (s[i] >= '0' && s[i] <= '9' || s[i] == '.') {
+		i++
+	}
+	num, suffix := s[:i], s[i:]
+	whole, frac, dot := strings.Cut(num, ".")
+	okNum := isDigits(whole) && (!dot || isDigits(frac)) && len(num) <= 18
+	okSuffix := suffix == "" || slices.Contains(kubeSuffixes(), suffix)
+	if exp, ok := strings.CutPrefix(suffix, "e"); ok && isDigits(exp) && len(exp) <= 2 {
+		okSuffix = true
+	}
+	if okNum && (suffix == "m" || suffix == "u" || suffix == "n") {
+		return fail(field, "is a milli, micro or nano quantity, which reads as milli-bytes for memory: "+
+			"write Mi or M, not m (the value is not shown)")
+	}
+	if !okNum || !okSuffix {
+		return fail(field, "must be a number with an optional fraction, then nothing, k, M, G, T, P, E, Ki, Mi, Gi, Ti, Pi, Ei "+
+			"or an exponent such as e6, for example 512Mi or 2G (the value is not shown)")
+	}
+	return nil
+}
 
-// ValidShmSize checks a shared-memory size by the same grammar as ValidMemory.
-// Kubernetes is refused. The value is not echoed.
+// kubeSuffixes returns the decimal and binary suffixes of a Kubernetes quantity,
+// as a fresh slice.
+func kubeSuffixes() []string {
+	return []string{"k", "M", "G", "T", "P", "E", "Ki", "Mi", "Gi", "Ti", "Pi", "Ei"}
+}
+
+// ValidMemory checks a memory limit. Compose and quadlet take a number with an
+// optional b, k, m or g in either case. Kubernetes takes the quantity grammar (E12):
+// digits with an optional single fraction, then nothing, k, M, G, T, P, E, Ki, Mi,
+// Gi, Ti, Pi, Ei or an exponent such as e6. A bare m, u or n is refused on Kubernetes
+// with a message that says to write Mi or M, since m would be milli-bytes. The value
+// is not echoed.
+func ValidMemory(sink Sink, s string) *FieldError {
+	if sink == SinkKubernetes {
+		return kubeQuantity("memory", s)
+	}
+	return sizeCheck("memory", sink, s)
+}
+
+// ValidShmSize checks a shared-memory size by the same grammar as ValidMemory on
+// compose and quadlet. Kubernetes has no such field and is refused. The value is
+// not echoed.
 func ValidShmSize(sink Sink, s string) *FieldError { return sizeCheck("shm-size", sink, s) }
 
 // ValidCPUSet checks a CPU list of numbers and ranges, such as 0-3,5. It checks the

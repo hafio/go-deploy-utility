@@ -546,6 +546,16 @@ over both.
   into the custom resource as today, accepts all three, and refuses `service.loadBalancer`
   unless the type is LoadBalancer. A defaults to ClusterIP (owner, 2026-11-18). A fixed
   node port is not offered: the cluster picks one.
+- **Writer points** (2026-11-27), from the consolidation draft
+  [2026-11-17-container-description.md](2026-11-17-container-description.md) section 8:
+  Kubernetes restart words in Kubernetes spelling, checked per kind (P9); one value per
+  Kubernetes resource, written as request and limit (P7); one health check on every
+  platform, same command and timings, mapped to the Kubernetes readiness probe, A at 10s,
+  5s, 3 retries, 60s, liveness the tool's own (A a port check) (P3). P2, P5 and P8 settled by
+  earlier answers. P4: entrypoint, command and tmpfs are A's, passed as compose extras (the
+  tmpfs with a size); no common field and nothing on quadlet or Kubernetes. The deep dive
+  ([../review/2026-11-27-docker-stores-assessment.md](../review/2026-11-27-docker-stores-assessment.md))
+  keeps A's docker store script.
 - **Still open** (2026-11-18): one rule for the `create` defaults of every Secret
   ([../review/2026-11-18-secrets-assessment.md](../review/2026-11-18-secrets-assessment.md)).
   Answered 2026-11-27: derivation is the standard for every Secret, TLS included: no
@@ -565,6 +575,8 @@ over both.
   [2026-11-17-catalogue.md](2026-11-17-catalogue.md).
 - **First build step**: [2026-11-17-plan-r1-workload-checks.md](2026-11-17-plan-r1-workload-checks.md),
   approved 2026-11-17.
+- **Second build step**: [2026-11-27-plan-r2-writer.md](2026-11-27-plan-r2-writer.md), approved
+  2026-11-27: the writer, `internal/posture` and the R1 follow-ups.
 - **E4 and the flatten of ruling 11** are reopened: the owner reviews the flattened layout,
   [../review/2026-11-17-env-layout.md](../review/2026-11-17-env-layout.md), before key
   placement is decided.

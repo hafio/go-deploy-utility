@@ -9,6 +9,8 @@ package quadlet
 import (
 	"fmt"
 	"strings"
+
+	"github.com/hafio/go-deploy-utility/internal/posture"
 )
 
 // EscapePercent doubles every '%'. systemd expands % specifiers in every
@@ -81,12 +83,13 @@ func Secret(name, target string) string {
 
 // Posture is the container's privilege posture, stated rather than inherited:
 // no-new-privileges on and every capability dropped, as two lines that belong in
-// [Container]. In [Service], NoNewPrivileges is systemd's own key. It would bind
-// the podman process instead of the container, and rootless podman needs its
+// [Container]. The text lives in internal/posture, one copy for this package, the
+// renderers and artifacttest; this is that constant under its exported name, and it
+// keeps the same bytes. In [Service], NoNewPrivileges is systemd's own key. It would
+// bind the podman process instead of the container, and rootless podman needs its
 // setuid helpers. Quadlet has no Privileged= key, since a container is
 // unprivileged unless asked, so there is nothing to state for it.
 //
 // User= and Group= are not part of the block: a tool may leave the image's own
 // user in place, so it writes those lines itself.
-const Posture = "NoNewPrivileges=true\n" +
-	"DropCapability=all\n"
+const Posture = posture.QuadletLines

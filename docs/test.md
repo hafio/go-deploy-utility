@@ -21,7 +21,7 @@ both tools ([consuming.md](consuming.md)).
 
 ## Summary
 
-36 test files, 360 test functions. Two are not tests, and both are os/exec
+43 test files, 407 test functions. Two are not tests, and both are os/exec
 helper-process shims that the tests re-execute as a child:
 
 - `TestHelperExitProcess` in `exitcode` is a no-op unless
@@ -46,8 +46,9 @@ helper-process shims that the tests re-execute as a child:
 | runner/runnertest | 1 | 11 |
 | containerart/compose | 1 | 8 |
 | containerart/quadlet | 1 | 7 |
-| containerart/artifacttest | 1 | 11 |
-| containerart/workload | 8 | 34 |
+| containerart/artifacttest | 1 | 12 |
+| containerart/workload | 8 | 40 |
+| containerart/writer | 6 | 31 |
 | podman | 1 | 14 |
 | systemd | 1 | 6 |
 | rootless | 1 | 15 |
@@ -58,7 +59,8 @@ helper-process shims that the tests re-execute as a child:
 | kube/rbac | 1 | 7 |
 | kube/nsgate | 1 | 10 |
 | internal/build | 1 | 4 |
-| **Total** | **36** | **360** |
+| internal/posture | 1 | 9 |
+| **Total** | **43** | **407** |
 
 The confirm tests always inject `Options.IsTerminal`. Under `go test` the real
 stdin is `/dev/null`, which counts as a character device, so the default
@@ -355,6 +357,7 @@ and B `TestLoadSecretRefErrors`.
 | Test | What it covers | Source |
 | --- | --- | --- |
 | `TestWideningIsTheUnionOfBothTools` | Every token either tool forbade (inline copies of both lists) is still caught; host networking is not; each call returns a new slice | new |
+| `TestWideningKeysAreDenied` | Every `Widening()` token that is a compose or quadlet key name is denied by `internal/posture`, and every other token is named as a value, a flag or a spelling with no key, so a new token must be placed | new (R2) |
 | `TestHostNetwork` | Every spelling is caught, the `PodmanArgs=` flags and a case variant included; the compose and quadlet spellings stay first and second; the clean shapes carry no widening or host-network token | new |
 | `TestCheckAbsent` | Spacing, quoting and case variants and the podman flags a `PodmanArgs=` line can carry are caught, every token found is named once, and an empty token is refused | new |
 | `TestCheckComposePosture` | Missing, doubled (counted by the first line, so adjacent copies are caught), deeper-indented, incomplete and the deprecated `:` spelling fail; the whole block must appear exactly once, which is stricter than B's `Contains` check on `security_opt` | new |
@@ -412,9 +415,13 @@ number is echoed on purpose and the tests pin that.
 
 | Test | What it covers | Source |
 | --- | --- | --- |
-| `TestValidRestart` | The words of each sink, `on-failure:N`, the empty word, and Kubernetes taking only `always` | new |
+| `TestValidRestart` | The words of each sink, `on-failure:N`, the empty word, and Kubernetes taking `Always`, `OnFailure` and `Never` as a union with `always`, `no` and `on-failure` refused (changed in R2: the R1 Kubernetes rows are replaced) | new |
+| `TestValidKubeRestart` | P9: every kind against every word, the empty word, the kind named in a refusal, and an unknown kind refused naming the seven kinds | new (R2) |
+| `TestValidPullPolicy` | The words of each sink in exact case, the `every_` grammar and its boundaries, `build`, a wrong case and an invalid sink | new (R2) |
+| `TestValidPullPolicyEchoes` | `build` is echoed on compose with its own sentence; any other refused word is not | new (R2) |
+| `TestValidServiceType` | The three types, `ExternalName` with its own sentence, a wrong case, the empty word as an error, and the marker not echoed | new (R2) |
 | `TestValidNetwork` | The words of each sink, the empty word, and Kubernetes refusing every word | new |
-| `TestWordListsAreFresh` | The word lists are built per call and cannot be changed through a returned slice | new |
+| `TestWordListsAreFresh` | The word lists, including the Kubernetes kinds, restart words, quantity suffixes, pull words and Service types, are built per call and cannot be changed through a returned slice | new (R2 adds the new lists) |
 
 #### names_test.go
 
@@ -444,8 +451,78 @@ number is echoed on purpose and the tests pin that.
 | `TestParseLimit` | A number, -1, one value for both, soft equal to or below hard; `nice`, `rtprio` and `rttime` refused | new |
 | `TestParseLimitRefuses` | Bad shape, unknown names, signs, fractions, `soft > hard` and a soft -1 under a finite hard; only a listed name is echoed | new |
 | `TestUlimitCheck` | Kubernetes refused, and a hand-built value is held to the parsed rules | new |
-| `TestValidMemoryAndShmSize` | A number with an optional unit in either case; Kubernetes refused with a message naming E12 | new |
+| `TestValidMemoryAndShmSize` | A number with an optional unit in either case on compose and quadlet; `ValidShmSize` still refuses Kubernetes, which has no field (changed in R2: the E12 refusal row goes) | new |
+| `TestValidMemory` | E12: the Kubernetes quantity grammar. `512Mi`, `2G`, `1.5Gi`, `129e6` and `4096` pass; `512m`, `1m`, `5u`, `5n`, `Mi`, `1Ti5`, an empty value and the marker are refused | new (R2) |
+| `TestValidMemoryKubernetesRefusesBareM` | A bare `m`, `u` or `n` is refused with the message that says to write Mi or M, not m | new (R2) |
 | `TestValidCPUSet` | Lists and ranges; backwards ranges, empty items and spaces refused | new |
+
+### containerart/writer
+
+Every refused value in these tests is built around the marker `hunter2`, and each
+refusal row asserts the error text repeats neither the marker nor the whole input
+(S8). The tests are external (`package writer_test`) and use no network, clock,
+environment or file system.
+
+#### error_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestErrorText` | `Error()` reads `path: rule` | new |
+
+#### quote_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestQuote` | Escapes, quotes, tabs, `\u` for a non-printing rune, `$` left alone, invalid UTF-8 as `\xNN` | new |
+| `TestQuoteDollar` | Every `$` doubled and none left single | new |
+| `TestQuoteMatchesComposeQuote` | `QuoteDollar` writes the bytes `compose.Quote` writes, over a fixed table of vectors | `compose_test.go` `TestComposeQuoteEscapes`, `TestQuoteMatchesBothTools`, `TestQuoteEscapesUnprintable` (inline copies) |
+
+#### node_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestNodeScalars` | `Str`, `StrDollar`, `Int` and `Bool` per dialect, an empty string, a control character | new |
+| `TestWord` | A bare word is written only from the closed list; a refused word is not echoed | new |
+| `TestInterp` | `"${NAME:-}"` with a single `$`, a bad name refused, Kubernetes refused | new |
+| `TestDataKeyQuoting` | S5: `123`, `true`, `NO`, `1e3` and M's own label keys are quoted; Kubernetes data keys may hold a space or `$` | new |
+| `TestKeywordKeyKubernetes` | A bare key is plain letters and digits starting with a letter; `yes`, `null`, `Y` and `123` refused | new |
+| `TestKeywordKeyCompose` | A bare compose key adds `_`, `-` and `.`; booleans, a leading digit or `_` and `$` refused | new |
+| `TestComposeKeyRefusals` | A data key with `$`, a space or a control character refused on compose; empty, control and invalid UTF-8 on both | new |
+| `TestEmptyNodes` | An empty map, list, flow list or nil value is an error; `EmptyMap` writes `{}`; an empty string is `""` | new |
+| `TestMisplacedNodesRefused` | A list in a list, a block as a list item, a non-scalar in a flow list and a key written twice are refused, `image` beside `"image"` included | new |
+| `TestInvalidUTF8Refused` | Invalid UTF-8 in `Str`, `StrDollar`, `Flow` and `Block` refused on both dialects | new |
+
+#### yaml_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestMarshalLayout` | Indent, a list under a key, a map in a list item with a list or map under its first key, a flow list, LF only, one final newline; a pod-spec tree on Kubernetes | new |
+| `TestMarshalIsDeterministic` | The same tree writes the same bytes, and writing does not change it | new |
+| `TestJoin` | One `---` line between documents, one final newline, an empty document and no document | new |
+| `TestMarshalCollectsEveryProblem` | Six bad nodes give one joined error of six `*Error` values and no output | new |
+| `TestErrorPaths` | The path is built from keys, `["KEY"]`, `[N]` and `document`; a refused key is `?`; no value | new |
+| `TestMarshalRootAndDialect` | An unset dialect and a root that is not a Map with an entry are refused | new |
+
+#### block_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestBlockComposeMarkers` | C10: `|-`, `|`, `|+`, a text of newlines only, an empty text, `$` doubled | new |
+| `TestBlockIndentIndicator` | `|2`, `|2-` and `|2+` when the first non-empty line starts with a space | new |
+| `TestBlockEmptyLinesCarryNoIndent` | An empty line is empty in the file, nested too | new |
+| `TestBlockKubernetesNoKeep` | Two or more final newlines become a quoted string; `|` and `|-` as on compose; never `|+` | new |
+| `TestBlockRefusals` | Each `CheckInlineText` character refused on both dialects without an offset; newline, tab and U+FFFD pass | new |
+| `TestBlockRefusalsMatchCheckInlineText` | The writer's copy of the refused set agrees with `workload.CheckInlineText` on every rune to U+3000, the edges above it and invalid bytes | new |
+
+#### unit_test.go
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestUnitQuoted` | `Quoted` writes the bytes of `quadlet.Environment` and `quadlet.Escape`; a newline cannot add a key | `quadlet_test.go` `TestSystemdEnvEscapes`, `TestEscapeWritesControlsAsCEscapes`, `TestEnvironmentIsAlwaysQuoted` (inline copies) |
+| `TestUnitBare` | `%` doubled, quotes and backslashes kept; a line break, another control character, `$` and a bad key refused | new |
+| `TestUnitExtra` | Whitespace, a quote, a backslash or `$` refused with the key named and the value not; a bad key refused and not named | new |
+| `TestUnitSections` | Section order whatever the call order, one blank line, none after the last, `[Service]` always, the header comment first and replaceable | new |
+| `TestUnitCollectsEveryProblem` | Six problems come back joined with no output and no value | new |
 
 ### podman, podman_test.go
 
@@ -623,10 +700,26 @@ the other check.
 | `TestOccupantsOwnershipBlind` | With no owned objects, a deployment's own leftovers count | new |
 | `TestOccupantsRefusesUnreadable` | Empty, blank, not JSON, no items, null items, a single object, an item with no kind or name: each keeps the namespace | new; cases from A `TestNamespaceOccupantsRejectsUnreadableOutput` and B `TestNamespaceContentsErrorMeansOccupied` |
 
+### internal/posture, posture_test.go
+
+An external test package, since `compose` and `quadlet` import `internal/posture`.
+
+| Test | What it covers | Source |
+| --- | --- | --- |
+| `TestComposeLinesMatchRenderer` | The posture text is the five lines both tools write, and `compose.Posture` is that text | `compose_test.go` `TestPostureBytes` (inline copy) |
+| `TestQuadletLinesMatchRenderer` | The posture text is the two lines both tools write, and `quadlet.Posture` is that text | `quadlet_test.go` `TestPostureBytes` (inline copy) |
+| `TestComposeExtraDenied` | Every listed compose key is denied with the sentence of its group, and the exported list holds exactly those keys | new |
+| `TestComposeExtraAllowed` | `shm_size`, `ulimits` and A's `entrypoint`, `command` and `tmpfs` (P4) pass; the match is exact and lower case | new |
+| `TestQuadletExtraDenied` | Every listed quadlet key is denied with the sentence of its group; `ShmSize`, `Ulimit` and `Tmpfs` pass | new |
+| `TestQuadletExtraCase` | Quadlet keys are matched without regard to case | new |
+| `TestQuadletExtraKeyGrammar` | A key with `=`, a space, a line break or a control character, or empty, is denied with its own reason and not echoed | new |
+| `TestExtraListsAreFresh` | An edit to a returned list does not change the next call or a lookup | new |
+| `TestCheckedAgainstNamesVersions` | Each list names the engine release it was written against | new |
+
 ## Coverage
 
 The last recorded total is 99.8%, from R1 (2026-11-18; B7 was 99.7%, B6 and B5
-99.6%, B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The
-`cov` task prints the total into `scripts/logs/cov.log`, and the previous total
+99.6%, B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). R2 total pending the owner's
+cov run. The `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change. The total is measured on Linux, so a file
 built only on Windows (`watch/vt_windows.go`) is outside it.

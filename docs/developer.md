@@ -66,6 +66,7 @@ Packages are built in this order. Each step is planned and approved on its own.
 | B6 | `containercli`, `containercli/inspect`, `watch` | A `internal/runner` `Docker`, `DockerLifecycle`, `Preflight`'s engine branch, `EngineList`, `EngineInspectJSON`, `ExecArgv`, `InstallScript` and `LogsArgv`, the decoding and name filter in `internal/statusreport/parse.go`, and the watch loop in `cmd/solmq-conn-util/status.go`; B `internal/container` `preflight.go`, the docker deploy, delete, listing, lifecycle and logs paths in `manager.go`, `transport.go`'s exec and upload, `inspect.go`, and `internal/cli/watch.go`. A's status model, image, stats and status-script code and B's `cp` transport, registry login and cert-digest comparison stay in the tools |
 | B7 | `kube`, `kube/rbac`, `kube/nsgate` | A `internal/runner/runner.go` `Kubernetes`, `KubernetesLifecycle`, `Preflight`'s can-i branch and `canIDenied`, the get and list builders and the kubernetes branches of `ExecArgv` and `LogsArgv`, plus `cmd/solmq-conn-util/namespace.go` and `NamespaceManifest`; B `internal/k8s` `cluster.go` apply and delete, `prep.go` namespace read, create and delete, `ops.go` scale, rollout and logs, `transport.go` exec and upload, `preflight.go` and `namespace.go`. A's status parsers, `top` and secret probes and B's operator, CR, `cp` and delete-pod restart code stay in the tools |
 | R1 | `containerart/workload` | new; rules from the 2026-11-15 surface review answers. Value types and checks only: image, run-as, port, restart and network words, container name, host name, time zone, health, ulimit, memory, CPU list, compose variable name, inline text and mount source, each returning a `*FieldError` that never echoes free text. It imports only the standard library, `execguard` and `envref`, so `kube.ValidLabel` can delegate to `ValidDNSLabel` later. No renderer, `Spec` or tool change |
+| R2 | `containerart/writer`, `internal/posture` | new; plan 2026-11-27 (docs/design/2026-11-27-plan-r2-writer.md). `writer`: the two quotes (`Quote`, `QuoteDollar`), a YAML node tree for compose and Kubernetes (`Marshal`, `Join`) and the quadlet unit-line writer (`NewUnit`), standard library only. `internal/posture`: the two posture texts and the S1 deny lists for compose and quadlet extras. `compose.Posture` and `quadlet.Posture` now alias `posture`. R1 follow-ups in `workload`: Kubernetes memory quantities, Kubernetes restart words with `ValidKubeRestart`, `ValidPullPolicy` and `ValidServiceType`. No renderer, `Spec` or tool change |
 
 The `output` package waits until the output-model decision is made, because only
 B uses it until then. Each tool keeps its own version printing.
@@ -73,6 +74,29 @@ B uses it until then. Each tool keeps its own version printing.
 `internal/build` holds the helpers `containercli`, `kube` and `podman` share: the
 argv copy, the non-nil stdin copy, sh single-quoting and the upload script. It is
 internal, so neither tool can import it, and it changes no builder's output.
+
+`internal/posture` sits at the module root, not under `containerart`, so that the
+renderers and the top-level `artifacttest` can both import it and no tool can.
+It holds the posture lines and the deny lists as constants and functions that
+return fresh slices, so no package variable holds state. `compose.Posture` and
+`quadlet.Posture` are those constants under their exported names, with the same
+bytes; making them private is the renderer step's job (N25). Each deny list
+entry carries its group, as a fixed reason sentence the renderer prints after the
+key (a name, so S8 lets it echo). A key a later engine adds passes until it is
+listed, so `ComposeCheckedAgainst` and `QuadletCheckedAgainst` name the releases
+the lists were written against. `artifacttest`'s `Widening()` and `HostNetwork()`
+stay substrings searched in rendered text; a test pins that every `Widening()`
+token that is a key name is denied by `posture`.
+
+`containerart/writer` is the one writer of the renderers' text. A tool needs only
+`Quote` and `QuoteDollar`, for text it still writes itself. Renderers build a
+`Node` tree (`Str`, `StrDollar`, `Int`, `Bool`, `Word`, `Interp`, `Block`, `Flow`,
+`Map`, `Seq`, `EmptyMap`, with `KV` for a keyword key and `DataKV` for a key that
+is data) and call `Marshal` for a compose or Kubernetes document, `Join` for a
+stream, and `NewUnit` for a quadlet unit. A writer value keeps its state in
+itself, and an `*Error` carries a path built from keys and a fixed rule, never a
+value. To add a node kind, add a constructor and one case in `emitter.inline`,
+`mapping` or `sequence`, and a row in `node_test.go`.
 
 Notes on the available packages:
 
@@ -156,11 +180,17 @@ Notes on the available packages:
   tool constants stay bare; every quadlet assignment is `quadlet.Environment`,
   quoted whole. A value meant for interpolation, such as a digest label
   `"${VAR}"`, is written by the tool and never escaped.
-- `compose.Quote` cannot carry invalid UTF-8, since YAML has no escape for a raw
-  byte. `quadlet.Escape` writes a control character as a C escape that podman
+- `writer.Quote` and `writer.QuoteDollar` (R2; `QuoteDollar` is the bytes of
+  `compose.Quote`) cannot carry invalid UTF-8, since YAML has no escape for a raw
+  byte: a raw byte comes out as `\xNN`, a different code point. The node writer
+  (`writer.Marshal`) refuses invalid UTF-8 instead. `compose.Quote` stays until the
+  renderer step makes it private. `quadlet.Escape` writes a control character as a C escape that podman
   decodes, so a newline cannot add keys to a unit. Each tool still checks every
   value it routes to either against execguard's charset at load.
-- `compose.Posture` and `quadlet.Posture` are the privilege lines. The user line
+- `compose.Posture` and `quadlet.Posture` are the privilege lines, and are
+  aliases of `internal/posture` since R2: one source, the same bytes. The S1 deny
+  lists for compose and quadlet extras live there too (`ComposeExtra`,
+  `QuadletExtra`); a renderer asks them and names the key in its own error. The user line
   stays with the tool, which may keep the image's own user.
   `compose.ServiceSecrets`, `compose.TopSecrets` and `quadlet.Secret` are the
   secret wiring: values come from the environment compose runs with or from
