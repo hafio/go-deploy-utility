@@ -718,8 +718,7 @@ An external test package, since `compose` and `quadlet` import `internal/posture
 
 ## Coverage
 
-The last recorded total is 99.8%, from R1 (2026-11-18; B7 was 99.7%, B6 and B5
-99.6%, B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). R2 total pending the owner's
-cov run. The `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
+The last recorded total is 99.8%, from R2 (2026-11-28; R1 was 99.8%, B7 99.7%, B6 and B5
+99.6%, B4 and B3 99.5%, B2 99.3%, B1 99.1%, the scaffold 0.0%). The `cov` task prints the total into `scripts/logs/cov.log`, and the previous total
 there is the floor for the next change. The total is measured on Linux, so a file
 built only on Windows (`watch/vt_windows.go`) is outside it.
